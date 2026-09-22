@@ -4,6 +4,18 @@ import { OperationalStatus, Project } from "@/lib/types/database";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 
+const EJECUTORES_LIST = [
+  'AMIGO SEBASTIAN',
+  'ALBANESE JESUS',
+  'ARMIGNACCO ADRIAN',
+  'JARA ESTEBAN',
+  'MARCHAT ALEJANDRO',
+  'MARCHAT JONATAN',
+  'KOZDRON MATIAS',
+  'ROMERO GUSTAVO',
+  'SALDIAS PABLO'
+];
+
 interface ProjectFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,9 +30,10 @@ export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = ''
   const [central, setCentral] = useState('');
   const [titulo, setTitulo] = useState('');
   const [ejecutor, setEjecutor] = useState('');
+  const [customEjecutor, setCustomEjecutor] = useState('');
   const [ctosCount, setCtosCount] = useState<number>(0);
-  const [alimentacion, setAlimentacion] = useState('SI');
-  const [situacion, setSituacion] = useState<OperationalStatus>('En ejecución');
+  const [alimentacion, setAlimentacion] = useState('NO');
+  const [situacion, setSituacion] = useState<OperationalStatus>('Demorado');
   const [observaciones, setObservaciones] = useState('');
   const [error, setError] = useState('');
 
@@ -37,6 +50,8 @@ export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = ''
       return;
     }
 
+    const finalEjecutor = ejecutor === '__CUSTOM__' ? customEjecutor.trim() : ejecutor.trim();
+
     setError('');
     onSubmit({
       sigest: sigest.trim(),
@@ -44,9 +59,9 @@ export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = ''
       distrito: distrito.trim() || undefined,
       central: central.trim() || undefined,
       titulo: titulo.trim() || undefined,
-      ejecutor: ejecutor.trim() || undefined,
+      ejecutor: finalEjecutor || undefined,
       ctos_count: Number(ctosCount) || 0,
-      alimentacion: alimentacion.trim() || undefined,
+      alimentacion: alimentacion.trim() || 'NO',
       situacion_operativa: situacion,
       observaciones: observaciones.trim() || undefined,
       created_by: 'Dario'
@@ -70,7 +85,7 @@ export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = ''
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-3 py-2 rounded text-xs">
+            <div className="bg-red-50 border border-red-200 text-red-800 px-3 py-2 rounded text-xs font-medium">
               {error}
             </div>
           )}
@@ -136,13 +151,30 @@ export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = ''
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Equipo Ejecutor</label>
-              <input
-                type="text"
-                placeholder="Ej. Contratista ABC"
+              <select
                 value={ejecutor}
                 onChange={(e) => setEjecutor(e.target.value)}
-                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded"
-              />
+                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white text-slate-900"
+              >
+                <option value="">-- Seleccionar Ejecutor --</option>
+                {EJECUTORES_LIST.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+                <option value="__CUSTOM__">✍️ Escribir otro ejecutor...</option>
+              </select>
+
+              {ejecutor === '__CUSTOM__' && (
+                <input
+                  type="text"
+                  required
+                  placeholder="Nombre del ejecutor..."
+                  value={customEjecutor}
+                  onChange={(e) => setCustomEjecutor(e.target.value)}
+                  className="w-full text-xs px-3 py-1.5 border border-blue-400 rounded mt-1.5 bg-blue-50/50"
+                />
+              )}
             </div>
 
             <div>
@@ -150,12 +182,12 @@ export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = ''
               <select
                 value={situacion}
                 onChange={(e) => setSituacion(e.target.value as OperationalStatus)}
-                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white"
+                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white font-semibold"
               >
+                <option value="Demorado">Demorado</option>
                 <option value="En preparación">En preparación</option>
                 <option value="Asignado">Asignado</option>
                 <option value="En ejecución">En ejecución</option>
-                <option value="Demorado">Demorado</option>
                 <option value="Rediseño">Rediseño</option>
                 <option value="Finalizado">Finalizado</option>
               </select>
@@ -181,8 +213,8 @@ export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = ''
                 onChange={(e) => setAlimentacion(e.target.value)}
                 className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white font-semibold"
               >
-                <option value="SI">SI</option>
                 <option value="NO">NO</option>
+                <option value="SI">SI</option>
               </select>
             </div>
           </div>
