@@ -321,35 +321,12 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
                         )}
 
                         <button
-                          onClick={() => toggleExpand(repair.id)}
-                          className={`inline-flex items-center gap-1 text-[11px] px-2 py-1 font-medium transition-colors ${
-                            isExpanded
-                              ? 'bg-blue-100 text-blue-900 font-bold'
-                              : 'bg-slate-50 hover:bg-slate-100 text-slate-700'
-                          }`}
-                          title="Desplegar hitos del historial de eventos"
-                        >
-                          <History className="h-3 w-3 text-slate-500" />
-                          <span>Hitos {isExpanded ? '▲' : '▼'}</span>
-                        </button>
-
-                        <button
                           onClick={() => setRepairToEdit(repair)}
-                          className="inline-flex items-center gap-1 text-[11px] bg-slate-50 hover:bg-slate-100 text-slate-700 px-2 py-1 font-medium transition-colors"
-                          title="Editar datos cargados del reparo"
+                          className="inline-flex items-center justify-center text-[11px] bg-slate-50 hover:bg-slate-100 text-slate-700 px-2 py-1 font-medium transition-colors"
+                          title="Editar datos del reparo"
                         >
-                          <Edit className="h-3 w-3 text-slate-500" />
-                          <span>Editar</span>
+                          <Edit className="h-3.5 w-3.5 text-slate-600" />
                         </button>
-
-                        <Link
-                          href={`/reparos/${repair.id}`}
-                          className="inline-flex items-center gap-0.5 text-[11px] bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-800 px-2 py-1 font-medium transition-colors"
-                          title="Ver ficha completa del reparo"
-                        >
-                          <span>Ver</span>
-                          <ArrowUpRight className="h-3 w-3" />
-                        </Link>
                       </div>
                     </td>
                   </tr>

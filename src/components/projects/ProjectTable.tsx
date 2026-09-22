@@ -2,7 +2,7 @@
 
 import { Project } from "@/lib/types/database";
 import { formatDate } from "@/lib/utils";
-import { ArrowUpRight, Edit3, FolderGit2, Wrench } from "lucide-react";
+import { Edit3, FolderGit2, Wrench } from "lucide-react";
 import Link from "next/link";
 import { ProjectStatusBadge } from "../shared/Badges";
 
@@ -103,35 +103,27 @@ export function ProjectTable({ projects, onNewRepairClick, onEditProjectClick }:
                 <td className="text-xs text-slate-600">
                   {formatDate(project.created_at)}
                 </td>
-                <td className="text-right">
-                  <div className="flex items-center justify-end gap-1.5">
-                    {onEditProjectClick && (
-                      <button
-                        onClick={() => onEditProjectClick(project)}
-                        className="inline-flex items-center gap-1 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded border border-slate-300 font-medium transition-colors"
-                        title="Editar datos del proyecto (Distrito, Central, Ejecutor, CTOs, Alimentación)"
-                      >
-                        <Edit3 className="h-3 w-3 text-slate-600" />
-                        <span>Editar</span>
-                      </button>
-                    )}
+                <td className="text-right whitespace-nowrap">
+                  <div className="inline-flex items-center rounded border border-slate-300 shadow-2xs overflow-hidden divide-x divide-slate-300 bg-white">
                     {onNewRepairClick && (
                       <button
                         onClick={() => onNewRepairClick(project)}
-                        className="inline-flex items-center gap-1 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded border border-slate-300 font-medium transition-colors"
+                        className="inline-flex items-center gap-1 text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 font-semibold transition-colors"
                         title="Agregar Reparo a este Proyecto"
                       >
-                        <Wrench className="h-3 w-3 text-slate-600" />
+                        <Wrench className="h-3 w-3" />
                         <span>+ Reparo</span>
                       </button>
                     )}
-                    <Link
-                      href={`/proyectos/${project.id}`}
-                      className="inline-flex items-center gap-1 text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-800 px-2 py-1 rounded border border-blue-200 font-medium transition-colors"
-                    >
-                      <span>Ver</span>
-                      <ArrowUpRight className="h-3 w-3" />
-                    </Link>
+                    {onEditProjectClick && (
+                      <button
+                        onClick={() => onEditProjectClick(project)}
+                        className="inline-flex items-center justify-center text-[11px] bg-slate-50 hover:bg-slate-100 text-slate-700 px-2 py-1 font-medium transition-colors"
+                        title="Editar datos del proyecto"
+                      >
+                        <Edit3 className="h-3.5 w-3.5 text-slate-600" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
