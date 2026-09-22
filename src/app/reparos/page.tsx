@@ -1,5 +1,6 @@
 'use client';
 
+import { ProjectFormModal } from "@/components/projects/ProjectFormModal";
 import { RepairFilters } from "@/components/repairs/RepairFilters";
 import { RepairFormModal } from "@/components/repairs/RepairFormModal";
 import { RepairTable } from "@/components/repairs/RepairTable";
@@ -7,12 +8,13 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { repository } from "@/lib/store/repository";
 import { Repair } from "@/lib/types/database";
-import { Plus, Wrench } from "lucide-react";
+import { FolderGit2, Plus, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function RepairsPage() {
   const [repairs, setRepairs] = useState<Repair[]>([]);
   const [isLoading, setIsLoading] = useState(!repository.isLoaded);
+  const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [isNewRepairOpen, setIsNewRepairOpen] = useState(false);
   const [selectedRepairForEvent, setSelectedRepairForEvent] = useState<Repair | null>(null);
 
@@ -50,6 +52,12 @@ export default function RepairsPage() {
     }
     init();
   }, [search, statusId, responsibleId, priority, typeId, distrito, central, onlyReiterated]);
+
+  const handleCreateProject = async (data: any) => {
+    await repository.createProject(data);
+    setIsNewProjectOpen(false);
+    loadRepairs();
+  };
 
   const handleCreateRepair = async (data: any) => {
     await repository.createRepair(data);
@@ -89,13 +97,24 @@ export default function RepairsPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsNewRepairOpen(true)}
-          className="inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded font-medium shadow-2xs transition-colors shrink-0"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>Nuevo Reparo</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setIsNewProjectOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded font-medium shadow-2xs transition-colors"
+            title="Registrar un nuevo proyecto FTTH"
+          >
+            <FolderGit2 className="h-3.5 w-3.5 text-blue-400" />
+            <span>+ Agregar Proyecto</span>
+          </button>
+
+          <button
+            onClick={() => setIsNewRepairOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded font-medium shadow-2xs transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>+ Nuevo Reparo</span>
+          </button>
+        </div>
       </div>
 
       {/* Advanced Filters */}
@@ -139,6 +158,12 @@ export default function RepairsPage() {
       )}
 
       {/* Modals */}
+      <ProjectFormModal
+        isOpen={isNewProjectOpen}
+        onClose={() => setIsNewProjectOpen(false)}
+        onSubmit={handleCreateProject}
+      />
+
       <RepairFormModal
         isOpen={isNewRepairOpen}
         onClose={() => setIsNewRepairOpen(false)}
