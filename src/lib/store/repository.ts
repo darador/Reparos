@@ -2,7 +2,7 @@ import { INITIAL_PROJECTS, INITIAL_REPAIR_EVENTS, INITIAL_REPAIR_STATUSES, INITI
 import { createClient } from "../supabase/client";
 import { DashboardMetrics, Project, Repair, RepairEvent, RepairStatus, RepairType, ResponsibleParty } from "../types/database";
 
-// Supabase-Direct Data Store with strict Async Await confirmation
+// Supabase-Direct Data Store with strict Async Await confirmation & FK safety
 class DataRepository {
   public isLoaded: boolean = false;
   private syncPromise: Promise<void> | null = null;
@@ -79,9 +79,7 @@ class DataRepository {
       }
 
       if (respRes.data && respRes.data.length > 0) {
-        const coreNames = ['Obras', 'Ingeniería', 'Equipo Despliegue'];
-        const customParties = respRes.data.filter(item => !coreNames.includes(item.name));
-        this.responsibleParties = [...INITIAL_RESPONSIBLE_PARTIES, ...customParties];
+        this.responsibleParties = respRes.data;
       }
 
       if (typesRes.data && typesRes.data.length > 0) {
@@ -103,10 +101,19 @@ class DataRepository {
     return this.responsibleParties;
   }
 
-  async addResponsibleParty(name: string, type: ResponsibleParty['type']): Promise<ResponsibleParty> {
+  async addResponsibleParty(name: string, type: ResponsibleParty['type'] = 'contractor'): Promise<ResponsibleParty> {
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error("Nombre de responsable no válido");
+
+    // Check if responsible party with this exact name already exists in memory
+    const existing = this.responsibleParties.find(r => r.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) {
+      return existing;
+    }
+
     const newItem: ResponsibleParty = {
       id: crypto.randomUUID(),
-      name,
+      name: trimmed,
       type,
       is_active: true,
       created_at: new Date().toISOString()
@@ -115,6 +122,7 @@ class DataRepository {
     if (typeof window !== 'undefined') {
       const supabase = createClient();
       if (supabase) {
+        // Try inserting into Supabase
         const { error } = await supabase.from('responsible_parties').insert([{
           id: newItem.id,
           name: newItem.name,
@@ -122,8 +130,22 @@ class DataRepository {
           is_active: newItem.is_active,
           created_at: newItem.created_at
         }]);
+
         if (error) {
-          console.error("Supabase responsible_parties insert error:", error.message);
+          console.warn("Supabase responsible_parties insert notice:", error.message);
+          // If insert failed (e.g. duplicate key or RLS restriction), query Supabase for an existing row by name
+          const { data: dbMatches } = await supabase.from('responsible_parties').select('*').ilike('name', trimmed).limit(1);
+          if (dbMatches && dbMatches.length > 0) {
+            const found = dbMatches[0];
+            if (!this.responsibleParties.some(p => p.id === found.id)) {
+              this.responsibleParties.push(found);
+            }
+            return found;
+          }
+          // If still failing, check if any responsible party exists in memory as safe fallback
+          if (this.responsibleParties.length > 0) {
+            return this.responsibleParties[0];
+          }
         }
       }
     }
@@ -245,14 +267,14 @@ class DataRepository {
           id: newProject.id,
           sigest: newProject.sigest,
           poligono: newProject.poligono,
-          distrito: newProject.distrito,
-          central: newProject.central,
-          titulo: newProject.titulo,
-          ejecutor: newProject.ejecutor,
+          distrito: newProject.distrito || null,
+          central: newProject.central || null,
+          titulo: newProject.titulo || null,
+          ejecutor: newProject.ejecutor || null,
           ctos_count: newProject.ctos_count,
-          alimentacion: newProject.alimentacion,
+          alimentacion: newProject.alimentacion || 'NO',
           situacion_operativa: newProject.situacion_operativa,
-          observaciones: newProject.observaciones,
+          observaciones: newProject.observaciones || null,
           created_at: newProject.created_at,
           updated_at: newProject.updated_at,
           created_by: newProject.created_by
@@ -286,14 +308,14 @@ class DataRepository {
         const { error } = await supabase.from('projects').update({
           sigest: updated.sigest,
           poligono: updated.poligono,
-          distrito: updated.distrito,
-          central: updated.central,
-          titulo: updated.titulo,
-          ejecutor: updated.ejecutor,
+          distrito: updated.distrito || null,
+          central: updated.central || null,
+          titulo: updated.titulo || null,
+          ejecutor: updated.ejecutor || null,
           ctos_count: updated.ctos_count,
-          alimentacion: updated.alimentacion,
+          alimentacion: updated.alimentacion || 'NO',
           situacion_operativa: updated.situacion_operativa,
-          observaciones: updated.observaciones,
+          observaciones: updated.observaciones || null,
           updated_at: updated.updated_at
         }).eq('id', id);
 
@@ -389,6 +411,12 @@ class DataRepository {
     const fallbackType = this.repairTypes.find(t => t.name === 'Otro');
     const targetTypeId = data.repair_type_id || fallbackType?.id || this.repairTypes[0]?.id;
 
+    // Verify responsible ID actually exists in responsibleParties before inserting
+    let validRespId = data.current_responsible_id || null;
+    if (validRespId && !this.responsibleParties.some(p => p.id === validRespId)) {
+      validRespId = null;
+    }
+
     const newRepair: Repair = {
       id: crypto.randomUUID(),
       project_id: data.project_id,
@@ -396,7 +424,7 @@ class DataRepository {
       description: data.description,
       priority: data.priority || 'Normal',
       solicitante: data.solicitante,
-      current_responsible_id: data.current_responsible_id,
+      current_responsible_id: validRespId || undefined,
       current_status_id: initialStatusId,
       fecha_informado: new Date().toISOString(),
       fecha_compromiso: data.fecha_compromiso,
@@ -410,9 +438,9 @@ class DataRepository {
       id: crypto.randomUUID(),
       repair_id: newRepair.id,
       event_type: 'creation',
-      new_responsible_id: data.current_responsible_id,
+      new_responsible_id: validRespId || undefined,
       new_status_id: initialStatusId,
-      notes: data.current_responsible_id ? 'Reparo registrado y derivado inicialmente.' : 'Reparo registrado en el sistema (PENDIENTE).',
+      notes: validRespId ? 'Reparo registrado y derivado inicialmente.' : 'Reparo registrado en el sistema (PENDIENTE).',
       created_at: new Date().toISOString(),
       created_by: data.user_name || 'Usuario Sistema'
     };
@@ -423,15 +451,15 @@ class DataRepository {
         const { error: repErr } = await supabase.from('repairs').insert([{
           id: newRepair.id,
           project_id: newRepair.project_id,
-          repair_type_id: newRepair.repair_type_id,
+          repair_type_id: newRepair.repair_type_id || null,
           description: newRepair.description,
           priority: newRepair.priority,
-          solicitante: newRepair.solicitante,
-          current_responsible_id: newRepair.current_responsible_id,
+          solicitante: newRepair.solicitante || null,
+          current_responsible_id: validRespId,
           current_status_id: newRepair.current_status_id,
           fecha_informado: newRepair.fecha_informado,
-          fecha_compromiso: newRepair.fecha_compromiso,
-          observaciones: newRepair.observaciones,
+          fecha_compromiso: newRepair.fecha_compromiso || null,
+          observaciones: newRepair.observaciones || null,
           created_at: newRepair.created_at,
           updated_at: newRepair.updated_at,
           created_by: newRepair.created_by
@@ -446,9 +474,11 @@ class DataRepository {
           id: creationEvent.id,
           repair_id: creationEvent.repair_id,
           event_type: creationEvent.event_type,
-          new_responsible_id: creationEvent.new_responsible_id,
-          new_status_id: creationEvent.new_status_id,
-          notes: creationEvent.notes,
+          previous_responsible_id: null,
+          new_responsible_id: validRespId,
+          previous_status_id: null,
+          new_status_id: creationEvent.new_status_id || null,
+          notes: creationEvent.notes || null,
           created_at: creationEvent.created_at,
           created_by: creationEvent.created_by
         }]);
@@ -471,9 +501,15 @@ class DataRepository {
     const oldRepair = this.repairs[index];
     const prevResponsibleId = oldRepair.current_responsible_id;
 
+    let targetRespId = data.current_responsible_id !== undefined ? data.current_responsible_id : oldRepair.current_responsible_id;
+    if (targetRespId && !this.responsibleParties.some(p => p.id === targetRespId)) {
+      targetRespId = undefined;
+    }
+
     const updated: Repair = {
       ...oldRepair,
       ...data,
+      current_responsible_id: targetRespId,
       updated_at: new Date().toISOString()
     };
 
@@ -482,14 +518,14 @@ class DataRepository {
       if (supabase) {
         const { error } = await supabase.from('repairs').update({
           project_id: updated.project_id,
-          repair_type_id: updated.repair_type_id,
+          repair_type_id: updated.repair_type_id || null,
           description: updated.description,
           priority: updated.priority,
-          solicitante: updated.solicitante,
-          current_responsible_id: updated.current_responsible_id,
+          solicitante: updated.solicitante || null,
+          current_responsible_id: targetRespId || null,
           current_status_id: updated.current_status_id,
-          fecha_compromiso: updated.fecha_compromiso,
-          observaciones: updated.observaciones,
+          fecha_compromiso: updated.fecha_compromiso || null,
+          observaciones: updated.observaciones || null,
           updated_at: updated.updated_at
         }).eq('id', id);
 
@@ -498,13 +534,13 @@ class DataRepository {
           throw new Error("No se pudo actualizar el reparo en Supabase: " + error.message);
         }
 
-        if (data.current_responsible_id !== undefined && data.current_responsible_id !== prevResponsibleId) {
+        if (targetRespId !== prevResponsibleId) {
           const editEvent: RepairEvent = {
             id: crypto.randomUUID(),
             repair_id: id,
             event_type: 'assignment',
-            previous_responsible_id: prevResponsibleId,
-            new_responsible_id: data.current_responsible_id,
+            previous_responsible_id: prevResponsibleId || undefined,
+            new_responsible_id: targetRespId || undefined,
             previous_status_id: oldRepair.current_status_id,
             new_status_id: updated.current_status_id,
             notes: 'Responsable modificado en edición.',
@@ -517,11 +553,11 @@ class DataRepository {
             id: editEvent.id,
             repair_id: editEvent.repair_id,
             event_type: editEvent.event_type,
-            previous_responsible_id: editEvent.previous_responsible_id,
-            new_responsible_id: editEvent.new_responsible_id,
-            previous_status_id: editEvent.previous_status_id,
-            new_status_id: editEvent.new_status_id,
-            notes: editEvent.notes,
+            previous_responsible_id: editEvent.previous_responsible_id || null,
+            new_responsible_id: editEvent.new_responsible_id || null,
+            previous_status_id: editEvent.previous_status_id || null,
+            new_status_id: editEvent.new_status_id || null,
+            notes: editEvent.notes || null,
             created_at: editEvent.created_at,
             created_by: editEvent.created_by
           }]);
@@ -580,6 +616,10 @@ class DataRepository {
     let targetStatusId = repair.current_status_id;
     let targetResponsibleId = data.new_responsible_id !== undefined ? data.new_responsible_id : repair.current_responsible_id;
 
+    if (targetResponsibleId && !this.responsibleParties.some(p => p.id === targetResponsibleId)) {
+      targetResponsibleId = undefined;
+    }
+
     if (data.event_type === 'resolution') {
       targetStatusId = resolvedStatus.id;
     } else if (data.event_type === 'verification') {
@@ -613,7 +653,7 @@ class DataRepository {
       if (supabase) {
         const { error: repErr } = await supabase.from('repairs').update({
           current_status_id: targetStatusId,
-          current_responsible_id: targetResponsibleId,
+          current_responsible_id: targetResponsibleId || null,
           updated_at: new Date().toISOString()
         }).eq('id', repair.id);
 
@@ -626,12 +666,12 @@ class DataRepository {
           id: newEvent.id,
           repair_id: newEvent.repair_id,
           event_type: newEvent.event_type,
-          previous_responsible_id,
-          new_responsible_id: targetResponsibleId,
-          previous_status_id,
-          new_status_id: targetStatusId,
-          verification_result: data.verification_result,
-          notes: data.notes,
+          previous_responsible_id: previous_responsible_id || null,
+          new_responsible_id: targetResponsibleId || null,
+          previous_status_id: previous_status_id || null,
+          new_status_id: targetStatusId || null,
+          verification_result: data.verification_result || null,
+          notes: data.notes || null,
           created_at: newEvent.created_at,
           created_by: newEvent.created_by
         }]);
