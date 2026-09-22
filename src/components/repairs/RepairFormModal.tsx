@@ -5,6 +5,27 @@ import { Project, RepairPriority, RepairType, ResponsibleParty } from "@/lib/typ
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 
+const SOLICITANTES_LIST = [
+  'AMIGO SEBASTIAN',
+  'ALBANESE JESUS',
+  'ARMIGNACCO ADRIAN',
+  'JARA ESTEBAN',
+  'MARCHAT ALEJANDRO',
+  'MARCHAT JONATAN',
+  'KOZDRON MATIAS',
+  'ROMERO GUSTAVO',
+  'SALDIAS PABLO'
+];
+
+const RESPONSABLES_INICIALES_LIST = [
+  'Obras / ALI EDUARDO',
+  'Obras / DE LIO MARIANO',
+  'Obras / DI PASQUO EMILIO',
+  'Obras / LUTZ MARIA',
+  'Ingeniería / BENITEZ DANIEL',
+  'Ingeniería / PANDIANI'
+];
+
 interface RepairFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -37,9 +58,13 @@ export function RepairFormModal({
   const [repairTypeId, setRepairTypeId] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<RepairPriority>('Normal');
+  
   const [solicitante, setSolicitante] = useState('');
-  const [responsibleId, setResponsibleId] = useState('');
+  const [customSolicitante, setCustomSolicitante] = useState('');
+  
+  const [responsibleChoice, setResponsibleChoice] = useState('');
   const [customResponsibleName, setCustomResponsibleName] = useState('');
+  
   const [fechaCompromiso, setFechaCompromiso] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [error, setError] = useState('');
@@ -57,14 +82,26 @@ export function RepairFormModal({
       return;
     }
 
-    let finalResponsibleId: string | undefined = responsibleId || undefined;
-    if (responsibleId === '__CUSTOM__') {
-      if (!customResponsibleName.trim()) {
-        setError('Escriba el nombre del nuevo responsable.');
-        return;
+    const finalSolicitante = solicitante === '__CUSTOM__' ? customSolicitante.trim() : solicitante.trim();
+
+    let finalResponsibleId: string | undefined = undefined;
+    if (responsibleChoice) {
+      if (responsibleChoice === '__CUSTOM__') {
+        if (!customResponsibleName.trim()) {
+          setError('Escriba el nombre del nuevo responsable.');
+          return;
+        }
+        const newParty = repository.addResponsibleParty(customResponsibleName.trim(), 'contractor');
+        finalResponsibleId = newParty.id;
+      } else {
+        const existing = responsibleParties.find(r => r.name.toLowerCase() === responsibleChoice.trim().toLowerCase());
+        if (existing) {
+          finalResponsibleId = existing.id;
+        } else {
+          const newParty = repository.addResponsibleParty(responsibleChoice.trim(), 'contractor');
+          finalResponsibleId = newParty.id;
+        }
       }
-      const newParty = repository.addResponsibleParty(customResponsibleName.trim(), 'contractor');
-      finalResponsibleId = newParty.id;
     }
 
     setError('');
@@ -73,7 +110,7 @@ export function RepairFormModal({
       repair_type_id: repairTypeId || undefined,
       description: description.trim(),
       priority,
-      solicitante: solicitante.trim() || undefined,
+      solicitante: finalSolicitante || undefined,
       current_responsible_id: finalResponsibleId,
       fecha_compromiso: fechaCompromiso || undefined,
       observaciones: observaciones.trim() || undefined
@@ -97,7 +134,7 @@ export function RepairFormModal({
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-3 py-2 rounded text-xs">
+            <div className="bg-red-50 border border-red-200 text-red-800 px-3 py-2 rounded text-xs font-medium">
               {error}
             </div>
           )}
@@ -115,7 +152,7 @@ export function RepairFormModal({
               <option value="">-- Seleccione Proyecto --</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
-                  SIGEST: {p.sigest} | Polígono: {p.poligono} {p.distrito ? `(${p.distrito})` : ''}
+                  SIGEST: {p.sigest} | Polígono: {p.poligono} {p.central ? `(${p.central})` : ''}
                 </option>
               ))}
             </select>
@@ -171,36 +208,53 @@ export function RepairFormModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Solicitante</label>
-              <input
-                type="text"
-                placeholder="Ej. Jefe de Obra / Auditor"
+              <select
                 value={solicitante}
                 onChange={(e) => setSolicitante(e.target.value)}
-                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded"
-              />
+                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white text-slate-900"
+              >
+                <option value="">-- Seleccionar Solicitante --</option>
+                {SOLICITANTES_LIST.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+                <option value="__CUSTOM__">✍️ Escribir otro solicitante...</option>
+              </select>
+
+              {solicitante === '__CUSTOM__' && (
+                <input
+                  type="text"
+                  required
+                  placeholder="Nombre del solicitante..."
+                  value={customSolicitante}
+                  onChange={(e) => setCustomSolicitante(e.target.value)}
+                  className="w-full text-xs px-3 py-1.5 border border-blue-400 rounded mt-1.5 bg-blue-50/50"
+                />
+              )}
             </div>
 
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Responsable Inicial (Opcional)</label>
               <select
-                value={responsibleId}
-                onChange={(e) => setResponsibleId(e.target.value)}
-                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white"
+                value={responsibleChoice}
+                onChange={(e) => setResponsibleChoice(e.target.value)}
+                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white text-slate-900"
               >
                 <option value="">-- Asignar después --</option>
-                {responsibleParties.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
+                {RESPONSABLES_INICIALES_LIST.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
                   </option>
                 ))}
-                <option value="__CUSTOM__">✍️ Escribir otro nombre de responsable...</option>
+                <option value="__CUSTOM__">✍️ Escribir otro responsable...</option>
               </select>
 
-              {responsibleId === '__CUSTOM__' && (
+              {responsibleChoice === '__CUSTOM__' && (
                 <input
                   type="text"
                   required
-                  placeholder="Nombre del responsable (ej. Marcos Silva, Contratista X)..."
+                  placeholder="Nombre del responsable..."
                   value={customResponsibleName}
                   onChange={(e) => setCustomResponsibleName(e.target.value)}
                   className="w-full text-xs px-3 py-1.5 border border-blue-400 rounded mt-1.5 bg-blue-50/50"
