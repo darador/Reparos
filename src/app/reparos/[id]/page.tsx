@@ -1,12 +1,13 @@
 'use client';
 
+import { RepairFormModal } from "@/components/repairs/RepairFormModal";
 import { PriorityBadge, StatusBadge } from "@/components/shared/Badges";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { RepairTimeline } from "@/components/timeline/RepairTimeline";
 import { repository } from "@/lib/store/repository";
 import { EventType, Repair, RepairEvent } from "@/lib/types/database";
-import { formatDate, formatDateTime, formatTimeAgo } from "@/lib/utils";
-import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, History, User, UserCheck, Wrench } from "lucide-react";
+import { formatDate, formatDateTime } from "@/lib/utils";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Edit, History, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -18,6 +19,7 @@ export default function RepairDetailPage() {
   const [repair, setRepair] = useState<Repair | undefined>(undefined);
   const [events, setEvents] = useState<RepairEvent[]>([]);
   const [isLogEventOpen, setIsLogEventOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [initialEventType, setInitialEventType] = useState<EventType>('follow_up');
 
   const loadData = () => {
@@ -54,6 +56,12 @@ export default function RepairDetailPage() {
     loadData();
   };
 
+  const handleUpdateRepair = (data: any) => {
+    repository.updateRepair(repairId, data);
+    loadData();
+    setIsEditOpen(false);
+  };
+
   const hasReiterations = (repair.reiteration_count || 0) > 0;
   const isClosed = repair.current_status?.category === 'closed';
 
@@ -76,7 +84,7 @@ export default function RepairDetailPage() {
                 REPARO #{repair.id.slice(0, 8)}
               </span>
               <span className="font-semibold text-sm text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                {repair.repair_type?.name}
+                {repair.repair_type?.name || 'Otro'}
               </span>
               <PriorityBadge priority={repair.priority} />
               <StatusBadge name={repair.current_status?.name} category={repair.current_status?.category} />
@@ -94,46 +102,58 @@ export default function RepairDetailPage() {
                 <Link href={`/proyectos/${repair.project.id}`} className="font-bold text-blue-700 hover:underline">
                   SIGEST {repair.project.sigest} / {repair.project.poligono}
                 </Link>
-                {repair.project.distrito && <span>({repair.project.distrito})</span>}
+                {repair.project.central && <span>({repair.project.central})</span>}
+                {repair.project.distrito && <span className="text-slate-400">[{repair.project.distrito}]</span>}
               </div>
             )}
           </div>
 
           {/* Operational action menu bar */}
-          {!isClosed && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                onClick={() => openLogEvent('follow_up')}
-                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded border border-slate-300 font-semibold transition-colors flex items-center gap-1"
-                title="Registrar respuesta o novedad (Permanece PENDIENTE)"
-              >
-                <History className="h-3.5 w-3.5 text-slate-600" />
-                <span>+ PENDIENTE OTROS</span>
-              </button>
-              <button
-                onClick={() => openLogEvent('resolution')}
-                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded font-medium shadow-2xs transition-colors flex items-center gap-1"
-                title="Marcar como resuelto y derivar al solicitante para verificación"
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>VERIFICAR RESUELTO</span>
-              </button>
-              <button
-                onClick={() => openLogEvent('closure')}
-                className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded font-medium shadow-2xs transition-colors flex items-center gap-1"
-                title="El solicitante verificó y pudo trabajar luego del reparo resuelto"
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>FINALIZADO</span>
-              </button>
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              onClick={() => setIsEditOpen(true)}
+              className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded border border-slate-300 font-semibold transition-colors flex items-center gap-1"
+              title="Editar los datos cargados de este reparo"
+            >
+              <Edit className="h-3.5 w-3.5 text-blue-600" />
+              <span>Editar Reparo</span>
+            </button>
+
+            {!isClosed && (
+              <>
+                <button
+                  onClick={() => openLogEvent('follow_up')}
+                  className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded border border-slate-300 font-semibold transition-colors flex items-center gap-1"
+                  title="Registrar respuesta o novedad (Permanece PENDIENTE)"
+                >
+                  <History className="h-3.5 w-3.5 text-slate-600" />
+                  <span>+ PENDIENTE OTROS</span>
+                </button>
+                <button
+                  onClick={() => openLogEvent('resolution')}
+                  className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded font-medium shadow-2xs transition-colors flex items-center gap-1"
+                  title="Marcar como resuelto y derivar al solicitante para verificación"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>VERIFICAR RESUELTO</span>
+                </button>
+                <button
+                  onClick={() => openLogEvent('closure')}
+                  className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded font-medium shadow-2xs transition-colors flex items-center gap-1"
+                  title="El solicitante verificó y pudo trabajar luego del reparo resuelto"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>FINALIZADO</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Description box */}
         <div className="space-y-1">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Descripción del Problema</h3>
-          <p className="text-xs md:text-sm text-slate-800 font-medium bg-slate-50 p-3 rounded border border-slate-200 whitespace-pre-wrap leading-relaxed">
+          <p className="text-sm text-slate-900 font-semibold bg-blue-50/50 p-3 rounded border border-blue-200/60 whitespace-pre-wrap leading-relaxed">
             {repair.description}
           </p>
         </div>
@@ -189,6 +209,19 @@ export default function RepairDetailPage() {
 
         <RepairTimeline events={events} />
       </div>
+
+      {/* Edit Repair Modal */}
+      {isEditOpen && (
+        <RepairFormModal
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          onSubmit={handleUpdateRepair}
+          projects={repository.getProjects()}
+          repairTypes={repository.getRepairTypes()}
+          responsibleParties={repository.getResponsibleParties()}
+          repairToEdit={repair}
+        />
+      )}
 
       {/* Log Event Modal */}
       {isLogEventOpen && (

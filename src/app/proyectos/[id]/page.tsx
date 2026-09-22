@@ -168,6 +168,7 @@ export default function ProjectDetailPage() {
         <RepairTable
           repairs={repairs}
           onLogEventClick={(r) => setSelectedRepairForEvent(r)}
+          onRefresh={loadProjectData}
         />
       </div>
 

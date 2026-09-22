@@ -435,6 +435,85 @@ class DataRepository {
     return this.enrichRepair(newRepair);
   }
 
+  updateRepair(id: string, data: Partial<Omit<Repair, 'id' | 'created_at'>>, user_name?: string): Repair {
+    const index = this.repairs.findIndex(r => r.id === id);
+    if (index === -1) throw new Error("Reparo no encontrado");
+
+    const oldRepair = this.repairs[index];
+    const prevResponsibleId = oldRepair.current_responsible_id;
+
+    const updated: Repair = {
+      ...oldRepair,
+      ...data,
+      updated_at: new Date().toISOString()
+    };
+
+    this.repairs[index] = updated;
+
+    // If responsible party changed during edit, log an assignment event
+    if (data.current_responsible_id !== undefined && data.current_responsible_id !== prevResponsibleId) {
+      const editEvent: RepairEvent = {
+        id: crypto.randomUUID(),
+        repair_id: id,
+        event_type: 'assignment',
+        previous_responsible_id: prevResponsibleId,
+        new_responsible_id: data.current_responsible_id,
+        previous_status_id: oldRepair.current_status_id,
+        new_status_id: updated.current_status_id,
+        notes: 'Responsable modificado en edición.',
+        created_at: new Date().toISOString(),
+        created_by: user_name || 'Usuario Sistema'
+      };
+      this.events.push(editEvent);
+
+      if (typeof window !== 'undefined') {
+        const supabase = createClient();
+        if (supabase) {
+          supabase.from('repair_events').insert([{
+            id: editEvent.id,
+            repair_id: editEvent.repair_id,
+            event_type: editEvent.event_type,
+            previous_responsible_id: editEvent.previous_responsible_id,
+            new_responsible_id: editEvent.new_responsible_id,
+            previous_status_id: editEvent.previous_status_id,
+            new_status_id: editEvent.new_status_id,
+            notes: editEvent.notes,
+            created_at: editEvent.created_at,
+            created_by: editEvent.created_by
+          }]).then(({ error }) => {
+            if (error) console.warn("Supabase event insert notice:", error.message);
+          });
+        }
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      const supabase = createClient();
+      if (supabase) {
+        supabase.from('repairs').update({
+          project_id: updated.project_id,
+          repair_type_id: updated.repair_type_id,
+          description: updated.description,
+          priority: updated.priority,
+          solicitante: updated.solicitante,
+          current_responsible_id: updated.current_responsible_id,
+          current_status_id: updated.current_status_id,
+          fecha_compromiso: updated.fecha_compromiso,
+          observaciones: updated.observaciones,
+          updated_at: updated.updated_at
+        }).eq('id', id).then(({ error }) => {
+          if (error) console.warn("Supabase repair update notice:", error.message);
+        });
+      }
+    }
+
+    return this.enrichRepair(updated);
+  }
+
+  updateRepairResponsible(id: string, responsibleId: string | undefined, user_name?: string): Repair {
+    return this.updateRepair(id, { current_responsible_id: responsibleId }, user_name);
+  }
+
   // --- EVENTS & TIMELINE ---
   getRepairEvents(repairId: string): RepairEvent[] {
     return this.events

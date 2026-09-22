@@ -106,6 +106,7 @@ export default function RepairsPage() {
       <RepairTable
         repairs={repairs}
         onLogEventClick={(repair) => setSelectedRepairForEvent(repair)}
+        onRefresh={loadRepairs}
       />
 
       {/* Modals */}

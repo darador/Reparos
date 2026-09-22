@@ -151,6 +151,7 @@ export default function PendingViewPage() {
       <RepairTable
         repairs={repairs}
         onLogEventClick={(repair) => setSelectedRepairForEvent(repair)}
+        onRefresh={loadData}
       />
 
       {selectedRepairForEvent && (

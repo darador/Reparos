@@ -1,11 +1,11 @@
 'use client';
 
 import { repository } from "@/lib/store/repository";
-import { Project, RepairPriority, RepairType, ResponsibleParty } from "@/lib/types/database";
-import { Plus, X } from "lucide-react";
-import { useState } from "react";
+import { Project, Repair, RepairPriority, RepairType, ResponsibleParty } from "@/lib/types/database";
+import { Edit, Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
-const SOLICITANTES_LIST = [
+export const SOLICITANTES_LIST = [
   'AMIGO SEBASTIAN',
   'ALBANESE JESUS',
   'ARMIGNACCO ADRIAN',
@@ -17,7 +17,7 @@ const SOLICITANTES_LIST = [
   'SALDIAS PABLO'
 ];
 
-const RESPONSABLES_INICIALES_LIST = [
+export const RESPONSABLES_INICIALES_LIST = [
   'Obras / ALI EDUARDO',
   'Obras / DE LIO MARIANO',
   'Obras / DI PASQUO EMILIO',
@@ -43,6 +43,7 @@ interface RepairFormModalProps {
   repairTypes: RepairType[];
   responsibleParties: ResponsibleParty[];
   defaultProjectId?: string;
+  repairToEdit?: Repair;
 }
 
 export function RepairFormModal({
@@ -52,9 +53,10 @@ export function RepairFormModal({
   projects,
   repairTypes,
   responsibleParties,
-  defaultProjectId = ''
+  defaultProjectId = '',
+  repairToEdit
 }: RepairFormModalProps) {
-  const [projectId, setProjectId] = useState(defaultProjectId || (projects[0]?.id || ''));
+  const [projectId, setProjectId] = useState('');
   const [repairTypeId, setRepairTypeId] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<RepairPriority>('Normal');
@@ -68,6 +70,57 @@ export function RepairFormModal({
   const [fechaCompromiso, setFechaCompromiso] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (repairToEdit) {
+      setProjectId(repairToEdit.project_id);
+      setRepairTypeId(repairToEdit.repair_type_id || '');
+      setDescription(repairToEdit.description || '');
+      setPriority(repairToEdit.priority || 'Normal');
+      
+      const sol = repairToEdit.solicitante || '';
+      if (SOLICITANTES_LIST.includes(sol)) {
+        setSolicitante(sol);
+        setCustomSolicitante('');
+      } else if (sol) {
+        setSolicitante('__CUSTOM__');
+        setCustomSolicitante(sol);
+      } else {
+        setSolicitante('');
+        setCustomSolicitante('');
+      }
+
+      const currentResp = repairToEdit.current_responsible;
+      if (currentResp) {
+        if (RESPONSABLES_INICIALES_LIST.includes(currentResp.name)) {
+          setResponsibleChoice(currentResp.name);
+          setCustomResponsibleName('');
+        } else {
+          setResponsibleChoice('__CUSTOM__');
+          setCustomResponsibleName(currentResp.name);
+        }
+      } else {
+        setResponsibleChoice('');
+        setCustomResponsibleName('');
+      }
+
+      setFechaCompromiso(repairToEdit.fecha_compromiso ? repairToEdit.fecha_compromiso.split('T')[0] : '');
+      setObservaciones(repairToEdit.observaciones || '');
+    } else {
+      setProjectId(defaultProjectId || (projects[0]?.id || ''));
+      setRepairTypeId('');
+      setDescription('');
+      setPriority('Normal');
+      setSolicitante('');
+      setCustomSolicitante('');
+      setResponsibleChoice('');
+      setCustomResponsibleName('');
+      setFechaCompromiso('');
+      setObservaciones('');
+    }
+  }, [repairToEdit, isOpen, defaultProjectId, projects]);
 
   if (!isOpen) return null;
 
@@ -124,8 +177,14 @@ export function RepairFormModal({
       <div className="bg-white border border-slate-300 rounded-lg shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         <div className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Plus className="h-4 w-4 text-amber-400" />
-            <h3 className="font-semibold text-sm">Nuevo Reparo / Incidencia</h3>
+            {repairToEdit ? (
+              <Edit className="h-4 w-4 text-amber-400" />
+            ) : (
+              <Plus className="h-4 w-4 text-amber-400" />
+            )}
+            <h3 className="font-semibold text-sm">
+              {repairToEdit ? `Editar Reparo #${repairToEdit.id.slice(0, 8)}` : 'Nuevo Reparo / Incidencia'}
+            </h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
             <X className="h-4 w-4" />
@@ -241,7 +300,7 @@ export function RepairFormModal({
                 onChange={(e) => setResponsibleChoice(e.target.value)}
                 className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white text-slate-900"
               >
-                <option value="">-- Asignar después --</option>
+                <option value="">-- Sin asignar --</option>
                 {RESPONSABLES_INICIALES_LIST.map((name) => (
                   <option key={name} value={name}>
                     {name}
@@ -265,40 +324,43 @@ export function RepairFormModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Fecha Compromiso</label>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                Fecha Compromiso <span className="text-slate-400 font-normal">(Opcional)</span>
+              </label>
               <input
                 type="date"
                 value={fechaCompromiso}
                 onChange={(e) => setFechaCompromiso(e.target.value)}
-                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded"
+                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white font-mono"
               />
             </div>
-
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Observaciones</label>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                Observaciones <span className="text-slate-400 font-normal">(Opcional)</span>
+              </label>
               <input
                 type="text"
-                placeholder="Observaciones adicionales..."
+                placeholder="Notas adicionales..."
                 value={observaciones}
                 onChange={(e) => setObservaciones(e.target.value)}
-                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded"
+                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-xs text-slate-700 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 font-medium"
+              className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-800 font-medium"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded font-medium shadow-sm"
+              className="px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors shadow-2xs"
             >
-              Registrar Reparo
+              {repairToEdit ? 'Guardar Cambios' : 'Registrar Reparo'}
             </button>
           </div>
         </form>

@@ -3,18 +3,21 @@
 import { repository } from "@/lib/store/repository";
 import { Repair } from "@/lib/types/database";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { AlertTriangle, ArrowRight, ArrowUpRight, ChevronDown, ChevronUp, History, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowRight, ArrowUpRight, ChevronDown, ChevronUp, Edit, History, Wrench } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
+import { RepairFormModal, RESPONSABLES_INICIALES_LIST } from "./RepairFormModal";
 import { StatusBadge } from "../shared/Badges";
 
 interface RepairTableProps {
   repairs: Repair[];
   onLogEventClick?: (repair: Repair) => void;
+  onRefresh?: () => void;
 }
 
-export function RepairTable({ repairs, onLogEventClick }: RepairTableProps) {
+export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTableProps) {
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+  const [repairToEdit, setRepairToEdit] = useState<Repair | null>(null);
 
   if (repairs.length === 0) {
     return (
@@ -33,6 +36,44 @@ export function RepairTable({ repairs, onLogEventClick }: RepairTableProps) {
     }));
   };
 
+  const handleResponsibleChange = (repairId: string, value: string) => {
+    let finalResponsibleId: string | undefined = undefined;
+
+    if (value && value !== '__UNASSIGNED__') {
+      const activeParties = repository.getResponsibleParties();
+      const existing = activeParties.find(r => r.name.toLowerCase() === value.trim().toLowerCase());
+      if (existing) {
+        finalResponsibleId = existing.id;
+      } else {
+        const newParty = repository.addResponsibleParty(value.trim(), 'contractor');
+        finalResponsibleId = newParty.id;
+      }
+    }
+
+    repository.updateRepairResponsible(repairId, finalResponsibleId);
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      // Force soft update if no parent refresh
+      setExpandedIds(prev => ({ ...prev }));
+    }
+  };
+
+  const handleUpdateRepair = (data: any) => {
+    if (repairToEdit) {
+      repository.updateRepair(repairToEdit.id, data);
+      setRepairToEdit(null);
+      if (onRefresh) onRefresh();
+    }
+  };
+
+  // Get options list for responsible dropdown
+  const activeParties = repository.getResponsibleParties();
+  const partyNames = Array.from(new Set([
+    ...RESPONSABLES_INICIALES_LIST,
+    ...activeParties.map(p => p.name)
+  ]));
+
   return (
     <div className="data-table-container">
       <table className="data-table">
@@ -41,12 +82,12 @@ export function RepairTable({ repairs, onLogEventClick }: RepairTableProps) {
             <th className="w-6"></th>
             <th className="whitespace-nowrap">SIGEST / Polígono</th>
             <th className="whitespace-nowrap">Tipo</th>
-            <th>Descripción / Solicitante</th>
-            <th>Responsable</th>
-            <th>Estado</th>
-            <th className="whitespace-nowrap">Reiteraciones</th>
-            <th className="whitespace-nowrap">Informado</th>
-            <th className="text-right whitespace-nowrap">Acciones</th>
+            <th className="min-w-[300px] max-w-[480px]">DESCRIPCIÓN / SOLICITANTE</th>
+            <th className="min-w-[170px]">RESPONSABLE</th>
+            <th>ESTADO</th>
+            <th className="whitespace-nowrap">REITERACIONES</th>
+            <th className="whitespace-nowrap">INFORMADO</th>
+            <th className="text-right whitespace-nowrap">ACCIONES</th>
           </tr>
         </thead>
         <tbody>
@@ -63,6 +104,8 @@ export function RepairTable({ repairs, onLogEventClick }: RepairTableProps) {
               : isEven
               ? "bg-slate-50 hover:bg-blue-50/40"
               : "bg-white hover:bg-blue-50/40";
+
+            const currentRespName = repair.current_responsible?.name || '__UNASSIGNED__';
 
             return (
               <React.Fragment key={repair.id}>
@@ -104,29 +147,56 @@ export function RepairTable({ repairs, onLogEventClick }: RepairTableProps) {
                       {repair.repair_type?.name || 'Otro'}
                     </span>
                   </td>
-                  <td className="max-w-[240px]">
+                  
+                  {/* Columna DESCRIPCION destacada */}
+                  <td className="min-w-[300px] max-w-[480px] py-2 px-3">
                     <Link
                       href={`/reparos/${repair.id}`}
-                      className="font-medium text-slate-900 hover:text-blue-700 line-clamp-2 text-xs leading-tight"
+                      className="font-semibold text-slate-900 hover:text-blue-700 text-[13px] md:text-sm leading-snug block transition-colors"
                     >
                       {repair.description}
                     </Link>
                     {repair.solicitante && (
-                      <div className="text-[10px] text-slate-500 mt-0.5 font-sans">
-                        Sol: <span className="font-medium">{repair.solicitante}</span>
+                      <div className="text-[11px] text-slate-500 mt-1 font-sans flex items-center gap-1">
+                        <span className="text-slate-400">Sol:</span>
+                        <span className="font-semibold text-slate-800 bg-slate-100/80 px-1.5 py-0.2 rounded border border-slate-200/60">
+                          {repair.solicitante}
+                        </span>
                       </div>
                     )}
                   </td>
-                  <td>
-                    {repair.current_responsible ? (
-                      <span className="font-medium text-slate-800 text-[11px] flex items-center gap-1 whitespace-nowrap">
-                        <span className="h-1.5 w-1.5 rounded-full bg-slate-600 shrink-0"></span>
-                        {repair.current_responsible.name}
-                      </span>
-                    ) : (
-                      <span className="text-slate-400 italic text-[11px]">Sin asignar</span>
-                    )}
+
+                  {/* Columna RESPONSABLE con combo interactivo de fácil edición */}
+                  <td className="min-w-[170px]">
+                    <select
+                      value={partyNames.includes(currentRespName) ? currentRespName : (repair.current_responsible ? '__CUSTOM_EXISTING__' : '__UNASSIGNED__')}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '__PROMPT_NEW__') {
+                          const newName = prompt('Ingrese el nombre del nuevo Responsable:');
+                          if (newName && newName.trim()) {
+                            handleResponsibleChange(repair.id, newName.trim());
+                          }
+                        } else {
+                          handleResponsibleChange(repair.id, val);
+                        }
+                      }}
+                      className="w-full text-[11px] font-semibold text-slate-800 bg-white border border-slate-300 rounded px-2 py-1 shadow-2xs hover:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                      title="Haz clic para cambiar el responsable de este reparo de forma rápida"
+                    >
+                      <option value="__UNASSIGNED__">-- Sin asignar --</option>
+                      {partyNames.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                      {repair.current_responsible && !partyNames.includes(currentRespName) && (
+                        <option value="__CUSTOM_EXISTING__">{currentRespName}</option>
+                      )}
+                      <option value="__PROMPT_NEW__">✍️ Escribir otro responsable...</option>
+                    </select>
                   </td>
+
                   <td className="whitespace-nowrap">
                     <StatusBadge 
                       name={repair.current_status?.name} 
@@ -150,6 +220,15 @@ export function RepairTable({ repairs, onLogEventClick }: RepairTableProps) {
                   </td>
                   <td className="text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setRepairToEdit(repair)}
+                        className="inline-flex items-center gap-0.5 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded border border-slate-300 font-medium transition-colors"
+                        title="Editar datos cargados del reparo"
+                      >
+                        <Edit className="h-3 w-3 text-blue-600" />
+                        <span>Editar</span>
+                      </button>
+
                       <button
                         onClick={() => toggleExpand(repair.id)}
                         className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded border font-medium transition-colors ${
@@ -248,25 +327,21 @@ export function RepairTable({ repairs, onLogEventClick }: RepairTableProps) {
                                           <strong className="text-slate-900">{ev.new_responsible.name}</strong>
                                         </span>
                                       ) : (
-                                        <span className="text-slate-400 italic">-</span>
+                                        <em className="text-slate-400">Sin cambiar</em>
                                       )}
                                     </td>
-                                    <td className="py-1.5 px-2 font-sans whitespace-nowrap">
+                                    <td className="py-1.5 px-2 whitespace-nowrap">
                                       {ev.new_status ? (
                                         <StatusBadge name={ev.new_status.name} category={ev.new_status.category} />
                                       ) : (
-                                        <span className="text-slate-400">-</span>
+                                        <em className="text-slate-400">Sin cambiar</em>
                                       )}
                                     </td>
-                                    <td className="py-1.5 px-2 font-sans text-slate-700 whitespace-nowrap">
-                                      {ev.created_by_profile?.full_name || ev.created_by}
+                                    <td className="py-1.5 px-2 text-slate-600 whitespace-nowrap">
+                                      {ev.created_by || 'Usuario Sistema'}
                                     </td>
-                                    <td className="py-1.5 px-2 font-sans text-slate-700 leading-normal max-w-md">
-                                      {ev.notes ? (
-                                        <span>{ev.notes}</span>
-                                      ) : (
-                                        <span className="text-slate-400 italic">Sin nota adicional</span>
-                                      )}
+                                    <td className="py-1.5 px-2 text-slate-700 font-sans max-w-[280px]">
+                                      {ev.notes || '-'}
                                     </td>
                                   </tr>
                                 ))}
@@ -283,6 +358,19 @@ export function RepairTable({ repairs, onLogEventClick }: RepairTableProps) {
           })}
         </tbody>
       </table>
+
+      {/* Edit Repair Modal from Table */}
+      {repairToEdit && (
+        <RepairFormModal
+          isOpen={!!repairToEdit}
+          onClose={() => setRepairToEdit(null)}
+          onSubmit={handleUpdateRepair}
+          projects={repository.getProjects()}
+          repairTypes={repository.getRepairTypes()}
+          responsibleParties={repository.getResponsibleParties()}
+          repairToEdit={repairToEdit}
+        />
+      )}
     </div>
   );
 }

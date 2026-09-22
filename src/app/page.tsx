@@ -142,6 +142,7 @@ export default function OperationalDashboard() {
         <RepairTable
           repairs={repairs}
           onLogEventClick={(repair) => setSelectedRepairForEvent(repair)}
+          onRefresh={loadData}
         />
       </div>
 
