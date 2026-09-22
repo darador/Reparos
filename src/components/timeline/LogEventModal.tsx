@@ -34,18 +34,29 @@ export function LogEventModal({
 }: LogEventModalProps) {
   const [eventType, setEventType] = useState<EventType>(initialEventType);
 
-  const defaultResp = repair.solicitante || repair.current_responsible?.name || (repair.current_responsible_id ? responsibleParties.find(r => r.id === repair.current_responsible_id)?.name : '');
+  // Reporter (current responsible who reports/executes the action)
+  const [reporterValue, setReporterValue] = useState<string>('');
+  const [customReporterName, setCustomReporterName] = useState('');
 
-  const [selectedRespValue, setSelectedRespValue] = useState<string>(defaultResp || '');
-  const [customResponsibleName, setCustomResponsibleName] = useState('');
+  // Derivation target (who receives the repair next, defaulting to original solicitante)
+  const [derivationValue, setDerivationValue] = useState<string>('');
+  const [customDerivationName, setCustomDerivationName] = useState('');
+
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setEventType(initialEventType);
-    const initialDefault = repair.solicitante || repair.current_responsible?.name || (repair.current_responsible_id ? responsibleParties.find(r => r.id === repair.current_responsible_id)?.name : '');
-    setSelectedRespValue(initialDefault || '');
+
+    // Default reporter: current responsible of the repair
+    const defaultReporter = repair.current_responsible?.name || 
+      (repair.current_responsible_id ? responsibleParties.find(r => r.id === repair.current_responsible_id)?.name : '') || '';
+    setReporterValue(defaultReporter);
+
+    // Default derivation target: original solicitante of the repair
+    const defaultDerivation = repair.solicitante || defaultReporter || '';
+    setDerivationValue(defaultDerivation);
   }, [isOpen, repair, initialEventType, responsibleParties]);
 
   if (!isOpen) return null;
@@ -80,25 +91,31 @@ export function LogEventModal({
     setIsSubmitting(true);
 
     try {
-      let finalResponsibleId: string | undefined = undefined;
+      // 1. Register reporter party if custom
+      if (reporterValue === '__CUSTOM__' && customReporterName.trim()) {
+        await repository.addResponsibleParty(customReporterName.trim(), 'contractor');
+      } else if (reporterValue && !responsibleParties.some(p => p.id === reporterValue)) {
+        await repository.addResponsibleParty(reporterValue, 'contractor');
+      }
 
-      if (selectedRespValue === '__CUSTOM__') {
-        if (!customResponsibleName.trim()) {
-          setError('Escriba el nombre del nuevo responsable.');
+      // 2. Resolve derivation target ID (New Responsible)
+      let finalDerivationId: string | undefined = undefined;
+
+      if (derivationValue === '__CUSTOM__') {
+        if (!customDerivationName.trim()) {
+          setError('Escriba el nombre del solicitante / responsable a quien se deriva.');
           setIsSubmitting(false);
           return;
         }
-        const newParty = await repository.addResponsibleParty(customResponsibleName.trim(), 'contractor');
-        finalResponsibleId = newParty.id;
-      } else if (selectedRespValue) {
-        // Find if selected value matches a party ID directly
-        const partyById = responsibleParties.find(p => p.id === selectedRespValue);
+        const newParty = await repository.addResponsibleParty(customDerivationName.trim(), 'contractor');
+        finalDerivationId = newParty.id;
+      } else if (derivationValue) {
+        const partyById = responsibleParties.find(p => p.id === derivationValue);
         if (partyById) {
-          finalResponsibleId = partyById.id;
+          finalDerivationId = partyById.id;
         } else {
-          // It's a name (from SOLICITANTES_LIST or RESPONSABLES_INICIALES_LIST), find or insert into DB
-          const party = await repository.addResponsibleParty(selectedRespValue, 'contractor');
-          finalResponsibleId = party.id;
+          const party = await repository.addResponsibleParty(derivationValue, 'contractor');
+          finalDerivationId = party.id;
         }
       }
 
@@ -108,7 +125,7 @@ export function LogEventModal({
       await onSubmit({
         repair_id: repair.id,
         event_type: eventType,
-        new_responsible_id: finalResponsibleId,
+        new_responsible_id: finalDerivationId,
         new_status_id: targetStatus?.id,
         notes: notes.trim() || undefined
       });
@@ -177,17 +194,73 @@ export function LogEventModal({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Left Col: Responsable del Reparo (quien informa la acción) */}
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
                 Responsable del Reparo
               </label>
               <select
                 disabled={isSubmitting}
-                value={selectedRespValue}
-                onChange={(e) => setSelectedRespValue(e.target.value)}
+                value={reporterValue}
+                onChange={(e) => setReporterValue(e.target.value)}
                 className="w-full px-3 py-1.5 border border-slate-300 rounded bg-white font-medium text-slate-900"
               >
                 <option value="">-- Sin asignar --</option>
+                <optgroup label="Equipos Ejecutores / Responsables">
+                  {RESPONSABLES_INICIALES_LIST.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Solicitantes">
+                  {SOLICITANTES_LIST.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </optgroup>
+                {responsibleParties.length > 0 && (
+                  <optgroup label="Otros en Sistema">
+                    {responsibleParties.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <option value="__CUSTOM__">✍️ Escribir otro responsable...</option>
+              </select>
+
+              {reporterValue === '__CUSTOM__' && (
+                <input
+                  type="text"
+                  required
+                  disabled={isSubmitting}
+                  placeholder="Nombre del responsable..."
+                  value={customReporterName}
+                  onChange={(e) => setCustomReporterName(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-blue-400 rounded mt-1.5 bg-blue-50/50"
+                />
+              )}
+            </div>
+
+            {/* Right Col: Se deriva a: (con preselección del Solicitante Original) */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="font-semibold text-slate-700">
+                  Se deriva a: <span className="text-red-500">*</span>
+                </label>
+                <StatusBadge name={autoStatus.name} category={autoStatus.category} />
+              </div>
+
+              <select
+                disabled={isSubmitting}
+                value={derivationValue}
+                onChange={(e) => setDerivationValue(e.target.value)}
+                className="w-full px-3 py-1.5 border border-slate-300 rounded bg-white font-medium text-slate-900"
+              >
+                <option value="">-- Sin derivar --</option>
 
                 {originalSolicitante && (
                   <option value={originalSolicitante}>
@@ -221,29 +294,20 @@ export function LogEventModal({
                   </optgroup>
                 )}
 
-                <option value="__CUSTOM__">✍️ Escribir otro responsable...</option>
+                <option value="__CUSTOM__">✍️ Escribir otro solicitante/responsable...</option>
               </select>
 
-              {selectedRespValue === '__CUSTOM__' && (
+              {derivationValue === '__CUSTOM__' && (
                 <input
                   type="text"
                   required
                   disabled={isSubmitting}
-                  placeholder="Nombre del nuevo responsable..."
-                  value={customResponsibleName}
-                  onChange={(e) => setCustomResponsibleName(e.target.value)}
+                  placeholder="Nombre del solicitante o responsable..."
+                  value={customDerivationName}
+                  onChange={(e) => setCustomDerivationName(e.target.value)}
                   className="w-full px-3 py-1.5 border border-blue-400 rounded mt-1.5 bg-blue-50/50"
                 />
               )}
-            </div>
-
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Estado resultante (Automático)
-              </label>
-              <div className="px-3 py-1.5 border border-slate-200 bg-slate-50/80 rounded flex items-center h-[34px]">
-                <StatusBadge name={autoStatus.name} category={autoStatus.category} />
-              </div>
             </div>
           </div>
 
