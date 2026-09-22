@@ -111,7 +111,7 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
               <th className="min-w-[280px] max-w-[460px]">DESCRIPCIÓN / SOLICITANTE</th>
               <th className="min-w-[160px]">RESPONSABLE</th>
               <th>ESTADO</th>
-              <th className="whitespace-nowrap">REITERACIONES</th>
+              <th className="whitespace-nowrap">REITEROS</th>
               <th className="whitespace-nowrap">INFORMADO</th>
               <th className="text-right whitespace-nowrap">ACCIONES</th>
             </tr>
