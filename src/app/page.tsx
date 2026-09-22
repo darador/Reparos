@@ -58,18 +58,18 @@ export default function OperationalDashboard() {
     init();
   }, [search, statusId, responsibleId, priority, typeId, onlyReiterated]);
 
-  const handleCreateProject = (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
-    repository.createProject(data);
+  const handleCreateProject = async (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
+    await repository.createProject(data);
     loadData();
   };
 
-  const handleCreateRepair = (data: any) => {
-    repository.createRepair(data);
+  const handleCreateRepair = async (data: any) => {
+    await repository.createRepair(data);
     loadData();
   };
 
-  const handleLogEvent = (data: any) => {
-    repository.addRepairEvent(data);
+  const handleLogEvent = async (data: any) => {
+    await repository.addRepairEvent(data);
     loadData();
   };
 

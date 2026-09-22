@@ -2,7 +2,7 @@ import { INITIAL_PROJECTS, INITIAL_REPAIR_EVENTS, INITIAL_REPAIR_STATUSES, INITI
 import { createClient } from "../supabase/client";
 import { DashboardMetrics, Project, Repair, RepairEvent, RepairStatus, RepairType, ResponsibleParty } from "../types/database";
 
-// Supabase-Direct Data Store (No LocalStorage caching)
+// Supabase-Direct Data Store with strict Async Await confirmation
 class DataRepository {
   public isLoaded: boolean = false;
   private syncPromise: Promise<void> | null = null;
@@ -103,7 +103,7 @@ class DataRepository {
     return this.responsibleParties;
   }
 
-  addResponsibleParty(name: string, type: ResponsibleParty['type']): ResponsibleParty {
+  async addResponsibleParty(name: string, type: ResponsibleParty['type']): Promise<ResponsibleParty> {
     const newItem: ResponsibleParty = {
       id: crypto.randomUUID(),
       name,
@@ -111,23 +111,24 @@ class DataRepository {
       is_active: true,
       created_at: new Date().toISOString()
     };
-    this.responsibleParties.push(newItem);
 
     if (typeof window !== 'undefined') {
       const supabase = createClient();
       if (supabase) {
-        supabase.from('responsible_parties').insert([{
+        const { error } = await supabase.from('responsible_parties').insert([{
           id: newItem.id,
           name: newItem.name,
           type: newItem.type,
           is_active: newItem.is_active,
           created_at: newItem.created_at
-        }]).then(({ error }) => {
-          if (error) console.warn("Supabase responsible_parties insert notice:", error.message);
-        });
+        }]);
+        if (error) {
+          console.error("Supabase responsible_parties insert error:", error.message);
+        }
       }
     }
 
+    this.responsibleParties.push(newItem);
     return newItem;
   }
 
@@ -139,7 +140,7 @@ class DataRepository {
     return this.repairTypes;
   }
 
-  addRepairType(name: string, description?: string): RepairType {
+  async addRepairType(name: string, description?: string): Promise<RepairType> {
     const newItem: RepairType = {
       id: crypto.randomUUID(),
       name,
@@ -147,23 +148,24 @@ class DataRepository {
       is_active: true,
       created_at: new Date().toISOString()
     };
-    this.repairTypes.push(newItem);
 
     if (typeof window !== 'undefined') {
       const supabase = createClient();
       if (supabase) {
-        supabase.from('repair_types').insert([{
+        const { error } = await supabase.from('repair_types').insert([{
           id: newItem.id,
           name: newItem.name,
           description: newItem.description,
           is_active: newItem.is_active,
           created_at: newItem.created_at
-        }]).then(({ error }) => {
-          if (error) console.warn("Supabase repair_types insert notice:", error.message);
-        });
+        }]);
+        if (error) {
+          console.error("Supabase repair_types insert error:", error.message);
+        }
       }
     }
 
+    this.repairTypes.push(newItem);
     return newItem;
   }
 
@@ -226,7 +228,7 @@ class DataRepository {
     };
   }
 
-  createProject(data: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Project {
+  async createProject(data: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
     const newProject: Project = {
       ...data,
       id: crypto.randomUUID(),
@@ -235,12 +237,11 @@ class DataRepository {
       updated_at: new Date().toISOString(),
       created_by: data.created_by || 'Usuario Sistema'
     };
-    this.projects.push(newProject);
 
     if (typeof window !== 'undefined') {
       const supabase = createClient();
       if (supabase) {
-        supabase.from('projects').insert([{
+        const { error } = await supabase.from('projects').insert([{
           id: newProject.id,
           sigest: newProject.sigest,
           poligono: newProject.poligono,
@@ -255,16 +256,20 @@ class DataRepository {
           created_at: newProject.created_at,
           updated_at: newProject.updated_at,
           created_by: newProject.created_by
-        }]).then(({ error }) => {
-          if (error) console.warn("Supabase project insert notice:", error.message);
-        });
+        }]);
+
+        if (error) {
+          console.error("Error creating project in Supabase:", error.message);
+          throw new Error("No se pudo guardar el proyecto en Supabase: " + error.message);
+        }
       }
     }
 
+    this.projects.push(newProject);
     return newProject;
   }
 
-  updateProject(id: string, data: Partial<Omit<Project, 'id' | 'created_at'>>): Project {
+  async updateProject(id: string, data: Partial<Omit<Project, 'id' | 'created_at'>>): Promise<Project> {
     const index = this.projects.findIndex(p => p.id === id);
     if (index === -1) throw new Error("Proyecto no encontrado");
 
@@ -275,12 +280,10 @@ class DataRepository {
       updated_at: new Date().toISOString()
     };
 
-    this.projects[index] = updated;
-
     if (typeof window !== 'undefined') {
       const supabase = createClient();
       if (supabase) {
-        supabase.from('projects').update({
+        const { error } = await supabase.from('projects').update({
           sigest: updated.sigest,
           poligono: updated.poligono,
           distrito: updated.distrito,
@@ -292,12 +295,16 @@ class DataRepository {
           situacion_operativa: updated.situacion_operativa,
           observaciones: updated.observaciones,
           updated_at: updated.updated_at
-        }).eq('id', id).then(({ error }) => {
-          if (error) console.warn("Supabase project update notice:", error.message);
-        });
+        }).eq('id', id);
+
+        if (error) {
+          console.error("Error updating project in Supabase:", error.message);
+          throw new Error("No se pudo actualizar el proyecto en Supabase: " + error.message);
+        }
       }
     }
 
+    this.projects[index] = updated;
     return this.getProjectById(id) || updated;
   }
 
@@ -365,7 +372,7 @@ class DataRepository {
     return this.enrichRepair(r);
   }
 
-  createRepair(data: {
+  async createRepair(data: {
     project_id: string;
     repair_type_id?: string;
     description: string;
@@ -375,12 +382,10 @@ class DataRepository {
     fecha_compromiso?: string;
     observaciones?: string;
     user_name?: string;
-  }): Repair {
-    // New repair ALWAYS starts in PENDIENTE state
+  }): Promise<Repair> {
     const pendingStatus = this.repairStatuses.find(s => s.name === 'PENDIENTE') || this.repairStatuses[0];
     const initialStatusId = pendingStatus.id;
 
-    // Default to 'Otro' if no type selected
     const fallbackType = this.repairTypes.find(t => t.name === 'Otro');
     const targetTypeId = data.repair_type_id || fallbackType?.id || this.repairTypes[0]?.id;
 
@@ -401,9 +406,6 @@ class DataRepository {
       created_by: data.user_name || 'Usuario Sistema'
     };
 
-    this.repairs.push(newRepair);
-
-    // Initial event record
     const creationEvent: RepairEvent = {
       id: crypto.randomUUID(),
       repair_id: newRepair.id,
@@ -414,12 +416,11 @@ class DataRepository {
       created_at: new Date().toISOString(),
       created_by: data.user_name || 'Usuario Sistema'
     };
-    this.events.push(creationEvent);
 
     if (typeof window !== 'undefined') {
       const supabase = createClient();
       if (supabase) {
-        supabase.from('repairs').insert([{
+        const { error: repErr } = await supabase.from('repairs').insert([{
           id: newRepair.id,
           project_id: newRepair.project_id,
           repair_type_id: newRepair.repair_type_id,
@@ -434,11 +435,14 @@ class DataRepository {
           created_at: newRepair.created_at,
           updated_at: newRepair.updated_at,
           created_by: newRepair.created_by
-        }]).then(({ error }) => {
-          if (error) console.warn("Supabase repair insert notice:", error.message);
-        });
+        }]);
 
-        supabase.from('repair_events').insert([{
+        if (repErr) {
+          console.error("Error creating repair in Supabase:", repErr.message);
+          throw new Error("No se pudo registrar el reparo en Supabase: " + repErr.message);
+        }
+
+        const { error: evtErr } = await supabase.from('repair_events').insert([{
           id: creationEvent.id,
           repair_id: creationEvent.repair_id,
           event_type: creationEvent.event_type,
@@ -447,16 +451,20 @@ class DataRepository {
           notes: creationEvent.notes,
           created_at: creationEvent.created_at,
           created_by: creationEvent.created_by
-        }]).then(({ error }) => {
-          if (error) console.warn("Supabase event insert notice:", error.message);
-        });
+        }]);
+
+        if (evtErr) {
+          console.warn("Notice: creation event insert error:", evtErr.message);
+        }
       }
     }
 
+    this.repairs.push(newRepair);
+    this.events.push(creationEvent);
     return this.enrichRepair(newRepair);
   }
 
-  updateRepair(id: string, data: Partial<Omit<Repair, 'id' | 'created_at'>>, user_name?: string): Repair {
+  async updateRepair(id: string, data: Partial<Omit<Repair, 'id' | 'created_at'>>, user_name?: string): Promise<Repair> {
     const index = this.repairs.findIndex(r => r.id === id);
     if (index === -1) throw new Error("Reparo no encontrado");
 
@@ -469,49 +477,10 @@ class DataRepository {
       updated_at: new Date().toISOString()
     };
 
-    this.repairs[index] = updated;
-
-    // If responsible party changed during edit, log an assignment event
-    if (data.current_responsible_id !== undefined && data.current_responsible_id !== prevResponsibleId) {
-      const editEvent: RepairEvent = {
-        id: crypto.randomUUID(),
-        repair_id: id,
-        event_type: 'assignment',
-        previous_responsible_id: prevResponsibleId,
-        new_responsible_id: data.current_responsible_id,
-        previous_status_id: oldRepair.current_status_id,
-        new_status_id: updated.current_status_id,
-        notes: 'Responsable modificado en edición.',
-        created_at: new Date().toISOString(),
-        created_by: user_name || 'Usuario Sistema'
-      };
-      this.events.push(editEvent);
-
-      if (typeof window !== 'undefined') {
-        const supabase = createClient();
-        if (supabase) {
-          supabase.from('repair_events').insert([{
-            id: editEvent.id,
-            repair_id: editEvent.repair_id,
-            event_type: editEvent.event_type,
-            previous_responsible_id: editEvent.previous_responsible_id,
-            new_responsible_id: editEvent.new_responsible_id,
-            previous_status_id: editEvent.previous_status_id,
-            new_status_id: editEvent.new_status_id,
-            notes: editEvent.notes,
-            created_at: editEvent.created_at,
-            created_by: editEvent.created_by
-          }]).then(({ error }) => {
-            if (error) console.warn("Supabase event insert notice:", error.message);
-          });
-        }
-      }
-    }
-
     if (typeof window !== 'undefined') {
       const supabase = createClient();
       if (supabase) {
-        supabase.from('repairs').update({
+        const { error } = await supabase.from('repairs').update({
           project_id: updated.project_id,
           repair_type_id: updated.repair_type_id,
           description: updated.description,
@@ -522,17 +491,50 @@ class DataRepository {
           fecha_compromiso: updated.fecha_compromiso,
           observaciones: updated.observaciones,
           updated_at: updated.updated_at
-        }).eq('id', id).then(({ error }) => {
-          if (error) console.warn("Supabase repair update notice:", error.message);
-        });
+        }).eq('id', id);
+
+        if (error) {
+          console.error("Error updating repair in Supabase:", error.message);
+          throw new Error("No se pudo actualizar el reparo en Supabase: " + error.message);
+        }
+
+        if (data.current_responsible_id !== undefined && data.current_responsible_id !== prevResponsibleId) {
+          const editEvent: RepairEvent = {
+            id: crypto.randomUUID(),
+            repair_id: id,
+            event_type: 'assignment',
+            previous_responsible_id: prevResponsibleId,
+            new_responsible_id: data.current_responsible_id,
+            previous_status_id: oldRepair.current_status_id,
+            new_status_id: updated.current_status_id,
+            notes: 'Responsable modificado en edición.',
+            created_at: new Date().toISOString(),
+            created_by: user_name || 'Usuario Sistema'
+          };
+          this.events.push(editEvent);
+
+          await supabase.from('repair_events').insert([{
+            id: editEvent.id,
+            repair_id: editEvent.repair_id,
+            event_type: editEvent.event_type,
+            previous_responsible_id: editEvent.previous_responsible_id,
+            new_responsible_id: editEvent.new_responsible_id,
+            previous_status_id: editEvent.previous_status_id,
+            new_status_id: editEvent.new_status_id,
+            notes: editEvent.notes,
+            created_at: editEvent.created_at,
+            created_by: editEvent.created_by
+          }]);
+        }
       }
     }
 
+    this.repairs[index] = updated;
     return this.enrichRepair(updated);
   }
 
-  updateRepairResponsible(id: string, responsibleId: string | undefined, user_name?: string): Repair {
-    return this.updateRepair(id, { current_responsible_id: responsibleId }, user_name);
+  async updateRepairResponsible(id: string, responsibleId: string | undefined, user_name?: string): Promise<Repair> {
+    return await this.updateRepair(id, { current_responsible_id: responsibleId }, user_name);
   }
 
   // --- EVENTS & TIMELINE ---
@@ -556,7 +558,7 @@ class DataRepository {
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 
-  addRepairEvent(data: {
+  async addRepairEvent(data: {
     repair_id: string;
     event_type: RepairEvent['event_type'];
     new_responsible_id?: string;
@@ -564,7 +566,7 @@ class DataRepository {
     verification_result?: RepairEvent['verification_result'];
     notes?: string;
     user_name?: string;
-  }): RepairEvent {
+  }): Promise<RepairEvent> {
     const repair = this.repairs.find(r => r.id === data.repair_id);
     if (!repair) throw new Error("Reparo no encontrado");
 
@@ -578,7 +580,6 @@ class DataRepository {
     let targetStatusId = repair.current_status_id;
     let targetResponsibleId = data.new_responsible_id !== undefined ? data.new_responsible_id : repair.current_responsible_id;
 
-    // V1 Simplified Status Transitions:
     if (data.event_type === 'resolution') {
       targetStatusId = resolvedStatus.id;
     } else if (data.event_type === 'verification') {
@@ -592,11 +593,6 @@ class DataRepository {
     } else if (data.new_status_id) {
       targetStatusId = data.new_status_id;
     }
-
-    // Mutate repair record
-    repair.current_status_id = targetStatusId;
-    repair.current_responsible_id = targetResponsibleId;
-    repair.updated_at = new Date().toISOString();
 
     const newEvent: RepairEvent = {
       id: crypto.randomUUID(),
@@ -612,20 +608,21 @@ class DataRepository {
       created_by: data.user_name || 'Usuario Sistema'
     };
 
-    this.events.push(newEvent);
-
     if (typeof window !== 'undefined') {
       const supabase = createClient();
       if (supabase) {
-        supabase.from('repairs').update({
+        const { error: repErr } = await supabase.from('repairs').update({
           current_status_id: targetStatusId,
           current_responsible_id: targetResponsibleId,
-          updated_at: repair.updated_at
-        }).eq('id', repair.id).then(({ error }) => {
-          if (error) console.warn("Supabase repair status update notice:", error.message);
-        });
+          updated_at: new Date().toISOString()
+        }).eq('id', repair.id);
 
-        supabase.from('repair_events').insert([{
+        if (repErr) {
+          console.error("Error updating repair status in Supabase:", repErr.message);
+          throw new Error("No se pudo actualizar el estado del reparo en Supabase: " + repErr.message);
+        }
+
+        const { error: evtErr } = await supabase.from('repair_events').insert([{
           id: newEvent.id,
           repair_id: newEvent.repair_id,
           event_type: newEvent.event_type,
@@ -637,11 +634,18 @@ class DataRepository {
           notes: data.notes,
           created_at: newEvent.created_at,
           created_by: newEvent.created_by
-        }]).then(({ error }) => {
-          if (error) console.warn("Supabase event insert notice:", error.message);
-        });
+        }]);
+
+        if (evtErr) {
+          console.warn("Notice: event insert notice:", evtErr.message);
+        }
       }
     }
+
+    repair.current_status_id = targetStatusId;
+    repair.current_responsible_id = targetResponsibleId;
+    repair.updated_at = newEvent.created_at;
+    this.events.push(newEvent);
 
     return newEvent;
   }

@@ -36,7 +36,7 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
     }));
   };
 
-  const handleResponsibleChange = (repairId: string, value: string) => {
+  const handleResponsibleChange = async (repairId: string, value: string) => {
     let finalResponsibleId: string | undefined = undefined;
 
     if (value && value !== '__UNASSIGNED__') {
@@ -45,12 +45,12 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
       if (existing) {
         finalResponsibleId = existing.id;
       } else {
-        const newParty = repository.addResponsibleParty(value.trim(), 'contractor');
+        const newParty = await repository.addResponsibleParty(value.trim(), 'contractor');
         finalResponsibleId = newParty.id;
       }
     }
 
-    repository.updateRepairResponsible(repairId, finalResponsibleId);
+    await repository.updateRepairResponsible(repairId, finalResponsibleId);
     if (onRefresh) {
       onRefresh();
     } else {
@@ -59,9 +59,9 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
     }
   };
 
-  const handleUpdateRepair = (data: any) => {
+  const handleUpdateRepair = async (data: any) => {
     if (repairToEdit) {
-      repository.updateRepair(repairToEdit.id, data);
+      await repository.updateRepair(repairToEdit.id, data);
       setRepairToEdit(null);
       if (onRefresh) onRefresh();
     }

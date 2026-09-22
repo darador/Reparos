@@ -1,7 +1,7 @@
 'use client';
 
 import { OperationalStatus, Project } from "@/lib/types/database";
-import { Edit3, Plus, X } from "lucide-react";
+import { Edit3, Loader2, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const EJECUTORES_LIST = [
@@ -19,7 +19,7 @@ const EJECUTORES_LIST = [
 interface ProjectFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => void;
+  onSubmit: (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => Promise<void> | void;
   initialSigest?: string;
   projectToEdit?: Project | null;
 }
@@ -43,6 +43,7 @@ export function ProjectFormModal({
   const [situacion, setSituacion] = useState<OperationalStatus>('Demorado');
   const [observaciones, setObservaciones] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -83,12 +84,13 @@ export function ProjectFormModal({
         setObservaciones('');
       }
       setError('');
+      setIsSubmitting(false);
     }
   }, [isOpen, projectToEdit, initialSigest]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sigest.trim()) {
       setError('El campo SIGEST es obligatorio.');
@@ -102,21 +104,29 @@ export function ProjectFormModal({
     const finalEjecutor = ejecutor === '__CUSTOM__' ? customEjecutor.trim() : ejecutor.trim();
 
     setError('');
-    onSubmit({
-      sigest: sigest.trim(),
-      poligono: poligono.trim(),
-      distrito: distrito.trim() || undefined,
-      central: central.trim() || undefined,
-      titulo: titulo.trim() || undefined,
-      ejecutor: finalEjecutor || undefined,
-      ctos_count: Number(ctosCount) || 0,
-      alimentacion: alimentacion.trim() || 'NO',
-      situacion_operativa: situacion,
-      observaciones: observaciones.trim() || undefined,
-      created_by: projectToEdit?.created_by || 'Dario'
-    });
+    setIsSubmitting(true);
 
-    onClose();
+    try {
+      await onSubmit({
+        sigest: sigest.trim(),
+        poligono: poligono.trim(),
+        distrito: distrito.trim() || undefined,
+        central: central.trim() || undefined,
+        titulo: titulo.trim() || undefined,
+        ejecutor: finalEjecutor || undefined,
+        ctos_count: Number(ctosCount) || 0,
+        alimentacion: alimentacion.trim() || 'NO',
+        situacion_operativa: situacion,
+        observaciones: observaciones.trim() || undefined,
+        created_by: projectToEdit?.created_by || 'Dario'
+      });
+      onClose();
+    } catch (err: any) {
+      console.error("Submit project error:", err);
+      setError(err.message || 'Error al guardar el proyecto en la base de datos.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isEditing = !!projectToEdit;
@@ -131,7 +141,7 @@ export function ProjectFormModal({
               {isEditing ? `Editar Proyecto FTTH: SIGEST ${projectToEdit.sigest} / ${projectToEdit.poligono}` : 'Nuevo Proyecto FTTH'}
             </h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
+          <button onClick={onClose} disabled={isSubmitting} className="text-slate-400 hover:text-white p-1">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -155,6 +165,7 @@ export function ProjectFormModal({
               <input
                 type="text"
                 required
+                disabled={isSubmitting}
                 placeholder="Ej. 102345"
                 value={sigest}
                 onChange={(e) => setSigest(e.target.value)}
@@ -169,6 +180,7 @@ export function ProjectFormModal({
               <input
                 type="text"
                 required
+                disabled={isSubmitting}
                 placeholder="Ej. 045"
                 value={poligono}
                 onChange={(e) => setPoligono(e.target.value)}
@@ -182,6 +194,7 @@ export function ProjectFormModal({
               <label className="block text-xs font-medium text-slate-700 mb-1">Distrito</label>
               <input
                 type="text"
+                disabled={isSubmitting}
                 placeholder="Ej. Florencio Varela"
                 value={distrito}
                 onChange={(e) => setDistrito(e.target.value)}
@@ -193,6 +206,7 @@ export function ProjectFormModal({
               <label className="block text-xs font-medium text-slate-700 mb-1">Central</label>
               <input
                 type="text"
+                disabled={isSubmitting}
                 placeholder="Ej. Varela Central"
                 value={central}
                 onChange={(e) => setCentral(e.target.value)}
@@ -205,6 +219,7 @@ export function ProjectFormModal({
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Equipo Ejecutor</label>
               <select
+                disabled={isSubmitting}
                 value={ejecutor}
                 onChange={(e) => setEjecutor(e.target.value)}
                 className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white text-slate-900"
@@ -222,6 +237,7 @@ export function ProjectFormModal({
                 <input
                   type="text"
                   required
+                  disabled={isSubmitting}
                   placeholder="Nombre del ejecutor..."
                   value={customEjecutor}
                   onChange={(e) => setCustomEjecutor(e.target.value)}
@@ -233,6 +249,7 @@ export function ProjectFormModal({
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Situación Operativa</label>
               <select
+                disabled={isSubmitting}
                 value={situacion}
                 onChange={(e) => setSituacion(e.target.value as OperationalStatus)}
                 className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white font-semibold"
@@ -253,6 +270,7 @@ export function ProjectFormModal({
               <input
                 type="number"
                 min="0"
+                disabled={isSubmitting}
                 value={ctosCount}
                 onChange={(e) => setCtosCount(parseInt(e.target.value) || 0)}
                 className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded font-mono"
@@ -262,6 +280,7 @@ export function ProjectFormModal({
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Alimentación</label>
               <select
+                disabled={isSubmitting}
                 value={alimentacion}
                 onChange={(e) => setAlimentacion(e.target.value)}
                 className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white font-semibold"
@@ -276,6 +295,7 @@ export function ProjectFormModal({
             <label className="block text-xs font-medium text-slate-700 mb-1">Observaciones</label>
             <textarea
               rows={2}
+              disabled={isSubmitting}
               placeholder="Detalles u observaciones del proyecto..."
               value={observaciones}
               onChange={(e) => setObservaciones(e.target.value)}
@@ -287,15 +307,18 @@ export function ProjectFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-xs text-slate-700 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 font-medium"
+              disabled={isSubmitting}
+              className="px-3 py-1.5 text-xs text-slate-700 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 font-medium disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded font-medium shadow-sm"
+              disabled={isSubmitting}
+              className="px-4 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded font-semibold shadow-sm flex items-center gap-1.5"
             >
-              {isEditing ? 'Guardar Cambios' : 'Guardar Proyecto'}
+              {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              <span>{isSubmitting ? 'Guardando en Base de Datos...' : (isEditing ? 'Guardar Cambios' : 'Guardar Proyecto')}</span>
             </button>
           </div>
         </form>

@@ -37,19 +37,19 @@ export default function ProjectsPage() {
     init();
   }, [search, status]);
 
-  const handleSaveProject = (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
+  const handleSaveProject = async (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
     if (projectToEdit) {
-      repository.updateProject(projectToEdit.id, data);
+      await repository.updateProject(projectToEdit.id, data);
     } else {
-      repository.createProject(data);
+      await repository.createProject(data);
     }
     setProjectToEdit(null);
     setIsNewProjectOpen(false);
     loadProjects();
   };
 
-  const handleCreateRepair = (data: any) => {
-    repository.createRepair(data);
+  const handleCreateRepair = async (data: any) => {
+    await repository.createRepair(data);
     loadProjects();
   };
 

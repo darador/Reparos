@@ -47,13 +47,13 @@ export default function RepairsPage() {
     init();
   }, [search, statusId, responsibleId, priority, typeId, onlyReiterated]);
 
-  const handleCreateRepair = (data: any) => {
-    repository.createRepair(data);
+  const handleCreateRepair = async (data: any) => {
+    await repository.createRepair(data);
     loadRepairs();
   };
 
-  const handleLogEvent = (data: any) => {
-    repository.addRepairEvent(data);
+  const handleLogEvent = async (data: any) => {
+    await repository.addRepairEvent(data);
     loadRepairs();
   };
 

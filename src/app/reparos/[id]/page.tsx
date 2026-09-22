@@ -51,13 +51,13 @@ export default function RepairDetailPage() {
     setIsLogEventOpen(true);
   };
 
-  const handleLogEvent = (data: any) => {
-    repository.addRepairEvent(data);
+  const handleLogEvent = async (data: any) => {
+    await repository.addRepairEvent(data);
     loadData();
   };
 
-  const handleUpdateRepair = (data: any) => {
-    repository.updateRepair(repairId, data);
+  const handleUpdateRepair = async (data: any) => {
+    await repository.updateRepair(repairId, data);
     loadData();
     setIsEditOpen(false);
   };
