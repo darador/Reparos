@@ -4,6 +4,9 @@ import { DashboardMetrics, Project, Repair, RepairEvent, RepairStatus, RepairTyp
 
 // Supabase-Direct Data Store (No LocalStorage caching)
 class DataRepository {
+  public isLoaded: boolean = false;
+  private syncPromise: Promise<void> | null = null;
+
   private projects: Project[];
   private repairs: Repair[];
   private events: RepairEvent[];
@@ -31,15 +34,31 @@ class DataRepository {
       } catch (e) {
         // Ignore localStorage cleanup errors
       }
-      this.syncWithSupabase();
+      this.syncPromise = this.syncWithSupabase();
     }
   }
 
-  async syncWithSupabase() {
-    if (typeof window === 'undefined') return;
+  async ensureLoaded(): Promise<void> {
+    if (this.isLoaded) return;
+    if (this.syncPromise) {
+      await this.syncPromise;
+      return;
+    }
+    this.syncPromise = this.syncWithSupabase();
+    await this.syncPromise;
+  }
+
+  async syncWithSupabase(): Promise<void> {
+    if (typeof window === 'undefined') {
+      this.isLoaded = true;
+      return;
+    }
     try {
       const supabase = createClient();
-      if (!supabase) return;
+      if (!supabase) {
+        this.isLoaded = true;
+        return;
+      }
 
       const [projRes, repRes, evtRes, respRes, typesRes] = await Promise.all([
         supabase.from('projects').select('*'),
@@ -70,6 +89,8 @@ class DataRepository {
       }
     } catch (err) {
       console.warn('Supabase sync background notice:', err);
+    } finally {
+      this.isLoaded = true;
     }
   }
 

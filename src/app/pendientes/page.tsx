@@ -1,6 +1,7 @@
 'use client';
 
 import { RepairTable } from "@/components/repairs/RepairTable";
+import { LoadingState } from "@/components/shared/LoadingState";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { repository } from "@/lib/store/repository";
 import { Repair } from "@/lib/types/database";
@@ -10,6 +11,7 @@ import { useEffect, useState } from "react";
 export default function PendingViewPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'unassigned' | 'critical' | 'reiterated' | 'verification' | 'finalized'>('all');
   const [repairs, setRepairs] = useState<Repair[]>([]);
+  const [isLoading, setIsLoading] = useState(!repository.isLoaded);
   const [selectedRepairForEvent, setSelectedRepairForEvent] = useState<Repair | null>(null);
 
   const loadData = () => {
@@ -39,7 +41,15 @@ export default function PendingViewPage() {
   };
 
   useEffect(() => {
-    loadData();
+    async function init() {
+      if (!repository.isLoaded) {
+        setIsLoading(true);
+        await repository.ensureLoaded();
+      }
+      loadData();
+      setIsLoading(false);
+    }
+    init();
   }, [activeTab]);
 
   const handleLogEvent = (data: any) => {
@@ -107,7 +117,7 @@ export default function PendingViewPage() {
           }`}
         >
           <AlertCircle className="h-3.5 w-3.5 text-red-500" />
-          <span>Alta / Crítica ({criticalCount})</span>
+          <span>Urgentes ({criticalCount})</span>
         </button>
 
         <button
@@ -118,7 +128,7 @@ export default function PendingViewPage() {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+          <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
           <span>Reiterados ({reiteratedCount})</span>
         </button>
 
@@ -130,8 +140,8 @@ export default function PendingViewPage() {
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          <CheckCircle2 className="h-3.5 w-3.5 text-amber-500" />
-          <span>Listos p/ Verificar ({verificationCount})</span>
+          <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
+          <span>Para Verificar ({verificationCount})</span>
         </button>
 
         <button
@@ -147,12 +157,19 @@ export default function PendingViewPage() {
         </button>
       </div>
 
-      {/* Repairs Table */}
-      <RepairTable
-        repairs={repairs}
-        onLogEventClick={(repair) => setSelectedRepairForEvent(repair)}
-        onRefresh={loadData}
-      />
+      {/* Repairs Table or Loading State */}
+      {isLoading ? (
+        <LoadingState
+          title="Cargando Tablero Resumen..."
+          message="Consultando estado de pendientes y atenciones desde la base de datos."
+        />
+      ) : (
+        <RepairTable
+          repairs={repairs}
+          onLogEventClick={(repair) => setSelectedRepairForEvent(repair)}
+          onRefresh={loadData}
+        />
+      )}
 
       {selectedRepairForEvent && (
         <LogEventModal

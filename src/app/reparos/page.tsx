@@ -3,6 +3,7 @@
 import { RepairFilters } from "@/components/repairs/RepairFilters";
 import { RepairFormModal } from "@/components/repairs/RepairFormModal";
 import { RepairTable } from "@/components/repairs/RepairTable";
+import { LoadingState } from "@/components/shared/LoadingState";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { repository } from "@/lib/store/repository";
 import { Repair } from "@/lib/types/database";
@@ -11,6 +12,7 @@ import { useEffect, useState } from "react";
 
 export default function RepairsPage() {
   const [repairs, setRepairs] = useState<Repair[]>([]);
+  const [isLoading, setIsLoading] = useState(!repository.isLoaded);
   const [isNewRepairOpen, setIsNewRepairOpen] = useState(false);
   const [selectedRepairForEvent, setSelectedRepairForEvent] = useState<Repair | null>(null);
 
@@ -34,7 +36,15 @@ export default function RepairsPage() {
   };
 
   useEffect(() => {
-    loadRepairs();
+    async function init() {
+      if (!repository.isLoaded) {
+        setIsLoading(true);
+        await repository.ensureLoaded();
+      }
+      loadRepairs();
+      setIsLoading(false);
+    }
+    init();
   }, [search, statusId, responsibleId, priority, typeId, onlyReiterated]);
 
   const handleCreateRepair = (data: any) => {
@@ -102,12 +112,19 @@ export default function RepairsPage() {
         onResetFilters={resetFilters}
       />
 
-      {/* Table */}
-      <RepairTable
-        repairs={repairs}
-        onLogEventClick={(repair) => setSelectedRepairForEvent(repair)}
-        onRefresh={loadRepairs}
-      />
+      {/* Table or Loading State */}
+      {isLoading ? (
+        <LoadingState
+          title="Cargando Reparos e Incidencias..."
+          message="Obteniendo incidencias y trazabilidad de eventos desde la base de datos de Supabase."
+        />
+      ) : (
+        <RepairTable
+          repairs={repairs}
+          onLogEventClick={(repair) => setSelectedRepairForEvent(repair)}
+          onRefresh={loadRepairs}
+        />
+      )}
 
       {/* Modals */}
       <RepairFormModal

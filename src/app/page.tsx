@@ -4,6 +4,7 @@ import { ProjectFormModal } from "@/components/projects/ProjectFormModal";
 import { RepairFilters } from "@/components/repairs/RepairFilters";
 import { RepairFormModal } from "@/components/repairs/RepairFormModal";
 import { RepairTable } from "@/components/repairs/RepairTable";
+import { LoadingState } from "@/components/shared/LoadingState";
 import { MetricStrip } from "@/components/shared/MetricStrip";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { repository } from "@/lib/store/repository";
@@ -16,6 +17,7 @@ export default function OperationalDashboard() {
   const [metrics, setMetrics] = useState(repository.getDashboardMetrics());
   const [repairs, setRepairs] = useState<Repair[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(!repository.isLoaded);
 
   // Modals state
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
@@ -45,7 +47,15 @@ export default function OperationalDashboard() {
   };
 
   useEffect(() => {
-    loadData();
+    async function init() {
+      if (!repository.isLoaded) {
+        setIsLoading(true);
+        await repository.ensureLoaded();
+      }
+      loadData();
+      setIsLoading(false);
+    }
+    init();
   }, [search, statusId, responsibleId, priority, typeId, onlyReiterated]);
 
   const handleCreateProject = (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
@@ -73,21 +83,24 @@ export default function OperationalDashboard() {
   };
 
   return (
-    <div className="space-y-5">
-      {/* Top operational bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 border border-slate-200 rounded shadow-2xs">
+    <div className="space-y-4">
+      {/* Top Banner Actions */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-3.5 border border-slate-200 rounded shadow-2xs">
         <div>
-          <h1 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <span>Vista Operacional de Reparos</span>
+          <h1 className="text-base font-bold text-slate-900 tracking-tight">
+            Control de Proyectos e Incidencias
           </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Gestión operacional de despliegues FTTH, atenciones y trazabilidad en tiempo real.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setIsNewProjectOpen(true)}
-            className="inline-flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded border border-slate-300 font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded font-medium shadow-2xs transition-colors"
           >
-            <FolderGit2 className="h-3.5 w-3.5 text-slate-600" />
+            <FolderGit2 className="h-3.5 w-3.5 text-blue-400" />
             <span>+ Proyecto</span>
           </button>
           <button
@@ -95,7 +108,7 @@ export default function OperationalDashboard() {
               setSelectedProjectForRepair('');
               setIsNewRepairOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded font-medium shadow-2xs transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded font-medium shadow-2xs transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>+ Reparo</span>
@@ -103,18 +116,26 @@ export default function OperationalDashboard() {
         </div>
       </div>
 
-      {/* Metric strip */}
+      {/* Primary KPI Metric Strip */}
       <MetricStrip metrics={metrics} />
 
-      {/* Main operational section - Full Width Table */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-            <Wrench className="h-3.5 w-3.5 text-slate-600" />
-            <span>Reparos e Incidencias en Seguimiento</span>
-            <span className="text-slate-400 font-normal">({repairs.length})</span>
-          </h2>
-          <Link href="/reparos" className="text-xs text-blue-600 hover:underline font-medium flex items-center gap-1">
+      {/* Main Table View */}
+      <div className="bg-white border border-slate-200 rounded shadow-2xs p-3 space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div className="flex items-center gap-2">
+            <Wrench className="h-4 w-4 text-amber-600" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+              Listado de Reparos Activos
+            </h2>
+            <span className="text-[11px] bg-slate-100 text-slate-600 font-mono px-2 py-0.5 rounded">
+              {repairs.length} registros
+            </span>
+          </div>
+
+          <Link
+            href="/reparos"
+            className="text-xs text-blue-600 hover:text-blue-800 font-semibold inline-flex items-center gap-1"
+          >
             <span>Ver todos los reparos</span>
             <ArrowRight className="h-3 w-3" />
           </Link>
@@ -139,11 +160,18 @@ export default function OperationalDashboard() {
           onResetFilters={resetFilters}
         />
 
-        <RepairTable
-          repairs={repairs}
-          onLogEventClick={(repair) => setSelectedRepairForEvent(repair)}
-          onRefresh={loadData}
-        />
+        {isLoading ? (
+          <LoadingState
+            title="Cargando Panel de Control..."
+            message="Conectando con Supabase para sincronizar proyectos, métricas e incidencias."
+          />
+        ) : (
+          <RepairTable
+            repairs={repairs}
+            onLogEventClick={(repair) => setSelectedRepairForEvent(repair)}
+            onRefresh={loadData}
+          />
+        )}
       </div>
 
       {/* Modals */}
