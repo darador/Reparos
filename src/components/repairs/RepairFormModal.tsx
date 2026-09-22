@@ -1,30 +1,11 @@
 'use client';
 
+import { RESPONSABLES_INICIALES_LIST, SOLICITANTES_LIST } from "@/lib/constants/initial-data";
+export { RESPONSABLES_INICIALES_LIST, SOLICITANTES_LIST };
 import { repository } from "@/lib/store/repository";
 import { Project, Repair, RepairPriority, RepairType, ResponsibleParty } from "@/lib/types/database";
 import { Edit, Loader2, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
-
-export const SOLICITANTES_LIST = [
-  'AMIGO SEBASTIAN',
-  'ALBANESE JESUS',
-  'ARMIGNACCO ADRIAN',
-  'JARA ESTEBAN',
-  'MARCHAT ALEJANDRO',
-  'MARCHAT JONATAN',
-  'KOZDRON MATIAS',
-  'ROMERO GUSTAVO',
-  'SALDIAS PABLO'
-];
-
-export const RESPONSABLES_INICIALES_LIST = [
-  'Obras / ALI EDUARDO',
-  'Obras / DE LIO MARIANO',
-  'Obras / DI PASQUO EMILIO',
-  'Obras / LUTZ MARIA',
-  'Ingeniería / BENITEZ DANIEL',
-  'Ingeniería / PANDIANI'
-];
 
 interface RepairFormModalProps {
   isOpen: boolean;

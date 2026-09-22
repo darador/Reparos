@@ -28,3 +28,24 @@ export const INITIAL_PROJECTS: Project[] = [];
 export const INITIAL_REPAIRS: Repair[] = [];
 
 export const INITIAL_REPAIR_EVENTS: RepairEvent[] = [];
+
+export const SOLICITANTES_LIST = [
+  'AMIGO SEBASTIAN',
+  'ALBANESE JESUS',
+  'ARMIGNACCO ADRIAN',
+  'JARA ESTEBAN',
+  'MARCHAT ALEJANDRO',
+  'MARCHAT JONATAN',
+  'KOZDRON MATIAS',
+  'ROMERO GUSTAVO',
+  'SALDIAS PABLO'
+];
+
+export const RESPONSABLES_INICIALES_LIST = [
+  'Obras / ALI EDUARDO',
+  'Obras / DE LIO MARIANO',
+  'Obras / DI PASQUO EMILIO',
+  'Obras / LUTZ MARIA',
+  'Ingeniería / BENITEZ DANIEL',
+  'Ingeniería / PANDIANI'
+];

@@ -1,9 +1,11 @@
 'use client';
 
+import { StatusBadge } from "@/components/shared/Badges";
+import { RESPONSABLES_INICIALES_LIST, SOLICITANTES_LIST } from "@/lib/constants/initial-data";
 import { repository } from "@/lib/store/repository";
 import { EventType, Repair, RepairStatus, ResponsibleParty } from "@/lib/types/database";
 import { History, Loader2, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface LogEventModalProps {
   isOpen: boolean;
@@ -31,14 +33,41 @@ export function LogEventModal({
   initialEventType = 'follow_up'
 }: LogEventModalProps) {
   const [eventType, setEventType] = useState<EventType>(initialEventType);
-  const [responsibleId, setResponsibleId] = useState<string>(repair.current_responsible_id || '');
+
+  const defaultResp = repair.solicitante || repair.current_responsible?.name || (repair.current_responsible_id ? responsibleParties.find(r => r.id === repair.current_responsible_id)?.name : '');
+
+  const [selectedRespValue, setSelectedRespValue] = useState<string>(defaultResp || '');
   const [customResponsibleName, setCustomResponsibleName] = useState('');
-  const [statusId, setStatusId] = useState<string>(repair.current_status_id || '');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    setEventType(initialEventType);
+    const initialDefault = repair.solicitante || repair.current_responsible?.name || (repair.current_responsible_id ? responsibleParties.find(r => r.id === repair.current_responsible_id)?.name : '');
+    setSelectedRespValue(initialDefault || '');
+  }, [isOpen, repair, initialEventType, responsibleParties]);
+
   if (!isOpen) return null;
+
+  // Compute automatic resulting status based on selected action type
+  const getAutoStatus = () => {
+    if (eventType === 'resolution') {
+      return { name: 'VERIFICACIÓN RESUELTO', category: 'resolved' as const };
+    }
+    if (eventType === 'closure') {
+      return { name: 'FINALIZADO', category: 'closed' as const };
+    }
+    if (eventType === 'assignment') {
+      return {
+        name: repair.current_status?.name || 'PENDIENTE',
+        category: repair.current_status?.category || ('pending' as const)
+      };
+    }
+    return { name: 'PENDIENTE', category: 'pending' as const };
+  };
+
+  const autoStatus = getAutoStatus();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,8 +80,9 @@ export function LogEventModal({
     setIsSubmitting(true);
 
     try {
-      let finalResponsibleId: string | undefined = responsibleId || undefined;
-      if (responsibleId === '__CUSTOM__') {
+      let finalResponsibleId: string | undefined = undefined;
+
+      if (selectedRespValue === '__CUSTOM__') {
         if (!customResponsibleName.trim()) {
           setError('Escriba el nombre del nuevo responsable.');
           setIsSubmitting(false);
@@ -60,13 +90,26 @@ export function LogEventModal({
         }
         const newParty = await repository.addResponsibleParty(customResponsibleName.trim(), 'contractor');
         finalResponsibleId = newParty.id;
+      } else if (selectedRespValue) {
+        // Find if selected value matches a party ID directly
+        const partyById = responsibleParties.find(p => p.id === selectedRespValue);
+        if (partyById) {
+          finalResponsibleId = partyById.id;
+        } else {
+          // It's a name (from SOLICITANTES_LIST or RESPONSABLES_INICIALES_LIST), find or insert into DB
+          const party = await repository.addResponsibleParty(selectedRespValue, 'contractor');
+          finalResponsibleId = party.id;
+        }
       }
+
+      // Find status ID corresponding to autoStatus name
+      const targetStatus = repairStatuses.find(s => s.name === autoStatus.name) || repairStatuses.find(s => s.category === autoStatus.category);
 
       await onSubmit({
         repair_id: repair.id,
         event_type: eventType,
         new_responsible_id: finalResponsibleId,
-        new_status_id: statusId || undefined,
+        new_status_id: targetStatus?.id,
         notes: notes.trim() || undefined
       });
 
@@ -78,6 +121,8 @@ export function LogEventModal({
       setIsSubmitting(false);
     }
   };
+
+  const originalSolicitante = repair.solicitante?.trim();
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 text-xs">
@@ -131,32 +176,60 @@ export function LogEventModal({
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block font-medium text-slate-700 mb-1">
+              <label className="block font-semibold text-slate-700 mb-1">
                 Responsable del Reparo
               </label>
               <select
                 disabled={isSubmitting}
-                value={responsibleId}
-                onChange={(e) => setResponsibleId(e.target.value)}
-                className="w-full px-3 py-1.5 border border-slate-300 rounded bg-white"
+                value={selectedRespValue}
+                onChange={(e) => setSelectedRespValue(e.target.value)}
+                className="w-full px-3 py-1.5 border border-slate-300 rounded bg-white font-medium text-slate-900"
               >
                 <option value="">-- Sin asignar --</option>
-                {responsibleParties.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
+
+                {originalSolicitante && (
+                  <option value={originalSolicitante}>
+                    ⭐ {originalSolicitante} (Solicitante Original)
                   </option>
-                ))}
+                )}
+
+                <optgroup label="Solicitantes">
+                  {SOLICITANTES_LIST.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </optgroup>
+
+                <optgroup label="Equipos Ejecutores / Responsables">
+                  {RESPONSABLES_INICIALES_LIST.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </optgroup>
+
+                {responsibleParties.length > 0 && (
+                  <optgroup label="Otros en Sistema">
+                    {responsibleParties.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+
                 <option value="__CUSTOM__">✍️ Escribir otro responsable...</option>
               </select>
 
-              {responsibleId === '__CUSTOM__' && (
+              {selectedRespValue === '__CUSTOM__' && (
                 <input
                   type="text"
                   required
                   disabled={isSubmitting}
-                  placeholder="Nombre del responsable..."
+                  placeholder="Nombre del nuevo responsable..."
                   value={customResponsibleName}
                   onChange={(e) => setCustomResponsibleName(e.target.value)}
                   className="w-full px-3 py-1.5 border border-blue-400 rounded mt-1.5 bg-blue-50/50"
@@ -165,21 +238,12 @@ export function LogEventModal({
             </div>
 
             <div>
-              <label className="block font-medium text-slate-700 mb-1">
-                Estado resultante
+              <label className="block font-semibold text-slate-700 mb-1">
+                Estado resultante (Automático)
               </label>
-              <select
-                disabled={isSubmitting}
-                value={statusId}
-                onChange={(e) => setStatusId(e.target.value)}
-                className="w-full px-3 py-1.5 border border-slate-300 rounded bg-white font-medium"
-              >
-                {repairStatuses.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+              <div className="px-3 py-1.5 border border-slate-200 bg-slate-50/80 rounded flex items-center h-[34px]">
+                <StatusBadge name={autoStatus.name} category={autoStatus.category} />
+              </div>
             </div>
           </div>
 
