@@ -3,7 +3,7 @@
 import { repository } from "@/lib/store/repository";
 import { Repair } from "@/lib/types/database";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { AlertTriangle, ArrowRight, ArrowUpRight, Building2, ChevronDown, ChevronUp, Edit, History, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowRight, ArrowUpRight, Building2, ChevronDown, ChevronUp, Edit, History, Plus, Wrench } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
 import { RepairFormModal, RESPONSABLES_INICIALES_LIST } from "./RepairFormModal";
@@ -259,41 +259,44 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
                       </div>
                     </td>
                     <td className="text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setRepairToEdit(repair)}
-                          className="inline-flex items-center gap-0.5 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded border border-slate-300 font-medium transition-colors"
-                          title="Editar datos cargados del reparo"
-                        >
-                          <Edit className="h-3 w-3 text-blue-600" />
-                          <span>Editar</span>
-                        </button>
-
-                        <button
-                          onClick={() => toggleExpand(repair.id)}
-                          className={`inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded border font-medium transition-colors ${
-                            isExpanded
-                              ? 'bg-blue-100 text-blue-900 border-blue-300 font-bold'
-                              : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
-                          }`}
-                          title="Desplegar hitos del historial de eventos"
-                        >
-                          <History className="h-3 w-3 text-slate-600" />
-                          <span>Hitos {isExpanded ? '▲' : '▼'}</span>
-                        </button>
-
+                      <div className="inline-flex items-center rounded border border-slate-300 shadow-2xs overflow-hidden divide-x divide-slate-300 bg-white">
                         {onLogEventClick && (
                           <button
                             onClick={() => onLogEventClick(repair)}
-                            className="inline-flex items-center gap-0.5 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded border border-slate-300 font-medium transition-colors"
+                            className="inline-flex items-center gap-1 text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 font-semibold transition-colors"
                             title="Registrar Acción / Evento"
                           >
+                            <Plus className="h-3 w-3" />
                             <span>+ Acción</span>
                           </button>
                         )}
+
+                        <button
+                          onClick={() => toggleExpand(repair.id)}
+                          className={`inline-flex items-center gap-1 text-[11px] px-2 py-1 font-medium transition-colors ${
+                            isExpanded
+                              ? 'bg-blue-100 text-blue-900 font-bold'
+                              : 'bg-slate-50 hover:bg-slate-100 text-slate-700'
+                          }`}
+                          title="Desplegar hitos del historial de eventos"
+                        >
+                          <History className="h-3 w-3 text-slate-500" />
+                          <span>Hitos {isExpanded ? '▲' : '▼'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => setRepairToEdit(repair)}
+                          className="inline-flex items-center gap-1 text-[11px] bg-slate-50 hover:bg-slate-100 text-slate-700 px-2 py-1 font-medium transition-colors"
+                          title="Editar datos cargados del reparo"
+                        >
+                          <Edit className="h-3 w-3 text-slate-500" />
+                          <span>Editar</span>
+                        </button>
+
                         <Link
                           href={`/reparos/${repair.id}`}
-                          className="inline-flex items-center gap-0.5 text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded border border-blue-200 font-medium transition-colors"
+                          className="inline-flex items-center gap-0.5 text-[11px] bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-800 px-2 py-1 font-medium transition-colors"
+                          title="Ver ficha completa del reparo"
                         >
                           <span>Ver</span>
                           <ArrowUpRight className="h-3 w-3" />
