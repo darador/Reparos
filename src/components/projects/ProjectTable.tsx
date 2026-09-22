@@ -2,16 +2,17 @@
 
 import { Project } from "@/lib/types/database";
 import { formatDate } from "@/lib/utils";
-import { ArrowUpRight, FolderGit2, Wrench } from "lucide-react";
+import { ArrowUpRight, Edit3, FolderGit2, Wrench } from "lucide-react";
 import Link from "next/link";
 import { ProjectStatusBadge } from "../shared/Badges";
 
 interface ProjectTableProps {
   projects: Project[];
   onNewRepairClick?: (project: Project) => void;
+  onEditProjectClick?: (project: Project) => void;
 }
 
-export function ProjectTable({ projects, onNewRepairClick }: ProjectTableProps) {
+export function ProjectTable({ projects, onNewRepairClick, onEditProjectClick }: ProjectTableProps) {
   if (projects.length === 0) {
     return (
       <div className="bg-white border border-slate-200 rounded p-8 text-center text-slate-500">
@@ -104,6 +105,16 @@ export function ProjectTable({ projects, onNewRepairClick }: ProjectTableProps) 
                 </td>
                 <td className="text-right">
                   <div className="flex items-center justify-end gap-1.5">
+                    {onEditProjectClick && (
+                      <button
+                        onClick={() => onEditProjectClick(project)}
+                        className="inline-flex items-center gap-1 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-800 px-2 py-1 rounded border border-slate-300 font-medium transition-colors"
+                        title="Editar datos del proyecto (Distrito, Central, Ejecutor, CTOs, Alimentación)"
+                      >
+                        <Edit3 className="h-3 w-3 text-slate-600" />
+                        <span>Editar</span>
+                      </button>
+                    )}
                     {onNewRepairClick && (
                       <button
                         onClick={() => onNewRepairClick(project)}

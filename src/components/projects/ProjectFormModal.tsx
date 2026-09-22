@@ -1,8 +1,8 @@
 'use client';
 
 import { OperationalStatus, Project } from "@/lib/types/database";
-import { Plus, X } from "lucide-react";
-import { useState } from "react";
+import { Edit3, Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const EJECUTORES_LIST = [
   'AMIGO SEBASTIAN',
@@ -21,9 +21,16 @@ interface ProjectFormModalProps {
   onClose: () => void;
   onSubmit: (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => void;
   initialSigest?: string;
+  projectToEdit?: Project | null;
 }
 
-export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = '' }: ProjectFormModalProps) {
+export function ProjectFormModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialSigest = '',
+  projectToEdit = null
+}: ProjectFormModalProps) {
   const [sigest, setSigest] = useState(initialSigest);
   const [poligono, setPoligono] = useState('');
   const [distrito, setDistrito] = useState('');
@@ -36,6 +43,48 @@ export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = ''
   const [situacion, setSituacion] = useState<OperationalStatus>('Demorado');
   const [observaciones, setObservaciones] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      if (projectToEdit) {
+        setSigest(projectToEdit.sigest || '');
+        setPoligono(projectToEdit.poligono || '');
+        setDistrito(projectToEdit.distrito || '');
+        setCentral(projectToEdit.central || '');
+        setTitulo(projectToEdit.titulo || '');
+        
+        const ej = projectToEdit.ejecutor || '';
+        if (EJECUTORES_LIST.includes(ej)) {
+          setEjecutor(ej);
+          setCustomEjecutor('');
+        } else if (ej) {
+          setEjecutor('__CUSTOM__');
+          setCustomEjecutor(ej);
+        } else {
+          setEjecutor('');
+          setCustomEjecutor('');
+        }
+
+        setCtosCount(projectToEdit.ctos_count || 0);
+        setAlimentacion(projectToEdit.alimentacion || 'NO');
+        setSituacion(projectToEdit.situacion_operativa || 'Demorado');
+        setObservaciones(projectToEdit.observaciones || '');
+      } else {
+        setSigest(initialSigest);
+        setPoligono('');
+        setDistrito('');
+        setCentral('');
+        setTitulo('');
+        setEjecutor('');
+        setCustomEjecutor('');
+        setCtosCount(0);
+        setAlimentacion('NO');
+        setSituacion('Demorado');
+        setObservaciones('');
+      }
+      setError('');
+    }
+  }, [isOpen, projectToEdit, initialSigest]);
 
   if (!isOpen) return null;
 
@@ -64,19 +113,23 @@ export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = ''
       alimentacion: alimentacion.trim() || 'NO',
       situacion_operativa: situacion,
       observaciones: observaciones.trim() || undefined,
-      created_by: 'Dario'
+      created_by: projectToEdit?.created_by || 'Dario'
     });
 
     onClose();
   };
+
+  const isEditing = !!projectToEdit;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white border border-slate-300 rounded-lg shadow-xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         <div className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Plus className="h-4 w-4 text-blue-400" />
-            <h3 className="font-semibold text-sm">Nuevo Proyecto FTTH</h3>
+            {isEditing ? <Edit3 className="h-4 w-4 text-blue-400" /> : <Plus className="h-4 w-4 text-blue-400" />}
+            <h3 className="font-semibold text-sm">
+              {isEditing ? `Editar Proyecto FTTH: SIGEST ${projectToEdit.sigest} / ${projectToEdit.poligono}` : 'Nuevo Proyecto FTTH'}
+            </h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
             <X className="h-4 w-4" />
@@ -105,7 +158,7 @@ export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = ''
                 placeholder="Ej. 102345"
                 value={sigest}
                 onChange={(e) => setSigest(e.target.value)}
-                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-mono"
+                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-mono font-bold"
               />
             </div>
 
@@ -119,7 +172,7 @@ export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = ''
                 placeholder="Ej. 045"
                 value={poligono}
                 onChange={(e) => setPoligono(e.target.value)}
-                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-mono"
+                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-mono font-bold"
               />
             </div>
           </div>
@@ -220,7 +273,7 @@ export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = ''
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Observaciones Iniciales</label>
+            <label className="block text-xs font-medium text-slate-700 mb-1">Observaciones</label>
             <textarea
               rows={2}
               placeholder="Detalles u observaciones del proyecto..."
@@ -242,7 +295,7 @@ export function ProjectFormModal({ isOpen, onClose, onSubmit, initialSigest = ''
               type="submit"
               className="px-4 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded font-medium shadow-sm"
             >
-              Guardar Proyecto
+              {isEditing ? 'Guardar Cambios' : 'Guardar Proyecto'}
             </button>
           </div>
         </form>

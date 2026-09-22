@@ -248,6 +248,21 @@ class DataRepository {
     return newProject;
   }
 
+  updateProject(id: string, data: Partial<Omit<Project, 'id' | 'created_at'>>): Project {
+    const index = this.projects.findIndex(p => p.id === id);
+    if (index === -1) throw new Error("Proyecto no encontrado");
+
+    this.projects[index] = {
+      ...this.projects[index],
+      ...data,
+      ctos_count: data.ctos_count !== undefined ? Number(data.ctos_count) || 0 : this.projects[index].ctos_count,
+      updated_at: new Date().toISOString()
+    };
+
+    this.saveToStorage();
+    return this.getProjectById(id) || this.projects[index];
+  }
+
   // --- REPAIRS ---
   getRepairs(filters?: {
     search?: string;

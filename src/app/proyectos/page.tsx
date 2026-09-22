@@ -14,6 +14,8 @@ export default function ProjectsPage() {
   const [status, setStatus] = useState('all');
 
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+
   const [isNewRepairOpen, setIsNewRepairOpen] = useState(false);
   const [selectedProjectForRepair, setSelectedProjectForRepair] = useState<string>('');
 
@@ -25,8 +27,14 @@ export default function ProjectsPage() {
     loadProjects();
   }, [search, status]);
 
-  const handleCreateProject = (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
-    repository.createProject(data);
+  const handleSaveProject = (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
+    if (projectToEdit) {
+      repository.updateProject(projectToEdit.id, data);
+    } else {
+      repository.createProject(data);
+    }
+    setProjectToEdit(null);
+    setIsNewProjectOpen(false);
     loadProjects();
   };
 
@@ -53,7 +61,10 @@ export default function ProjectsPage() {
         </div>
 
         <button
-          onClick={() => setIsNewProjectOpen(true)}
+          onClick={() => {
+            setProjectToEdit(null);
+            setIsNewProjectOpen(true);
+          }}
           className="inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded font-medium shadow-2xs transition-colors shrink-0"
         >
           <Plus className="h-3.5 w-3.5" />
@@ -100,6 +111,10 @@ export default function ProjectsPage() {
       {/* Projects Table */}
       <ProjectTable
         projects={projects}
+        onEditProjectClick={(project) => {
+          setProjectToEdit(project);
+          setIsNewProjectOpen(true);
+        }}
         onNewRepairClick={(project) => {
           setSelectedProjectForRepair(project.id);
           setIsNewRepairOpen(true);
@@ -109,8 +124,12 @@ export default function ProjectsPage() {
       {/* Modals */}
       <ProjectFormModal
         isOpen={isNewProjectOpen}
-        onClose={() => setIsNewProjectOpen(false)}
-        onSubmit={handleCreateProject}
+        projectToEdit={projectToEdit}
+        onClose={() => {
+          setIsNewProjectOpen(false);
+          setProjectToEdit(null);
+        }}
+        onSubmit={handleSaveProject}
       />
 
       <RepairFormModal

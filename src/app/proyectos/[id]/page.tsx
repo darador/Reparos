@@ -1,13 +1,13 @@
 'use client';
 
+import { ProjectFormModal } from "@/components/projects/ProjectFormModal";
 import { RepairFormModal } from "@/components/repairs/RepairFormModal";
 import { RepairTable } from "@/components/repairs/RepairTable";
 import { ProjectStatusBadge } from "@/components/shared/Badges";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { repository } from "@/lib/store/repository";
 import { Project, Repair } from "@/lib/types/database";
-import { formatDate } from "@/lib/utils";
-import { ArrowLeft, Calendar, FileText, FolderGit2, MapPin, Plus, Wrench } from "lucide-react";
+import { ArrowLeft, Edit3, FolderGit2, Plus, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -18,6 +18,7 @@ export default function ProjectDetailPage() {
 
   const [project, setProject] = useState<Project | undefined>(undefined);
   const [repairs, setRepairs] = useState<Repair[]>([]);
+  const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
   const [isNewRepairOpen, setIsNewRepairOpen] = useState(false);
   const [selectedRepairForEvent, setSelectedRepairForEvent] = useState<Repair | null>(null);
 
@@ -44,6 +45,12 @@ export default function ProjectDetailPage() {
       </div>
     );
   }
+
+  const handleUpdateProject = (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
+    repository.updateProject(projectId, data);
+    setIsEditProjectOpen(false);
+    loadProjectData();
+  };
 
   const handleCreateRepair = (data: any) => {
     repository.createRepair({ ...data, project_id: projectId });
@@ -84,13 +91,24 @@ export default function ProjectDetailPage() {
             )}
           </div>
 
-          <button
-            onClick={() => setIsNewRepairOpen(true)}
-            className="inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded font-medium shadow-2xs transition-colors shrink-0"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Nuevo Reparo en este Proyecto</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsEditProjectOpen(true)}
+              className="inline-flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded border border-slate-300 font-medium transition-colors"
+              title="Editar datos del proyecto"
+            >
+              <Edit3 className="h-3.5 w-3.5 text-slate-600" />
+              <span>Editar Proyecto</span>
+            </button>
+
+            <button
+              onClick={() => setIsNewRepairOpen(true)}
+              className="inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded font-medium shadow-2xs transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Nuevo Reparo en este Proyecto</span>
+            </button>
+          </div>
         </div>
 
         {/* Technical Data Grid */}
@@ -154,6 +172,13 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* Modals */}
+      <ProjectFormModal
+        isOpen={isEditProjectOpen}
+        projectToEdit={project}
+        onClose={() => setIsEditProjectOpen(false)}
+        onSubmit={handleUpdateProject}
+      />
+
       <RepairFormModal
         isOpen={isNewRepairOpen}
         onClose={() => setIsNewRepairOpen(false)}
