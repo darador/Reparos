@@ -102,6 +102,7 @@ class DataRepository {
   }
 
   async addResponsibleParty(name: string, type: ResponsibleParty['type'] = 'contractor'): Promise<ResponsibleParty> {
+    await this.ensureLoaded();
     const trimmed = name.trim();
     if (!trimmed) throw new Error("Nombre de responsable no válido");
 
@@ -251,6 +252,7 @@ class DataRepository {
   }
 
   async createProject(data: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
+    await this.ensureLoaded();
     const newProject: Project = {
       ...data,
       id: crypto.randomUUID(),
@@ -292,6 +294,7 @@ class DataRepository {
   }
 
   async updateProject(id: string, data: Partial<Omit<Project, 'id' | 'created_at'>>): Promise<Project> {
+    await this.ensureLoaded();
     const index = this.projects.findIndex(p => p.id === id);
     if (index === -1) throw new Error("Proyecto no encontrado");
 
@@ -405,6 +408,7 @@ class DataRepository {
     observaciones?: string;
     user_name?: string;
   }): Promise<Repair> {
+    await this.ensureLoaded();
     const pendingStatus = this.repairStatuses.find(s => s.name === 'PENDIENTE') || this.repairStatuses[0];
     const initialStatusId = pendingStatus.id;
 
@@ -495,6 +499,7 @@ class DataRepository {
   }
 
   async updateRepair(id: string, data: Partial<Omit<Repair, 'id' | 'created_at'>>, user_name?: string): Promise<Repair> {
+    await this.ensureLoaded();
     const index = this.repairs.findIndex(r => r.id === id);
     if (index === -1) throw new Error("Reparo no encontrado");
 
@@ -603,10 +608,16 @@ class DataRepository {
     notes?: string;
     user_name?: string;
   }): Promise<RepairEvent> {
+    await this.ensureLoaded();
+
     const repair = this.repairs.find(r => r.id === data.repair_id);
     if (!repair) throw new Error("Reparo no encontrado");
 
-    const previous_responsible_id = repair.current_responsible_id;
+    let previous_responsible_id = repair.current_responsible_id;
+    if (previous_responsible_id && !this.responsibleParties.some(p => p.id === previous_responsible_id)) {
+      previous_responsible_id = undefined;
+    }
+
     const previous_status_id = repair.current_status_id;
 
     const pendingStatus = this.repairStatuses.find(s => s.name === 'PENDIENTE') || this.repairStatuses[0];
@@ -677,7 +688,8 @@ class DataRepository {
         }]);
 
         if (evtErr) {
-          console.warn("Notice: event insert notice:", evtErr.message);
+          console.error("Error inserting repair event in Supabase:", evtErr.message);
+          throw new Error("No se pudo registrar el evento del reparo en Supabase: " + evtErr.message);
         }
       }
     }

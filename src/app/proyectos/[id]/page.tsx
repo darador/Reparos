@@ -4,6 +4,7 @@ import { ProjectFormModal } from "@/components/projects/ProjectFormModal";
 import { RepairFormModal } from "@/components/repairs/RepairFormModal";
 import { RepairTable } from "@/components/repairs/RepairTable";
 import { ProjectStatusBadge } from "@/components/shared/Badges";
+import { LoadingState } from "@/components/shared/LoadingState";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { repository } from "@/lib/store/repository";
 import { Project, Repair } from "@/lib/types/database";
@@ -21,6 +22,7 @@ export default function ProjectDetailPage() {
   const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
   const [isNewRepairOpen, setIsNewRepairOpen] = useState(false);
   const [selectedRepairForEvent, setSelectedRepairForEvent] = useState<Repair | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadProjectData = () => {
     const proj = repository.getProjectById(projectId);
@@ -31,8 +33,25 @@ export default function ProjectDetailPage() {
   };
 
   useEffect(() => {
-    loadProjectData();
+    async function init() {
+      if (!repository.isLoaded) {
+        setIsLoading(true);
+        await repository.ensureLoaded();
+      }
+      loadProjectData();
+      setIsLoading(false);
+    }
+    init();
   }, [projectId]);
+
+  if (isLoading) {
+    return (
+      <LoadingState
+        title="Cargando Proyecto..."
+        message="Obteniendo la información general del proyecto y sus reparos desde Supabase."
+      />
+    );
+  }
 
   if (!project) {
     return (

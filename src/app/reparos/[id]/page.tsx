@@ -2,6 +2,7 @@
 
 import { RepairFormModal } from "@/components/repairs/RepairFormModal";
 import { PriorityBadge, StatusBadge } from "@/components/shared/Badges";
+import { LoadingState } from "@/components/shared/LoadingState";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { RepairTimeline } from "@/components/timeline/RepairTimeline";
 import { repository } from "@/lib/store/repository";
@@ -21,6 +22,7 @@ export default function RepairDetailPage() {
   const [isLogEventOpen, setIsLogEventOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [initialEventType, setInitialEventType] = useState<EventType>('follow_up');
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadData = () => {
     const r = repository.getRepairById(repairId);
@@ -31,8 +33,25 @@ export default function RepairDetailPage() {
   };
 
   useEffect(() => {
-    loadData();
+    async function init() {
+      if (!repository.isLoaded) {
+        setIsLoading(true);
+        await repository.ensureLoaded();
+      }
+      loadData();
+      setIsLoading(false);
+    }
+    init();
   }, [repairId]);
+
+  if (isLoading) {
+    return (
+      <LoadingState
+        title="Cargando Ficha de Reparo..."
+        message="Obteniendo la información general y la trazabilidad de eventos desde Supabase."
+      />
+    );
+  }
 
   if (!repair) {
     return (
