@@ -74,18 +74,35 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
     ...activeParties.map(p => p.name)
   ]));
 
+  const projectCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    repairs.forEach(r => {
+      const key = r.project_id || `${r.project?.sigest}_${r.project?.poligono}`;
+      if (key) {
+        counts[key] = (counts[key] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [repairs]);
+
   return (
-    <div className="space-y-0">
-      {/* Dynamic Columns Control Bar */}
-      <div className="flex items-center justify-between bg-slate-50/90 px-3 py-1.5 border border-slate-200 border-b-0 rounded-t text-xs">
+    <div className="space-y-2">
+      {/* Dynamic Optional Column Toggle Control */}
+      <div className="flex items-center justify-between bg-slate-50 border border-slate-200 px-3 py-1.5 rounded text-xs">
         <div className="flex items-center gap-2">
-          <Building2 className="h-3.5 w-3.5 text-blue-600" />
-          <span className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider">Columnas Opcionales:</span>
+          <Building2 className="h-3.5 w-3.5 text-slate-500" />
+          <span className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider font-mono">Columnas Opcionales:</span>
           <button
-            onClick={() => setShowCentralColumn(!showCentralColumn)}
-            className={`px-2.5 py-0.5 rounded border text-[11px] font-semibold transition-colors flex items-center gap-1.5 shadow-2xs ${
+            onClick={() => {
+              const nextVal = !showCentralColumn;
+              setShowCentralColumn(nextVal);
+              try {
+                localStorage.setItem('ftth_show_central', String(nextVal));
+              } catch (e) {}
+            }}
+            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-xs font-semibold border transition-colors ${
               showCentralColumn
-                ? 'bg-blue-50 text-blue-800 border-blue-300 font-bold'
+                ? 'bg-blue-100 text-blue-900 border-blue-300'
                 : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
             }`}
             title="Mostrar u ocultar la columna Central en la tabla"
@@ -123,19 +140,29 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
               const events = isExpanded ? repository.getRepairEvents(repair.id) : [];
               const isEven = index % 2 === 0;
 
+              const pKey = repair.project_id || `${repair.project?.sigest}_${repair.project?.poligono}`;
+              const totalInProject = projectCounts[pKey] || 1;
+              const isMultipleInProject = totalInProject > 1;
+
               const rowBgClass = hasReiterations
                 ? "bg-amber-50/70 hover:bg-amber-100/70"
                 : isExpanded
                 ? "bg-blue-50/50"
+                : isMultipleInProject
+                ? "bg-indigo-50/30 hover:bg-indigo-50/70"
                 : isEven
                 ? "bg-slate-50 hover:bg-blue-50/40"
                 : "bg-white hover:bg-blue-50/40";
+
+              const borderClass = isMultipleInProject
+                ? "border-l-4 border-l-indigo-500 border-b border-slate-200/80"
+                : "border-b border-slate-200/80";
 
               const currentRespName = repair.current_responsible?.name || '__UNASSIGNED__';
 
               return (
                 <React.Fragment key={repair.id}>
-                  <tr className={`${rowBgClass} transition-colors border-b border-slate-200/80`}>
+                  <tr className={`${rowBgClass} ${borderClass} transition-colors`}>
                     <td>
                       <button
                         onClick={() => toggleExpand(repair.id)}
@@ -151,19 +178,30 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
                     </td>
                     <td className="whitespace-nowrap">
                       {repair.project ? (
-                        <Link
-                          href={`/proyectos/${repair.project.id}`}
-                          className="inline-flex items-center gap-1.5 font-mono group"
-                          title={`Ver proyecto SIGEST: ${repair.project.sigest} | Polígono: ${repair.project.poligono}`}
-                        >
-                          <span className="font-black text-slate-900 text-sm tracking-tight group-hover:text-blue-600 transition-colors">
-                            {repair.project.sigest}
-                          </span>
-                          <span className="text-slate-400 font-sans text-xs">/</span>
-                          <span className="font-bold text-blue-700 bg-blue-50/90 border border-blue-200/90 px-2 py-0.5 rounded text-[13px] shadow-2xs group-hover:bg-blue-100 group-hover:border-blue-300 transition-colors">
-                            {repair.project.poligono}
-                          </span>
-                        </Link>
+                        <div className="inline-flex items-center gap-1.5 flex-wrap">
+                          <Link
+                            href={`/proyectos/${repair.project.id}`}
+                            className="inline-flex items-center gap-1.5 font-mono group"
+                            title={`Ver proyecto SIGEST: ${repair.project.sigest} | Polígono: ${repair.project.poligono}`}
+                          >
+                            <span className="font-black text-slate-900 text-sm tracking-tight group-hover:text-blue-600 transition-colors">
+                              {repair.project.sigest}
+                            </span>
+                            <span className="text-slate-400 font-sans text-xs">/</span>
+                            <span className="font-bold text-blue-700 bg-blue-50/90 border border-blue-200/90 px-2 py-0.5 rounded text-[13px] shadow-2xs group-hover:bg-blue-100 group-hover:border-blue-300 transition-colors">
+                              {repair.project.poligono}
+                            </span>
+                          </Link>
+
+                          {isMultipleInProject && (
+                            <span
+                              className="inline-flex items-center gap-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-300 px-1.5 py-0.5 rounded font-mono shadow-2xs"
+                              title={`Este polígono tiene ${totalInProject} reparos registrados`}
+                            >
+                              <span>📂 {totalInProject} en polígono</span>
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-slate-400 font-mono text-xs">-</span>
                       )}
