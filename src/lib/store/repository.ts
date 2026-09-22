@@ -2,7 +2,7 @@ import { INITIAL_PROJECTS, INITIAL_REPAIR_EVENTS, INITIAL_REPAIR_STATUSES, INITI
 import { createClient } from "../supabase/client";
 import { DashboardMetrics, Project, Repair, RepairEvent, RepairStatus, RepairType, ResponsibleParty } from "../types/database";
 
-// In-Memory & LocalStorage Data Store for V1 Operations
+// Supabase-Direct Data Store (No LocalStorage caching)
 class DataRepository {
   private projects: Project[];
   private repairs: Repair[];
@@ -12,111 +12,26 @@ class DataRepository {
   private repairStatuses: RepairStatus[];
 
   constructor() {
-    this.projects = [...INITIAL_PROJECTS];
-    this.repairs = [...INITIAL_REPAIRS];
-    this.events = [...INITIAL_REPAIR_EVENTS];
+    this.projects = [];
+    this.repairs = [];
+    this.events = [];
     this.responsibleParties = [...INITIAL_RESPONSIBLE_PARTIES];
     this.repairTypes = [...INITIAL_REPAIR_TYPES];
     this.repairStatuses = [...INITIAL_REPAIR_STATUSES];
 
-    // Load from localStorage if on browser
+    // Clear legacy localStorage cache if present & sync with Supabase DB
     if (typeof window !== 'undefined') {
-      this.loadFromStorage();
-    }
-  }
-
-  private loadFromStorage() {
-    try {
-      const p = localStorage.getItem('ftth_projects');
-      const r = localStorage.getItem('ftth_repairs');
-      const e = localStorage.getItem('ftth_events');
-      const resp = localStorage.getItem('ftth_responsible');
-      const types = localStorage.getItem('ftth_types');
-
-      const mockProjectIds = new Set(['d1111111-1111-1111-1111-111111111111', 'd2222222-2222-2222-2222-222222222222', 'd3333333-3333-3333-3333-333333333333', 'd4444444-4444-4444-4444-444444444444']);
-      const mockRepairIds = new Set(['e1111111-1111-1111-1111-111111111111', 'e2222222-2222-2222-2222-222222222222', 'e3333333-3333-3333-3333-333333333333', 'e4444444-4444-4444-4444-444444444444']);
-      const mockEventIds = new Set(['f1111111-1111-1111-1111-111111111111', 'f2222222-2222-2222-2222-222222222222', 'f3333333-3333-3333-3333-333333333333', 'f4444444-4444-4444-4444-444444444444', 'f5555555-5555-5555-5555-555555555555', 'f6666666-6666-6666-6666-666666666666']);
-
-      if (p) {
-        const loadedProjects: Project[] = JSON.parse(p);
-        this.projects = loadedProjects.filter(item => !mockProjectIds.has(item.id));
-      } else {
-        this.projects = [];
+      try {
+        localStorage.removeItem('ftth_projects');
+        localStorage.removeItem('ftth_repairs');
+        localStorage.removeItem('ftth_events');
+        localStorage.removeItem('ftth_responsible');
+        localStorage.removeItem('ftth_types');
+        localStorage.removeItem('ftth_statuses');
+      } catch (e) {
+        // Ignore localStorage cleanup errors
       }
-
-      if (r) {
-        const loadedRepairs: Repair[] = JSON.parse(r);
-        const pendingId = 'c1111111-1111-1111-1111-111111111111';
-        const resolvedId = 'c7777777-7777-7777-7777-777777777777';
-        const finalizedId = 'c8888888-8888-8888-8888-888888888888';
-
-        this.repairs = loadedRepairs
-          .filter(rep => !mockRepairIds.has(rep.id) && !mockProjectIds.has(rep.project_id))
-          .map(rep => {
-            let sid = rep.current_status_id;
-            if (sid === 'c7777777-7777-7777-7777-777777777777') {
-              sid = resolvedId;
-            } else if (sid === 'c8888888-8888-8888-8888-888888888888') {
-              sid = finalizedId;
-            } else {
-              sid = pendingId;
-            }
-            return { ...rep, current_status_id: sid };
-          });
-      } else {
-        this.repairs = [];
-      }
-
-      if (e) {
-        const loadedEvents: RepairEvent[] = JSON.parse(e);
-        this.events = loadedEvents.filter(item => !mockEventIds.has(item.id) && !mockRepairIds.has(item.repair_id));
-      } else {
-        this.events = [];
-      }
-      
-      const coreNames = ['Obras', 'Ingeniería', 'Equipo Despliegue'];
-      const legacyNames = new Set([
-        'Contratista ABC', 'Despliegue FTTH', 'Contratista Redes', 
-        'Empresa Contratista', 'Contratista', 'Técnico de Red', 
-        'Supervisión', 'Auditoría', 'Contratista Redes FTTH'
-      ]);
-
-      if (resp) {
-        const loadedResp: ResponsibleParty[] = JSON.parse(resp);
-        const customParties = loadedResp.filter(item => 
-          !coreNames.includes(item.name) && !legacyNames.has(item.name)
-        );
-        this.responsibleParties = [...INITIAL_RESPONSIBLE_PARTIES, ...customParties];
-      } else {
-        this.responsibleParties = [...INITIAL_RESPONSIBLE_PARTIES];
-      }
-      this.saveToStorage();
-
-      if (types) {
-        const loadedTypes: RepairType[] = JSON.parse(types);
-        const filtered = loadedTypes.filter(t => t.name !== 'Problema CTO');
-        const hasPostePodrido = filtered.some(t => t.name === 'Poste podrido' || t.id === 'b7777777-7777-7777-7777-777777777777');
-        if (!hasPostePodrido) {
-          filtered.push({
-            id: 'b7777777-7777-7777-7777-777777777777',
-            name: 'Poste podrido',
-            description: 'Poste deteriorado o en riesgo de caída',
-            is_active: true,
-            created_at: '2026-09-01T00:00:00Z'
-          });
-        }
-        this.repairTypes = filtered.map(t => t.id === 'b7777777-7777-7777-7777-777777777777' ? { ...t, name: 'Poste podrido', description: 'Poste deteriorado o en riesgo de caída' } : t);
-      } else {
-        this.repairTypes = [...INITIAL_REPAIR_TYPES];
-      }
-
-      // Always reset statuses to the official 3 V1 statuses
-      this.repairStatuses = [...INITIAL_REPAIR_STATUSES];
-
-      this.saveToStorage();
       this.syncWithSupabase();
-    } catch (err) {
-      console.error('Error loading from storage:', err);
     }
   }
 
@@ -126,43 +41,35 @@ class DataRepository {
       const supabase = createClient();
       if (!supabase) return;
 
-      const [projRes, repRes, evtRes, respRes] = await Promise.all([
+      const [projRes, repRes, evtRes, respRes, typesRes] = await Promise.all([
         supabase.from('projects').select('*'),
         supabase.from('repairs').select('*'),
         supabase.from('repair_events').select('*'),
-        supabase.from('responsible_parties').select('*')
+        supabase.from('responsible_parties').select('*'),
+        supabase.from('repair_types').select('*')
       ]);
 
-      if (projRes.data && projRes.data.length > 0) {
+      if (projRes.data) {
         this.projects = projRes.data;
       }
-      if (repRes.data && repRes.data.length > 0) {
+      if (repRes.data) {
         this.repairs = repRes.data;
       }
-      if (evtRes.data && evtRes.data.length > 0) {
+      if (evtRes.data) {
         this.events = evtRes.data;
       }
+
       if (respRes.data && respRes.data.length > 0) {
-        this.responsibleParties = respRes.data;
+        const coreNames = ['Obras', 'Ingeniería', 'Equipo Despliegue'];
+        const customParties = respRes.data.filter(item => !coreNames.includes(item.name));
+        this.responsibleParties = [...INITIAL_RESPONSIBLE_PARTIES, ...customParties];
       }
 
-      this.saveToStorage();
+      if (typesRes.data && typesRes.data.length > 0) {
+        this.repairTypes = typesRes.data;
+      }
     } catch (err) {
       console.warn('Supabase sync background notice:', err);
-    }
-  }
-
-  private saveToStorage() {
-    if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem('ftth_projects', JSON.stringify(this.projects));
-      localStorage.setItem('ftth_repairs', JSON.stringify(this.repairs));
-      localStorage.setItem('ftth_events', JSON.stringify(this.events));
-      localStorage.setItem('ftth_responsible', JSON.stringify(this.responsibleParties));
-      localStorage.setItem('ftth_types', JSON.stringify(this.repairTypes));
-      localStorage.setItem('ftth_statuses', JSON.stringify(this.repairStatuses));
-    } catch (err) {
-      console.error('Error saving to storage:', err);
     }
   }
 
@@ -184,7 +91,22 @@ class DataRepository {
       created_at: new Date().toISOString()
     };
     this.responsibleParties.push(newItem);
-    this.saveToStorage();
+
+    if (typeof window !== 'undefined') {
+      const supabase = createClient();
+      if (supabase) {
+        supabase.from('responsible_parties').insert([{
+          id: newItem.id,
+          name: newItem.name,
+          type: newItem.type,
+          is_active: newItem.is_active,
+          created_at: newItem.created_at
+        }]).then(({ error }) => {
+          if (error) console.warn("Supabase responsible_parties insert notice:", error.message);
+        });
+      }
+    }
+
     return newItem;
   }
 
@@ -205,7 +127,22 @@ class DataRepository {
       created_at: new Date().toISOString()
     };
     this.repairTypes.push(newItem);
-    this.saveToStorage();
+
+    if (typeof window !== 'undefined') {
+      const supabase = createClient();
+      if (supabase) {
+        supabase.from('repair_types').insert([{
+          id: newItem.id,
+          name: newItem.name,
+          description: newItem.description,
+          is_active: newItem.is_active,
+          created_at: newItem.created_at
+        }]).then(({ error }) => {
+          if (error) console.warn("Supabase repair_types insert notice:", error.message);
+        });
+      }
+    }
+
     return newItem;
   }
 
@@ -278,7 +215,6 @@ class DataRepository {
       created_by: data.created_by || 'Usuario Sistema'
     };
     this.projects.push(newProject);
-    this.saveToStorage();
 
     if (typeof window !== 'undefined') {
       const supabase = createClient();
@@ -319,7 +255,6 @@ class DataRepository {
     };
 
     this.projects[index] = updated;
-    this.saveToStorage();
 
     if (typeof window !== 'undefined') {
       const supabase = createClient();
@@ -460,7 +395,43 @@ class DataRepository {
     };
     this.events.push(creationEvent);
 
-    this.saveToStorage();
+    if (typeof window !== 'undefined') {
+      const supabase = createClient();
+      if (supabase) {
+        supabase.from('repairs').insert([{
+          id: newRepair.id,
+          project_id: newRepair.project_id,
+          repair_type_id: newRepair.repair_type_id,
+          description: newRepair.description,
+          priority: newRepair.priority,
+          solicitante: newRepair.solicitante,
+          current_responsible_id: newRepair.current_responsible_id,
+          current_status_id: newRepair.current_status_id,
+          fecha_informado: newRepair.fecha_informado,
+          fecha_compromiso: newRepair.fecha_compromiso,
+          observaciones: newRepair.observaciones,
+          created_at: newRepair.created_at,
+          updated_at: newRepair.updated_at,
+          created_by: newRepair.created_by
+        }]).then(({ error }) => {
+          if (error) console.warn("Supabase repair insert notice:", error.message);
+        });
+
+        supabase.from('repair_events').insert([{
+          id: creationEvent.id,
+          repair_id: creationEvent.repair_id,
+          event_type: creationEvent.event_type,
+          new_responsible_id: creationEvent.new_responsible_id,
+          new_status_id: creationEvent.new_status_id,
+          notes: creationEvent.notes,
+          created_at: creationEvent.created_at,
+          created_by: creationEvent.created_by
+        }]).then(({ error }) => {
+          if (error) console.warn("Supabase event insert notice:", error.message);
+        });
+      }
+    }
+
     return this.enrichRepair(newRepair);
   }
 
@@ -542,7 +513,36 @@ class DataRepository {
     };
 
     this.events.push(newEvent);
-    this.saveToStorage();
+
+    if (typeof window !== 'undefined') {
+      const supabase = createClient();
+      if (supabase) {
+        supabase.from('repairs').update({
+          current_status_id: targetStatusId,
+          current_responsible_id: targetResponsibleId,
+          updated_at: repair.updated_at
+        }).eq('id', repair.id).then(({ error }) => {
+          if (error) console.warn("Supabase repair status update notice:", error.message);
+        });
+
+        supabase.from('repair_events').insert([{
+          id: newEvent.id,
+          repair_id: newEvent.repair_id,
+          event_type: newEvent.event_type,
+          previous_responsible_id,
+          new_responsible_id: targetResponsibleId,
+          previous_status_id,
+          new_status_id: targetStatusId,
+          verification_result: data.verification_result,
+          notes: data.notes,
+          created_at: newEvent.created_at,
+          created_by: newEvent.created_by
+        }]).then(({ error }) => {
+          if (error) console.warn("Supabase event insert notice:", error.message);
+        });
+      }
+    }
+
     return newEvent;
   }
 
