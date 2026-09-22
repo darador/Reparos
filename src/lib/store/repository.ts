@@ -32,27 +32,46 @@ class DataRepository {
       const resp = localStorage.getItem('ftth_responsible');
       const types = localStorage.getItem('ftth_types');
 
-      if (p) this.projects = JSON.parse(p);
+      const mockProjectIds = new Set(['d1111111-1111-1111-1111-111111111111', 'd2222222-2222-2222-2222-222222222222', 'd3333333-3333-3333-3333-333333333333', 'd4444444-4444-4444-4444-444444444444']);
+      const mockRepairIds = new Set(['e1111111-1111-1111-1111-111111111111', 'e2222222-2222-2222-2222-222222222222', 'e3333333-3333-3333-3333-333333333333', 'e4444444-4444-4444-4444-444444444444']);
+      const mockEventIds = new Set(['f1111111-1111-1111-1111-111111111111', 'f2222222-2222-2222-2222-222222222222', 'f3333333-3333-3333-3333-333333333333', 'f4444444-4444-4444-4444-444444444444', 'f5555555-5555-5555-5555-555555555555', 'f6666666-6666-6666-6666-666666666666']);
+
+      if (p) {
+        const loadedProjects: Project[] = JSON.parse(p);
+        this.projects = loadedProjects.filter(item => !mockProjectIds.has(item.id));
+      } else {
+        this.projects = [];
+      }
+
       if (r) {
         const loadedRepairs: Repair[] = JSON.parse(r);
-        // Map any legacy status IDs to the 3 official V1 status IDs
         const pendingId = 'c1111111-1111-1111-1111-111111111111';
         const resolvedId = 'c7777777-7777-7777-7777-777777777777';
         const finalizedId = 'c8888888-8888-8888-8888-888888888888';
 
-        this.repairs = loadedRepairs.map(rep => {
-          let sid = rep.current_status_id;
-          if (sid === 'c7777777-7777-7777-7777-777777777777') {
-            sid = resolvedId;
-          } else if (sid === 'c8888888-8888-8888-8888-888888888888') {
-            sid = finalizedId;
-          } else {
-            sid = pendingId;
-          }
-          return { ...rep, current_status_id: sid };
-        });
+        this.repairs = loadedRepairs
+          .filter(rep => !mockRepairIds.has(rep.id) && !mockProjectIds.has(rep.project_id))
+          .map(rep => {
+            let sid = rep.current_status_id;
+            if (sid === 'c7777777-7777-7777-7777-777777777777') {
+              sid = resolvedId;
+            } else if (sid === 'c8888888-8888-8888-8888-888888888888') {
+              sid = finalizedId;
+            } else {
+              sid = pendingId;
+            }
+            return { ...rep, current_status_id: sid };
+          });
+      } else {
+        this.repairs = [];
       }
-      if (e) this.events = JSON.parse(e);
+
+      if (e) {
+        const loadedEvents: RepairEvent[] = JSON.parse(e);
+        this.events = loadedEvents.filter(item => !mockEventIds.has(item.id) && !mockRepairIds.has(item.repair_id));
+      } else {
+        this.events = [];
+      }
       
       const coreNames = ['Obras', 'Ingeniería', 'Equipo Despliegue'];
       const legacyNames = new Set([
