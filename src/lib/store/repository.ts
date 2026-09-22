@@ -401,8 +401,27 @@ class DataRepository {
     if (filters?.responsibleId && filters.responsibleId !== 'all') {
       if (filters.responsibleId === 'unassigned') {
         list = list.filter(r => !r.current_responsible_id);
+      } else if (filters.responsibleId.startsWith('AREA:')) {
+        const areaName = filters.responsibleId.replace('AREA:', '').toLowerCase().replace('ía', 'ia');
+        list = list.filter(r => {
+          const respName = (r.current_responsible?.name || '').toLowerCase().replace('ía', 'ia');
+          return respName.startsWith(areaName) || respName.includes(areaName);
+        });
       } else {
-        list = list.filter(r => r.current_responsible_id === filters.responsibleId);
+        const targetParty = this.responsibleParties.find(p => p.id === filters.responsibleId);
+        const targetName = (targetParty ? targetParty.name : filters.responsibleId).toLowerCase().replace('ía', 'ia');
+
+        if (targetName === 'obras' || targetName === 'ingenieria') {
+          list = list.filter(r => {
+            const respName = (r.current_responsible?.name || '').toLowerCase().replace('ía', 'ia');
+            return r.current_responsible_id === filters.responsibleId || respName.startsWith(targetName) || respName.includes(targetName);
+          });
+        } else {
+          list = list.filter(r => 
+            r.current_responsible_id === filters.responsibleId || 
+            (r.current_responsible?.name || '').toLowerCase() === (targetParty?.name || '').toLowerCase()
+          );
+        }
       }
     }
 

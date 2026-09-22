@@ -135,15 +135,23 @@ export function RepairFilters({
           <select
             value={responsibleId}
             onChange={(e) => onResponsibleChange(e.target.value)}
-            className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white"
+            className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white text-slate-800 font-medium"
           >
             <option value="all">Todos los Responsables</option>
             <option value="unassigned">-- Sin asignar --</option>
-            {responsibleParties.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
+            
+            <optgroup label="Sectores / Áreas (Grupo Completo)">
+              <option value="AREA:Obras">🏢 Todo Obras (Todos los miembros de Obras)</option>
+              <option value="AREA:Ingeniería">⚙️ Todo Ingeniería (Todos los miembros de Ingeniería)</option>
+            </optgroup>
+
+            <optgroup label="Responsables Individuales">
+              {responsibleParties.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </div>
 
