@@ -1,4 +1,5 @@
 import { INITIAL_PROJECTS, INITIAL_REPAIR_EVENTS, INITIAL_REPAIR_STATUSES, INITIAL_REPAIR_TYPES, INITIAL_REPAIRS, INITIAL_RESPONSIBLE_PARTIES } from "../constants/initial-data";
+import { createClient } from "../supabase/client";
 import { DashboardMetrics, Project, Repair, RepairEvent, RepairStatus, RepairType, ResponsibleParty } from "../types/database";
 
 // In-Memory & LocalStorage Data Store for V1 Operations
@@ -113,8 +114,41 @@ class DataRepository {
       this.repairStatuses = [...INITIAL_REPAIR_STATUSES];
 
       this.saveToStorage();
+      this.syncWithSupabase();
     } catch (err) {
       console.error('Error loading from storage:', err);
+    }
+  }
+
+  async syncWithSupabase() {
+    if (typeof window === 'undefined') return;
+    try {
+      const supabase = createClient();
+      if (!supabase) return;
+
+      const [projRes, repRes, evtRes, respRes] = await Promise.all([
+        supabase.from('projects').select('*'),
+        supabase.from('repairs').select('*'),
+        supabase.from('repair_events').select('*'),
+        supabase.from('responsible_parties').select('*')
+      ]);
+
+      if (projRes.data && projRes.data.length > 0) {
+        this.projects = projRes.data;
+      }
+      if (repRes.data && repRes.data.length > 0) {
+        this.repairs = repRes.data;
+      }
+      if (evtRes.data && evtRes.data.length > 0) {
+        this.events = evtRes.data;
+      }
+      if (respRes.data && respRes.data.length > 0) {
+        this.responsibleParties = respRes.data;
+      }
+
+      this.saveToStorage();
+    } catch (err) {
+      console.warn('Supabase sync background notice:', err);
     }
   }
 
@@ -245,6 +279,31 @@ class DataRepository {
     };
     this.projects.push(newProject);
     this.saveToStorage();
+
+    if (typeof window !== 'undefined') {
+      const supabase = createClient();
+      if (supabase) {
+        supabase.from('projects').insert([{
+          id: newProject.id,
+          sigest: newProject.sigest,
+          poligono: newProject.poligono,
+          distrito: newProject.distrito,
+          central: newProject.central,
+          titulo: newProject.titulo,
+          ejecutor: newProject.ejecutor,
+          ctos_count: newProject.ctos_count,
+          alimentacion: newProject.alimentacion,
+          situacion_operativa: newProject.situacion_operativa,
+          observaciones: newProject.observaciones,
+          created_at: newProject.created_at,
+          updated_at: newProject.updated_at,
+          created_by: newProject.created_by
+        }]).then(({ error }) => {
+          if (error) console.warn("Supabase project insert notice:", error.message);
+        });
+      }
+    }
+
     return newProject;
   }
 
@@ -252,15 +311,38 @@ class DataRepository {
     const index = this.projects.findIndex(p => p.id === id);
     if (index === -1) throw new Error("Proyecto no encontrado");
 
-    this.projects[index] = {
+    const updated = {
       ...this.projects[index],
       ...data,
       ctos_count: data.ctos_count !== undefined ? Number(data.ctos_count) || 0 : this.projects[index].ctos_count,
       updated_at: new Date().toISOString()
     };
 
+    this.projects[index] = updated;
     this.saveToStorage();
-    return this.getProjectById(id) || this.projects[index];
+
+    if (typeof window !== 'undefined') {
+      const supabase = createClient();
+      if (supabase) {
+        supabase.from('projects').update({
+          sigest: updated.sigest,
+          poligono: updated.poligono,
+          distrito: updated.distrito,
+          central: updated.central,
+          titulo: updated.titulo,
+          ejecutor: updated.ejecutor,
+          ctos_count: updated.ctos_count,
+          alimentacion: updated.alimentacion,
+          situacion_operativa: updated.situacion_operativa,
+          observaciones: updated.observaciones,
+          updated_at: updated.updated_at
+        }).eq('id', id).then(({ error }) => {
+          if (error) console.warn("Supabase project update notice:", error.message);
+        });
+      }
+    }
+
+    return this.getProjectById(id) || updated;
   }
 
   // --- REPAIRS ---
