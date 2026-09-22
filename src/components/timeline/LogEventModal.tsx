@@ -47,7 +47,8 @@ export function LogEventModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    setEventType(initialEventType);
+    const defaultType = (initialEventType as string) === 'derivation' ? 'assignment' : initialEventType;
+    setEventType(defaultType);
 
     // Default reporter: current responsible of the repair
     const defaultReporter = repair.current_responsible?.name || 
@@ -75,10 +76,17 @@ export function LogEventModal({
         category: repair.current_status?.category || ('pending' as const)
       };
     }
+    if (eventType === 'reclaim') {
+      return {
+        name: repair.current_status?.name || 'PENDIENTE',
+        category: repair.current_status?.category || ('pending' as const)
+      };
+    }
     return { name: 'PENDIENTE', category: 'pending' as const };
   };
 
   const autoStatus = getAutoStatus();
+  const showDerivation = eventType === 'resolution' || eventType === 'assignment';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,24 +106,26 @@ export function LogEventModal({
         await repository.addResponsibleParty(reporterValue, 'contractor');
       }
 
-      // 2. Resolve derivation target ID (New Responsible)
+      // 2. Resolve derivation target ID (New Responsible) only if showDerivation is true
       let finalDerivationId: string | undefined = undefined;
 
-      if (derivationValue === '__CUSTOM__') {
-        if (!customDerivationName.trim()) {
-          setError('Escriba el nombre del solicitante / responsable a quien se deriva.');
-          setIsSubmitting(false);
-          return;
-        }
-        const newParty = await repository.addResponsibleParty(customDerivationName.trim(), 'contractor');
-        finalDerivationId = newParty.id;
-      } else if (derivationValue) {
-        const partyById = responsibleParties.find(p => p.id === derivationValue);
-        if (partyById) {
-          finalDerivationId = partyById.id;
-        } else {
-          const party = await repository.addResponsibleParty(derivationValue, 'contractor');
-          finalDerivationId = party.id;
+      if (showDerivation) {
+        if (derivationValue === '__CUSTOM__') {
+          if (!customDerivationName.trim()) {
+            setError('Escriba el nombre del solicitante / responsable a quien se deriva.');
+            setIsSubmitting(false);
+            return;
+          }
+          const newParty = await repository.addResponsibleParty(customDerivationName.trim(), 'contractor');
+          finalDerivationId = newParty.id;
+        } else if (derivationValue) {
+          const partyById = responsibleParties.find(p => p.id === derivationValue);
+          if (partyById) {
+            finalDerivationId = partyById.id;
+          } else {
+            const party = await repository.addResponsibleParty(derivationValue, 'contractor');
+            finalDerivationId = party.id;
+          }
         }
       }
 
@@ -175,25 +185,27 @@ export function LogEventModal({
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">
-              Tipo de Acción / Evento <span className="text-red-500">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block font-semibold text-slate-700">
+                Tipo de Acción / Evento <span className="text-red-500">*</span>
+              </label>
+              <StatusBadge name={autoStatus.name} category={autoStatus.category} />
+            </div>
             <select
               disabled={isSubmitting}
               value={eventType}
               onChange={(e) => setEventType(e.target.value as EventType)}
               className="w-full px-3 py-1.5 border border-slate-300 rounded bg-white text-slate-900 font-semibold"
             >
-              <option value="follow_up">💬 + PENDIENTE OTROS (Permanece PENDIENTE)</option>
               <option value="resolution">✅ VERIFICAR RESUELTO (Trabajo realizado por el sector)</option>
               <option value="closure">🏁 FINALIZADO (Solicitante verificó ok)</option>
               <option value="reclaim">⚠️ Reclamo / Reiteración de avance</option>
               <option value="assignment">👤 Cambio / Reasignación de Responsable</option>
-              <option value="derivation">➡️ Derivación a otro área</option>
+              <option value="follow_up">💬 + PENDIENTE OTROS (Permanece PENDIENTE)</option>
             </select>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className={showDerivation ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : "block"}>
             {/* Left Col: Responsable del Reparo (quien informa la acción) */}
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
@@ -245,70 +257,68 @@ export function LogEventModal({
               )}
             </div>
 
-            {/* Right Col: Se deriva a: (con preselección del Solicitante Original) */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="font-semibold text-slate-700">
+            {/* Right Col: Se deriva a: (Solo para VERIFICAR RESUELTO o Cambio de Responsable) */}
+            {showDerivation && (
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
                   Se deriva a: <span className="text-red-500">*</span>
                 </label>
-                <StatusBadge name={autoStatus.name} category={autoStatus.category} />
-              </div>
+                <select
+                  disabled={isSubmitting}
+                  value={derivationValue}
+                  onChange={(e) => setDerivationValue(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded bg-white font-medium text-slate-900"
+                >
+                  <option value="">-- Sin derivar --</option>
 
-              <select
-                disabled={isSubmitting}
-                value={derivationValue}
-                onChange={(e) => setDerivationValue(e.target.value)}
-                className="w-full px-3 py-1.5 border border-slate-300 rounded bg-white font-medium text-slate-900"
-              >
-                <option value="">-- Sin derivar --</option>
-
-                {originalSolicitante && (
-                  <option value={originalSolicitante}>
-                    ⭐ {originalSolicitante} (Solicitante Original)
-                  </option>
-                )}
-
-                <optgroup label="Solicitantes">
-                  {SOLICITANTES_LIST.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
+                  {originalSolicitante && (
+                    <option value={originalSolicitante}>
+                      ⭐ {originalSolicitante} (Solicitante Original)
                     </option>
-                  ))}
-                </optgroup>
+                  )}
 
-                <optgroup label="Equipos Ejecutores / Responsables">
-                  {RESPONSABLES_INICIALES_LIST.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </optgroup>
-
-                {responsibleParties.length > 0 && (
-                  <optgroup label="Otros en Sistema">
-                    {responsibleParties.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
+                  <optgroup label="Solicitantes">
+                    {SOLICITANTES_LIST.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
                       </option>
                     ))}
                   </optgroup>
+
+                  <optgroup label="Equipos Ejecutores / Responsables">
+                    {RESPONSABLES_INICIALES_LIST.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </optgroup>
+
+                  {responsibleParties.length > 0 && (
+                    <optgroup label="Otros en Sistema">
+                      {responsibleParties.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+
+                  <option value="__CUSTOM__">✍️ Escribir otro solicitante/responsable...</option>
+                </select>
+
+                {derivationValue === '__CUSTOM__' && (
+                  <input
+                    type="text"
+                    required
+                    disabled={isSubmitting}
+                    placeholder="Nombre del solicitante o responsable..."
+                    value={customDerivationName}
+                    onChange={(e) => setCustomDerivationName(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-blue-400 rounded mt-1.5 bg-blue-50/50"
+                  />
                 )}
-
-                <option value="__CUSTOM__">✍️ Escribir otro solicitante/responsable...</option>
-              </select>
-
-              {derivationValue === '__CUSTOM__' && (
-                <input
-                  type="text"
-                  required
-                  disabled={isSubmitting}
-                  placeholder="Nombre del solicitante o responsable..."
-                  value={customDerivationName}
-                  onChange={(e) => setCustomDerivationName(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-blue-400 rounded mt-1.5 bg-blue-50/50"
-                />
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <div>
