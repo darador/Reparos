@@ -3,7 +3,7 @@
 import { repository } from "@/lib/store/repository";
 import { Repair } from "@/lib/types/database";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { AlertTriangle, ArrowRight, ArrowUpRight, Building2, ChevronDown, ChevronUp, Edit, History, Plus, Wrench } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, ArrowUpRight, Building2, ChevronDown, ChevronUp, Edit, History, Plus, Wrench } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
 import { RepairFormModal, RESPONSABLES_INICIALES_LIST } from "./RepairFormModal";
@@ -129,6 +129,7 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
               <th className="min-w-[160px]">RESPONSABLE</th>
               <th>ESTADO</th>
               <th className="whitespace-nowrap">REITEROS</th>
+              <th className="whitespace-nowrap">RECLAMOS</th>
               <th className="whitespace-nowrap">INFORMADO</th>
               <th className="text-right whitespace-nowrap">ACCIONES</th>
             </tr>
@@ -286,6 +287,16 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
                         <div className="flex items-center gap-1 text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold w-fit">
                           <AlertTriangle className="h-3 w-3 text-red-600 shrink-0" />
                           <span>{repair.reiteration_count} reit.</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 text-xs font-mono">0</span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap">
+                      {(repair.reclaim_count || 0) > 0 ? (
+                        <div className="flex items-center gap-1 text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold w-fit">
+                          <AlertCircle className="h-3 w-3 text-amber-600 shrink-0" />
+                          <span>{repair.reclaim_count} recl.</span>
                         </div>
                       ) : (
                         <span className="text-slate-400 text-xs font-mono">0</span>

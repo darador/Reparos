@@ -108,6 +108,7 @@ export interface Repair {
 
   // Computed metrics from events
   reiteration_count?: number;
+  reclaim_count?: number;
   last_reiteration_at?: string;
   last_event_at?: string;
 }

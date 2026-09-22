@@ -838,6 +838,8 @@ class DataRepository {
 
     const repairEvents = this.events.filter(e => e.repair_id === r.id);
     const reiterationCount = this.getRepairReiterationCount(r.id, repairEvents);
+    const reclaimCount = repairEvents.filter(e => e.event_type === 'reclaim').length;
+
     const reiterationsList = repairEvents.filter(e => {
       const prevStatus = this.repairStatuses.find(s => s.id === e.previous_status_id);
       const isPrevResolvedOrClosed = prevStatus?.category === 'resolved' || prevStatus?.category === 'closed';
@@ -860,6 +862,7 @@ class DataRepository {
         created_at: r.created_at
       },
       reiteration_count: reiterationCount,
+      reclaim_count: reclaimCount,
       last_reiteration_at: reiterationsList[0]?.created_at,
       last_event_at: lastEvent?.created_at
     };
