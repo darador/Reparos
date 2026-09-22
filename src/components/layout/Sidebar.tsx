@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { AlertCircle, Clock, FolderGit2, LayoutDashboard, Settings, Wrench } from 'lucide-react';
+import { AlertCircle, FolderGit2, LayoutDashboard, Settings, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { href: '/', label: 'Inicio Operacional', icon: LayoutDashboard },
   { href: '/proyectos', label: 'Proyectos FTTH', icon: FolderGit2 },
   { href: '/reparos', label: 'Reparos e Incidencias', icon: Wrench },
-  { href: '/pendientes', label: 'Tablero Resumen', icon: AlertCircle, badge: 'Urgente' },
+  { href: '/pendientes', label: 'Tablero Resumen', icon: AlertCircle },
   { href: '/configuracion/catalogos', label: 'Configuración Catálogos', icon: Settings },
 ];
 
@@ -42,23 +42,10 @@ export function Sidebar() {
                 <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-blue-400" : "text-slate-400")} />
                 <span>{item.label}</span>
               </div>
-              {item.badge && (
-                <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 rounded font-mono font-medium">
-                  {item.badge}
-                </span>
-              )}
             </Link>
           );
         })}
       </nav>
-
-      <div className="p-3 border-t border-slate-800/80 text-[11px] text-slate-500">
-        <div className="flex items-center gap-1.5 text-slate-400 mb-1">
-          <Clock className="h-3 w-3" />
-          <span className="font-semibold text-[10px] uppercase">Regla de Trazabilidad</span>
-        </div>
-        <div>Toda modificación conserva audit trail de responsable e historial de estados.</div>
-      </div>
     </aside>
   );
 }

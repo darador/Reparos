@@ -79,13 +79,7 @@ export default function OperationalDashboard() {
         <div>
           <h1 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <span>Vista Operacional de Reparos</span>
-            <span className="text-[10px] bg-blue-100 text-blue-800 border border-blue-200 px-1.5 py-0.2 rounded font-mono uppercase font-normal">
-              Tiempo Real
-            </span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Monitoreo en tiempo real de proyectos FTTH, asignaciones y seguimiento de incidencias.
-          </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

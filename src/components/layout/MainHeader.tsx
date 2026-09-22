@@ -12,9 +12,6 @@ export function MainHeader() {
             <HardHat className="h-4 w-4" />
           </div>
           <span>FTTH REPAROS</span>
-          <span className="text-[10px] uppercase tracking-wider bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-mono font-normal">
-            Sistema Operativo V1
-          </span>
         </Link>
       </div>
 
