@@ -31,6 +31,8 @@ export default function OperationalDashboard() {
   const [responsibleId, setResponsibleId] = useState('all');
   const [priority, setPriority] = useState('all');
   const [typeId, setTypeId] = useState('all');
+  const [distrito, setDistrito] = useState('all');
+  const [central, setCentral] = useState('all');
   const [onlyReiterated, setOnlyReiterated] = useState(false);
 
   const loadData = () => {
@@ -42,6 +44,8 @@ export default function OperationalDashboard() {
       responsibleId,
       priority,
       typeId,
+      distrito,
+      central,
       onlyReiterated
     }));
   };
@@ -56,7 +60,7 @@ export default function OperationalDashboard() {
       setIsLoading(false);
     }
     init();
-  }, [search, statusId, responsibleId, priority, typeId, onlyReiterated]);
+  }, [search, statusId, responsibleId, priority, typeId, distrito, central, onlyReiterated]);
 
   const handleCreateProject = async (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
     await repository.createProject(data);
@@ -79,6 +83,8 @@ export default function OperationalDashboard() {
     setResponsibleId('all');
     setPriority('all');
     setTypeId('all');
+    setDistrito('all');
+    setCentral('all');
     setOnlyReiterated(false);
   };
 
@@ -152,11 +158,17 @@ export default function OperationalDashboard() {
           onPriorityChange={setPriority}
           typeId={typeId}
           onTypeChange={setTypeId}
+          distrito={distrito}
+          onDistritoChange={setDistrito}
+          central={central}
+          onCentralChange={setCentral}
           onlyReiterated={onlyReiterated}
           onOnlyReiteratedChange={setOnlyReiterated}
           repairStatuses={repository.getRepairStatuses()}
           responsibleParties={repository.getResponsibleParties()}
           repairTypes={repository.getRepairTypes()}
+          distritos={repository.getDistritos()}
+          centrales={repository.getCentrales()}
           onResetFilters={resetFilters}
         />
 

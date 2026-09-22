@@ -196,8 +196,27 @@ class DataRepository {
     return [...this.repairStatuses].sort((a, b) => a.order_index - b.order_index);
   }
 
+  getDistritos(): string[] {
+    const list = this.projects
+      .map(p => p.distrito?.trim())
+      .filter((d): d is string => !!d);
+    return Array.from(new Set(list)).sort();
+  }
+
+  getCentrales(): string[] {
+    const list = this.projects
+      .map(p => p.central?.trim())
+      .filter((c): c is string => !!c);
+    return Array.from(new Set(list)).sort();
+  }
+
   // --- PROJECTS ---
-  getProjects(query?: { search?: string; status?: string }): Project[] {
+  getProjects(query?: {
+    search?: string;
+    status?: string;
+    distrito?: string;
+    central?: string;
+  }): Project[] {
     let result = this.projects.map(project => {
       const projectRepairs = this.repairs.filter(r => r.project_id === project.id);
       const pendingCount = projectRepairs.filter(r => {
@@ -223,12 +242,23 @@ class DataRepository {
         p.sigest.toLowerCase().includes(q) || 
         p.poligono.toLowerCase().includes(q) ||
         (p.distrito && p.distrito.toLowerCase().includes(q)) ||
+        (p.central && p.central.toLowerCase().includes(q)) ||
         (p.ejecutor && p.ejecutor.toLowerCase().includes(q))
       );
     }
 
     if (query?.status && query.status !== 'all') {
       result = result.filter(p => p.situacion_operativa === query.status);
+    }
+
+    if (query?.distrito && query.distrito !== 'all') {
+      const targetDis = query.distrito.toLowerCase();
+      result = result.filter(p => (p.distrito || '').toLowerCase() === targetDis);
+    }
+
+    if (query?.central && query.central !== 'all') {
+      const targetCen = query.central.toLowerCase();
+      result = result.filter(p => (p.central || '').toLowerCase() === targetCen);
     }
 
     return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -341,6 +371,8 @@ class DataRepository {
     responsibleId?: string;
     priority?: string;
     typeId?: string;
+    distrito?: string;
+    central?: string;
     onlyReiterated?: boolean;
     onlyPending?: boolean;
   }): Repair[] {
@@ -356,6 +388,8 @@ class DataRepository {
         r.description.toLowerCase().includes(q) ||
         r.project?.sigest.toLowerCase().includes(q) ||
         r.project?.poligono.toLowerCase().includes(q) ||
+        (r.project?.distrito && r.project.distrito.toLowerCase().includes(q)) ||
+        (r.project?.central && r.project.central.toLowerCase().includes(q)) ||
         (r.solicitante && r.solicitante.toLowerCase().includes(q))
       );
     }
@@ -378,6 +412,16 @@ class DataRepository {
 
     if (filters?.typeId && filters.typeId !== 'all') {
       list = list.filter(r => r.repair_type_id === filters.typeId);
+    }
+
+    if (filters?.distrito && filters.distrito !== 'all') {
+      const targetDis = filters.distrito.toLowerCase();
+      list = list.filter(r => (r.project?.distrito || '').toLowerCase() === targetDis);
+    }
+
+    if (filters?.central && filters.central !== 'all') {
+      const targetCen = filters.central.toLowerCase();
+      list = list.filter(r => (r.project?.central || '').toLowerCase() === targetCen);
     }
 
     if (filters?.onlyReiterated) {

@@ -14,11 +14,17 @@ interface RepairFiltersProps {
   onPriorityChange: (val: string) => void;
   typeId: string;
   onTypeChange: (val: string) => void;
+  distrito: string;
+  onDistritoChange: (val: string) => void;
+  central: string;
+  onCentralChange: (val: string) => void;
   onlyReiterated: boolean;
   onOnlyReiteratedChange: (val: boolean) => void;
   repairStatuses: RepairStatus[];
   responsibleParties: ResponsibleParty[];
   repairTypes: RepairType[];
+  distritos: string[];
+  centrales: string[];
   onResetFilters: () => void;
 }
 
@@ -33,11 +39,17 @@ export function RepairFilters({
   onPriorityChange,
   typeId,
   onTypeChange,
+  distrito,
+  onDistritoChange,
+  central,
+  onCentralChange,
   onlyReiterated,
   onOnlyReiteratedChange,
   repairStatuses,
   responsibleParties,
   repairTypes,
+  distritos,
+  centrales,
   onResetFilters
 }: RepairFiltersProps) {
   const activeFiltersCount = 
@@ -46,17 +58,19 @@ export function RepairFilters({
     (responsibleId !== 'all' ? 1 : 0) +
     (priority !== 'all' ? 1 : 0) +
     (typeId !== 'all' ? 1 : 0) +
+    (distrito !== 'all' ? 1 : 0) +
+    (central !== 'all' ? 1 : 0) +
     (onlyReiterated ? 1 : 0);
 
   return (
     <div className="bg-white border border-slate-200 rounded p-3 shadow-2xs space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2">
         {/* Search input */}
         <div className="lg:col-span-2 relative">
           <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
           <input
             type="text"
-            placeholder="Buscar por SIGEST, Polígono, descripción..."
+            placeholder="Buscar SIGEST, Polígono, Central, Distrito..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full text-xs pl-8 pr-3 py-1.5 border border-slate-300 rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-blue-500"
@@ -68,12 +82,44 @@ export function RepairFilters({
           )}
         </div>
 
+        {/* Distrito filter */}
+        <div>
+          <select
+            value={distrito}
+            onChange={(e) => onDistritoChange(e.target.value)}
+            className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white font-medium text-slate-800"
+          >
+            <option value="all">Todos los Distritos</option>
+            {distritos.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Central filter */}
+        <div>
+          <select
+            value={central}
+            onChange={(e) => onCentralChange(e.target.value)}
+            className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white font-medium text-slate-800"
+          >
+            <option value="all">Todas las Centrales</option>
+            {centrales.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Status filter */}
         <div>
           <select
             value={statusId}
             onChange={(e) => onStatusChange(e.target.value)}
-            className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded bg-white"
+            className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white"
           >
             <option value="all">Todos los Estados</option>
             {repairStatuses.map((s) => (
@@ -89,7 +135,7 @@ export function RepairFilters({
           <select
             value={responsibleId}
             onChange={(e) => onResponsibleChange(e.target.value)}
-            className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded bg-white"
+            className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white"
           >
             <option value="all">Todos los Responsables</option>
             <option value="unassigned">-- Sin asignar --</option>
@@ -106,7 +152,7 @@ export function RepairFilters({
           <select
             value={priority}
             onChange={(e) => onPriorityChange(e.target.value)}
-            className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded bg-white"
+            className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white"
           >
             <option value="all">Todas las Prioridades</option>
             <option value="Normal">Normal</option>
@@ -114,27 +160,11 @@ export function RepairFilters({
             <option value="Crítica">Crítica</option>
           </select>
         </div>
-
-        {/* Type filter */}
-        <div>
-          <select
-            value={typeId}
-            onChange={(e) => onTypeChange(e.target.value)}
-            className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded bg-white"
-          >
-            <option value="all">Todos los Tipos</option>
-            {repairTypes.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
       {/* Filter status bar & toggle flags */}
       <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 font-medium select-none">
             <input
               type="checkbox"

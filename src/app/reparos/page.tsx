@@ -22,6 +22,8 @@ export default function RepairsPage() {
   const [responsibleId, setResponsibleId] = useState('all');
   const [priority, setPriority] = useState('all');
   const [typeId, setTypeId] = useState('all');
+  const [distrito, setDistrito] = useState('all');
+  const [central, setCentral] = useState('all');
   const [onlyReiterated, setOnlyReiterated] = useState(false);
 
   const loadRepairs = () => {
@@ -31,6 +33,8 @@ export default function RepairsPage() {
       responsibleId,
       priority,
       typeId,
+      distrito,
+      central,
       onlyReiterated
     }));
   };
@@ -45,7 +49,7 @@ export default function RepairsPage() {
       setIsLoading(false);
     }
     init();
-  }, [search, statusId, responsibleId, priority, typeId, onlyReiterated]);
+  }, [search, statusId, responsibleId, priority, typeId, distrito, central, onlyReiterated]);
 
   const handleCreateRepair = async (data: any) => {
     await repository.createRepair(data);
@@ -63,6 +67,8 @@ export default function RepairsPage() {
     setResponsibleId('all');
     setPriority('all');
     setTypeId('all');
+    setDistrito('all');
+    setCentral('all');
     setOnlyReiterated(false);
   };
 
@@ -104,11 +110,17 @@ export default function RepairsPage() {
         onPriorityChange={setPriority}
         typeId={typeId}
         onTypeChange={setTypeId}
+        distrito={distrito}
+        onDistritoChange={setDistrito}
+        central={central}
+        onCentralChange={setCentral}
         onlyReiterated={onlyReiterated}
         onOnlyReiteratedChange={setOnlyReiterated}
         repairStatuses={repository.getRepairStatuses()}
         responsibleParties={repository.getResponsibleParties()}
         repairTypes={repository.getRepairTypes()}
+        distritos={repository.getDistritos()}
+        centrales={repository.getCentrales()}
         onResetFilters={resetFilters}
       />
 

@@ -13,6 +13,8 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
+  const [distrito, setDistrito] = useState('all');
+  const [central, setCentral] = useState('all');
   const [isLoading, setIsLoading] = useState(!repository.isLoaded);
 
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
@@ -22,7 +24,7 @@ export default function ProjectsPage() {
   const [selectedProjectForRepair, setSelectedProjectForRepair] = useState<string>('');
 
   const loadProjects = () => {
-    setProjects(repository.getProjects({ search, status }));
+    setProjects(repository.getProjects({ search, status, distrito, central }));
   };
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export default function ProjectsPage() {
       setIsLoading(false);
     }
     init();
-  }, [search, status]);
+  }, [search, status, distrito, central]);
 
   const handleSaveProject = async (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
     if (projectToEdit) {
@@ -52,6 +54,9 @@ export default function ProjectsPage() {
     await repository.createRepair(data);
     loadProjects();
   };
+
+  const distritos = repository.getDistritos();
+  const centrales = repository.getCentrales();
 
   return (
     <div className="space-y-4">
@@ -84,7 +89,7 @@ export default function ProjectsPage() {
 
       {/* Filter and Search Bar */}
       <div className="bg-white p-3 border border-slate-200 rounded shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="relative flex-1 min-w-[240px]">
+        <div className="relative flex-1 min-w-[220px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
           <input
             type="text"
@@ -103,8 +108,36 @@ export default function ProjectsPage() {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-slate-500 text-[11px] font-mono">Situación Operativa:</span>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Distrito Filter */}
+          <select
+            value={distrito}
+            onChange={(e) => setDistrito(e.target.value)}
+            className="border border-slate-300 rounded px-2.5 py-1.5 bg-white text-xs font-medium text-slate-800"
+          >
+            <option value="all">Todos los Distritos</option>
+            {distritos.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+
+          {/* Central Filter */}
+          <select
+            value={central}
+            onChange={(e) => setCentral(e.target.value)}
+            className="border border-slate-300 rounded px-2.5 py-1.5 bg-white text-xs font-medium text-slate-800"
+          >
+            <option value="all">Todas las Centrales</option>
+            {centrales.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+
+          {/* Situación Operativa Filter */}
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
