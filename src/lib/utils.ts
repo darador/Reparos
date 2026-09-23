@@ -12,6 +12,7 @@ export function formatDate(dateString?: string | null): string {
   if (!dateString) return "-";
   try {
     const date = parseISO(dateString);
+    if (isNaN(date.getTime())) return dateString;
     return format(date, "dd/MM/yyyy", { locale: es });
   } catch (e) {
     return dateString;
@@ -22,6 +23,7 @@ export function formatDateTime(dateString?: string | null): string {
   if (!dateString) return "-";
   try {
     const date = parseISO(dateString);
+    if (isNaN(date.getTime())) return dateString;
     return format(date, "dd MMM yyyy HH:mm", { locale: es });
   } catch (e) {
     return dateString;
@@ -32,6 +34,7 @@ export function formatTimeAgo(dateString?: string | null): string {
   if (!dateString) return "-";
   try {
     const date = parseISO(dateString);
+    if (isNaN(date.getTime())) return dateString;
     return formatDistanceToNow(date, { addSuffix: true, locale: es });
   } catch (e) {
     return dateString;
@@ -42,11 +45,13 @@ export function formatDaysAgoLabel(dateString?: string | null): string {
   if (!dateString) return "-";
   try {
     const date = parseISO(dateString);
+    if (isNaN(date.getTime())) return "-";
     const now = new Date();
     const d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const d2 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const diffDays = Math.floor((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
     
+    if (isNaN(diffDays)) return "-";
     if (diffDays <= 0) return "Hoy";
     if (diffDays === 1) return "Hace 1 día";
     return `Hace ${diffDays} días`;

@@ -388,7 +388,7 @@ class DataRepository {
     onlyReiterated?: boolean;
     onlyPending?: boolean;
   }): Repair[] {
-    let list = this.repairs.map(r => this.enrichRepair(r));
+    let list = (this.repairs || []).filter(Boolean).map(r => this.enrichRepair(r)).filter(Boolean);
 
     if (filters?.projectId) {
       list = list.filter(r => r.project_id === filters.projectId);
@@ -397,9 +397,9 @@ class DataRepository {
     if (filters?.search) {
       const q = filters.search.toLowerCase();
       list = list.filter(r => 
-        r.description.toLowerCase().includes(q) ||
-        r.project?.sigest.toLowerCase().includes(q) ||
-        r.project?.poligono.toLowerCase().includes(q) ||
+        (r.description || '').toLowerCase().includes(q) ||
+        (r.project?.sigest || '').toLowerCase().includes(q) ||
+        (r.project?.poligono || '').toLowerCase().includes(q) ||
         (r.project?.distrito && r.project.distrito.toLowerCase().includes(q)) ||
         (r.project?.central && r.project.central.toLowerCase().includes(q)) ||
         (r.solicitante && r.solicitante.toLowerCase().includes(q))
@@ -460,10 +460,10 @@ class DataRepository {
     }
 
     if (filters?.onlyPending) {
-      list = list.filter(r => r.current_status?.category === 'pending');
+      list = list.filter(r => r.current_status?.category === 'pending' || r.current_status?.name === 'PENDIENTE');
     }
 
-    return list.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    return list.sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());
   }
 
   getRepairById(id: string): Repair | undefined {
@@ -843,22 +843,24 @@ class DataRepository {
 
   // Helper method to join relations
   private enrichRepair(r: Repair): Repair {
-    const project = this.projects.find(p => p.id === r.project_id);
-    const repair_type = this.repairTypes.find(t => t.id === r.repair_type_id);
-    const current_responsible = r.current_responsible_id ? this.responsibleParties.find(resp => resp.id === r.current_responsible_id) : undefined;
-    const current_status = this.repairStatuses.find(s => s.id === r.current_status_id);
+    if (!r) return r;
+    const project = r.project_id ? (this.projects || []).find(p => p && p.id === r.project_id) : undefined;
+    const repair_type = r.repair_type_id ? (this.repairTypes || []).find(t => t && t.id === r.repair_type_id) : undefined;
+    const current_responsible = r.current_responsible_id ? (this.responsibleParties || []).find(resp => resp && resp.id === r.current_responsible_id) : undefined;
+    const current_status = r.current_status_id ? (this.repairStatuses || []).find(s => s && s.id === r.current_status_id) : undefined;
 
-    const repairEvents = this.events.filter(e => e.repair_id === r.id);
+    const repairEvents = (this.events || []).filter(e => e && e.repair_id === r.id);
     const reiterationCount = this.getRepairReiterationCount(r.id, repairEvents);
-    const reclaimCount = repairEvents.filter(e => e.event_type === 'reclaim').length;
+    const reclaimCount = repairEvents.filter(e => e && e.event_type === 'reclaim').length;
 
     const reiterationsList = repairEvents.filter(e => {
-      const prevStatus = this.repairStatuses.find(s => s.id === e.previous_status_id);
+      if (!e) return false;
+      const prevStatus = (this.repairStatuses || []).find(s => s && s.id === e.previous_status_id);
       const isPrevResolvedOrClosed = prevStatus?.category === 'resolved' || prevStatus?.category === 'closed';
       return e.event_type === 'reiteration' || e.verification_result === 'no_solucionado' || (isPrevResolvedOrClosed && e.event_type !== 'closure');
     });
 
-    const lastEvent = [...repairEvents].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
+    const lastEvent = [...repairEvents].sort((a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime())[0];
 
     return {
       ...r,

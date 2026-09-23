@@ -337,7 +337,7 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
                   {/* Desplegable de Hitos (Expanded Row) */}
                   {isExpanded && (
                     <tr className="bg-slate-50/90 border-b border-slate-300">
-                      <td colSpan={showCentralColumn ? 10 : 9} className="p-3">
+                      <td colSpan={showCentralColumn ? 11 : 10} className="p-3">
                         <div className="bg-white border border-slate-300 rounded p-3 shadow-2xs space-y-2">
                           <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
                             <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
