@@ -6,13 +6,23 @@ import { RepairFormModal } from "@/components/repairs/RepairFormModal";
 import { RepairReportModal } from "@/components/repairs/RepairReportModal";
 import { RepairTable } from "@/components/repairs/RepairTable";
 import { LoadingState } from "@/components/shared/LoadingState";
+import { MetricStrip } from "@/components/shared/MetricStrip";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { repository } from "@/lib/store/repository";
-import { Repair } from "@/lib/types/database";
+import { DashboardMetrics, Repair } from "@/lib/types/database";
 import { FileText, FolderGit2, Plus, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function RepairsPage() {
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
+    totalProjects: 0,
+    activeProjects: 0,
+    totalRepairs: 0,
+    pendingRepairs: 0,
+    reiteratedRepairs: 0,
+    resolvedAwaitingVerification: 0,
+    finalizedRepairs: 0
+  });
   const [repairs, setRepairs] = useState<Repair[]>([]);
   const [isLoading, setIsLoading] = useState(!repository.isLoaded);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
@@ -31,6 +41,7 @@ export default function RepairsPage() {
   const [onlyReiterated, setOnlyReiterated] = useState(false);
 
   const loadRepairs = () => {
+    setMetrics(repository.getDashboardMetrics());
     setRepairs(repository.getRepairs({
       search,
       statusId,
@@ -153,6 +164,9 @@ export default function RepairsPage() {
           </button>
         </div>
       </div>
+
+      {/* Primary KPI Metric Strip */}
+      <MetricStrip metrics={metrics} />
 
       {/* Advanced Filters */}
       <RepairFilters

@@ -7,9 +7,8 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Inicio', icon: LayoutDashboard },
-  { href: '/proyectos', label: 'Proyectos FTTH', icon: FolderGit2 },
   { href: '/reparos', label: 'Reparos', icon: Wrench },
+  { href: '/proyectos', label: 'Proyectos FTTH', icon: FolderGit2 },
   { href: '/pendientes', label: 'Tablero Resumen', icon: AlertCircle },
   { href: '/configuracion/catalogos', label: 'Configuración', icon: Settings },
 ];

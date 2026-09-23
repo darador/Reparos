@@ -7,7 +7,7 @@ export function MainHeader() {
   return (
     <header className="sticky top-0 z-40 bg-slate-900 text-white border-b border-slate-800 px-4 py-2.5 flex items-center justify-between shadow-sm">
       <div className="flex items-center gap-3">
-        <Link href="/" className="flex items-center gap-2 font-bold text-base text-slate-100 tracking-tight hover:text-white transition-colors">
+        <Link href="/reparos" className="flex items-center gap-2 font-bold text-base text-slate-100 tracking-tight hover:text-white transition-colors">
           <div className="bg-blue-600 text-white p-1.5 rounded">
             <HardHat className="h-4 w-4" />
           </div>

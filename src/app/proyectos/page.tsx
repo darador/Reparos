@@ -4,12 +4,22 @@ import { ProjectFormModal } from "@/components/projects/ProjectFormModal";
 import { ProjectTable } from "@/components/projects/ProjectTable";
 import { RepairFormModal } from "@/components/repairs/RepairFormModal";
 import { LoadingState } from "@/components/shared/LoadingState";
+import { MetricStrip } from "@/components/shared/MetricStrip";
 import { repository } from "@/lib/store/repository";
-import { Project } from "@/lib/types/database";
+import { DashboardMetrics, Project } from "@/lib/types/database";
 import { FolderGit2, Plus, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function ProjectsPage() {
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
+    totalProjects: 0,
+    activeProjects: 0,
+    totalRepairs: 0,
+    pendingRepairs: 0,
+    reiteratedRepairs: 0,
+    resolvedAwaitingVerification: 0,
+    finalizedRepairs: 0
+  });
   const [projects, setProjects] = useState<Project[]>([]);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
@@ -24,6 +34,7 @@ export default function ProjectsPage() {
   const [selectedProjectForRepair, setSelectedProjectForRepair] = useState<string>('');
 
   const loadProjects = () => {
+    setMetrics(repository.getDashboardMetrics());
     setProjects(repository.getProjects({ search, status, distrito, central }));
   };
 
@@ -86,6 +97,9 @@ export default function ProjectsPage() {
           <span>Nuevo Proyecto</span>
         </button>
       </div>
+
+      {/* Primary KPI Metric Strip */}
+      <MetricStrip metrics={metrics} />
 
       {/* Filter and Search Bar */}
       <div className="bg-white p-3 border border-slate-200 rounded shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
