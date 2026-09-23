@@ -13,9 +13,10 @@ interface RepairTableProps {
   repairs: Repair[];
   onLogEventClick?: (repair: Repair) => void;
   onRefresh?: () => void;
+  hideActions?: boolean;
 }
 
-export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTableProps) {
+export function RepairTable({ repairs, onLogEventClick, onRefresh, hideActions = false }: RepairTableProps) {
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [repairToEdit, setRepairToEdit] = useState<Repair | null>(null);
   const [showCentralColumn, setShowCentralColumn] = useState<boolean>(true);
@@ -135,7 +136,7 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
               <th className="whitespace-nowrap text-center">REITEROS</th>
               <th className="whitespace-nowrap text-center">RECLAMOS</th>
               <th className="whitespace-nowrap">INFORMADO</th>
-              <th className="text-right whitespace-nowrap">ACCIONES</th>
+              {!hideActions && <th className="text-right whitespace-nowrap">ACCIONES</th>}
             </tr>
           </thead>
           <tbody>
@@ -314,34 +315,36 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
                         </span>
                       </div>
                     </td>
-                    <td className="text-right whitespace-nowrap">
-                      <div className="inline-flex items-center rounded border border-slate-300 shadow-2xs overflow-hidden divide-x divide-slate-300 bg-white">
-                        {onLogEventClick && (
-                          <button
-                            onClick={() => onLogEventClick(repair)}
-                            className="inline-flex items-center gap-1 text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 font-semibold transition-colors"
-                            title="Registrar Acción / Evento"
-                          >
-                            <Plus className="h-3 w-3" />
-                            <span>+ Acción</span>
-                          </button>
-                        )}
+                    {!hideActions && (
+                      <td className="text-right whitespace-nowrap">
+                        <div className="inline-flex items-center rounded border border-slate-300 shadow-2xs overflow-hidden divide-x divide-slate-300 bg-white">
+                          {onLogEventClick && (
+                            <button
+                              onClick={() => onLogEventClick(repair)}
+                              className="inline-flex items-center gap-1 text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 font-semibold transition-colors"
+                              title="Registrar Acción / Evento"
+                            >
+                              <Plus className="h-3 w-3" />
+                              <span>+ Acción</span>
+                            </button>
+                          )}
 
-                        <button
-                          onClick={() => setRepairToEdit(repair)}
-                          className="inline-flex items-center justify-center text-[11px] bg-slate-50 hover:bg-slate-100 text-slate-700 px-2 py-1 font-medium transition-colors"
-                          title="Editar datos del reparo"
-                        >
-                          <Edit className="h-3.5 w-3.5 text-slate-600" />
-                        </button>
-                      </div>
-                    </td>
+                          <button
+                            onClick={() => setRepairToEdit(repair)}
+                            className="inline-flex items-center justify-center text-[11px] bg-slate-50 hover:bg-slate-100 text-slate-700 px-2 py-1 font-medium transition-colors"
+                            title="Editar datos del reparo"
+                          >
+                            <Edit className="h-3.5 w-3.5 text-slate-600" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
 
                   {/* Desplegable de Hitos (Expanded Row) */}
                   {isExpanded && (
                     <tr className="bg-slate-50/90 border-b border-slate-300">
-                      <td colSpan={showCentralColumn ? 11 : 10} className="p-3">
+                      <td colSpan={9 + (showCentralColumn ? 1 : 0) + (hideActions ? 0 : 1)} className="p-3">
                         <div className="bg-white border border-slate-300 rounded p-3 shadow-2xs space-y-2">
                           <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
                             <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
