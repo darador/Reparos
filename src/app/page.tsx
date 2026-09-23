@@ -36,6 +36,7 @@ export default function TableroResumenRootPage() {
   const [search, setSearch] = useState('');
   const [statusId, setStatusId] = useState('all');
   const [responsibleId, setResponsibleId] = useState('all');
+  const [solicitante, setSolicitante] = useState('all');
   const [priority, setPriority] = useState('all');
   const [typeId, setTypeId] = useState('all');
   const [distrito, setDistrito] = useState('all');
@@ -46,6 +47,7 @@ export default function TableroResumenRootPage() {
     setSearch('');
     setStatusId('all');
     setResponsibleId('all');
+    setSolicitante('all');
     setPriority('all');
     setTypeId('all');
     setDistrito('all');
@@ -72,6 +74,7 @@ export default function TableroResumenRootPage() {
       search,
       statusId,
       responsibleId,
+      solicitante,
       priority,
       typeId,
       distrito,
@@ -114,7 +117,7 @@ export default function TableroResumenRootPage() {
       setIsLoading(false);
     }
     init();
-  }, [activeTab, search, statusId, responsibleId, priority, typeId, distrito, central, onlyReiterated]);
+  }, [activeTab, search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated]);
 
   if (isLoading) {
     return (
@@ -164,6 +167,9 @@ export default function TableroResumenRootPage() {
         onStatusChange={setStatusId}
         responsibleId={responsibleId}
         onResponsibleChange={setResponsibleId}
+        solicitante={solicitante}
+        onSolicitanteChange={setSolicitante}
+        solicitantes={repository.getSolicitantes()}
         priority={priority}
         onPriorityChange={setPriority}
         typeId={typeId}

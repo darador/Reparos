@@ -1,5 +1,5 @@
 import { getStoredAuthUser, getUserDisplayName } from "../auth";
-import { INITIAL_PROJECTS, INITIAL_REPAIR_EVENTS, INITIAL_REPAIR_STATUSES, INITIAL_REPAIR_TYPES, INITIAL_REPAIRS, INITIAL_RESPONSIBLE_PARTIES } from "../constants/initial-data";
+import { INITIAL_PROJECTS, INITIAL_REPAIR_EVENTS, INITIAL_REPAIR_STATUSES, INITIAL_REPAIR_TYPES, INITIAL_REPAIRS, INITIAL_RESPONSIBLE_PARTIES, SOLICITANTES_LIST } from "../constants/initial-data";
 import { createClient } from "../supabase/client";
 import { DashboardMetrics, Project, Repair, RepairEvent, RepairStatus, RepairType, ResponsibleParty } from "../types/database";
 
@@ -231,6 +231,17 @@ class DataRepository {
     return Array.from(new Set(list)).sort();
   }
 
+  getSolicitantes(): string[] {
+    const set = new Set<string>();
+    SOLICITANTES_LIST.forEach(s => {
+      if (s?.trim()) set.add(s.trim());
+    });
+    (this.repairs || []).forEach(r => {
+      if (r?.solicitante?.trim()) set.add(r.solicitante.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+  }
+
   // --- PROJECTS ---
   getProjects(query?: {
     search?: string;
@@ -390,6 +401,7 @@ class DataRepository {
     projectId?: string;
     statusId?: string;
     responsibleId?: string;
+    solicitante?: string;
     priority?: string;
     typeId?: string;
     distrito?: string;
@@ -417,6 +429,11 @@ class DataRepository {
 
     if (filters?.statusId && filters.statusId !== 'all') {
       list = list.filter(r => r.current_status_id === filters.statusId);
+    }
+
+    if (filters?.solicitante && filters.solicitante !== 'all') {
+      const targetSol = filters.solicitante.trim().toLowerCase();
+      list = list.filter(r => (r.solicitante || '').trim().toLowerCase() === targetSol || (r.solicitante || '').toLowerCase().includes(targetSol));
     }
 
     if (filters?.responsibleId && filters.responsibleId !== 'all') {

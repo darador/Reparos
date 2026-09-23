@@ -12,6 +12,9 @@ interface RepairFiltersProps {
   onStatusChange: (val: string) => void;
   responsibleId: string;
   onResponsibleChange: (val: string) => void;
+  solicitante?: string;
+  onSolicitanteChange?: (val: string) => void;
+  solicitantes?: string[];
   priority: string;
   onPriorityChange: (val: string) => void;
   typeId: string;
@@ -37,6 +40,9 @@ export function RepairFilters({
   onStatusChange,
   responsibleId,
   onResponsibleChange,
+  solicitante = 'all',
+  onSolicitanteChange,
+  solicitantes = SOLICITANTES_LIST,
   priority,
   onPriorityChange,
   typeId,
@@ -71,19 +77,14 @@ export function RepairFilters({
       }
     });
 
-    // 3. Add solicitantes list
-    SOLICITANTES_LIST.forEach(name => {
-      if (name?.trim() && !map.has(name.trim().toLowerCase())) {
-        map.set(name.trim().toLowerCase(), { id: `NAME:${name.trim()}`, name: name.trim() });
-      }
-    });
-
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
   }, [responsibleParties]);
+
   const activeFiltersCount = 
     (search ? 1 : 0) +
     (statusId !== 'all' ? 1 : 0) +
     (responsibleId !== 'all' ? 1 : 0) +
+    (solicitante !== 'all' ? 1 : 0) +
     (priority !== 'all' ? 1 : 0) +
     (typeId !== 'all' ? 1 : 0) +
     (distrito !== 'all' ? 1 : 0) +
@@ -92,7 +93,7 @@ export function RepairFilters({
 
   return (
     <div className="bg-white border border-slate-200 rounded p-3 shadow-2xs space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
         {/* Search input */}
         <div className="lg:col-span-2 relative">
           <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
@@ -165,7 +166,7 @@ export function RepairFilters({
             onChange={(e) => onResponsibleChange(e.target.value)}
             className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white text-slate-800 font-medium"
           >
-            <option value="all">Todos los Responsables / Solicitantes</option>
+            <option value="all">Todos los Responsables</option>
             <option value="unassigned">-- Sin asignar --</option>
             
             <optgroup label="Sectores / Áreas (Grupo Completo)">
@@ -173,13 +174,29 @@ export function RepairFilters({
               <option value="AREA:Ingeniería">⚙️ Todo Ingeniería (Todos los miembros de Ingeniería)</option>
             </optgroup>
 
-            <optgroup label="Responsables y Solicitantes">
+            <optgroup label="Responsables Individuales">
               {candidateList.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
                 </option>
               ))}
             </optgroup>
+          </select>
+        </div>
+
+        {/* Solicitante filter (NEW) */}
+        <div>
+          <select
+            value={solicitante}
+            onChange={(e) => onSolicitanteChange && onSolicitanteChange(e.target.value)}
+            className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white text-slate-800 font-medium"
+          >
+            <option value="all">Todos los Solicitantes</option>
+            {solicitantes.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
           </select>
         </div>
 

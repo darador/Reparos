@@ -34,6 +34,7 @@ export default function RepairsPage() {
   const [search, setSearch] = useState('');
   const [statusId, setStatusId] = useState('all');
   const [responsibleId, setResponsibleId] = useState('all');
+  const [solicitante, setSolicitante] = useState('all');
   const [priority, setPriority] = useState('all');
   const [typeId, setTypeId] = useState('all');
   const [distrito, setDistrito] = useState('all');
@@ -46,6 +47,7 @@ export default function RepairsPage() {
       search,
       statusId,
       responsibleId,
+      solicitante,
       priority,
       typeId,
       distrito,
@@ -64,7 +66,7 @@ export default function RepairsPage() {
       setIsLoading(false);
     }
     init();
-  }, [search, statusId, responsibleId, priority, typeId, distrito, central, onlyReiterated]);
+  }, [search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated]);
 
   const handleCreateProject = async (data: any) => {
     await repository.createProject(data);
@@ -86,6 +88,7 @@ export default function RepairsPage() {
     setSearch('');
     setStatusId('all');
     setResponsibleId('all');
+    setSolicitante('all');
     setPriority('all');
     setTypeId('all');
     setDistrito('all');
@@ -107,6 +110,9 @@ export default function RepairsPage() {
         const resp = repository.getResponsibleParties().find(r => r.id === responsibleId);
         if (resp) active.push(`Responsable: ${resp.name}`);
       }
+    }
+    if (solicitante !== 'all') {
+      active.push(`Solicitante: ${solicitante}`);
     }
     if (priority !== 'all') active.push(`Prioridad: ${priority}`);
     if (typeId !== 'all') {
@@ -176,6 +182,9 @@ export default function RepairsPage() {
         onStatusChange={setStatusId}
         responsibleId={responsibleId}
         onResponsibleChange={setResponsibleId}
+        solicitante={solicitante}
+        onSolicitanteChange={setSolicitante}
+        solicitantes={repository.getSolicitantes()}
         priority={priority}
         onPriorityChange={setPriority}
         typeId={typeId}
