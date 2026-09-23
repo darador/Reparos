@@ -2,7 +2,7 @@
 
 import { repository } from "@/lib/store/repository";
 import { Repair } from "@/lib/types/database";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatDate, formatDateTime, formatDaysAgoLabel } from "@/lib/utils";
 import { AlertCircle, AlertTriangle, ArrowRight, ArrowUpRight, Building2, ChevronDown, ChevronUp, Edit, History, Plus, Wrench } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
@@ -303,8 +303,11 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
                       )}
                     </td>
                     <td className="whitespace-nowrap text-xs text-slate-600">
-                      <div className="flex flex-col text-[11px]">
-                        <span>{formatDate(repair.fecha_informado)}</span>
+                      <div className="flex flex-col text-[11px] leading-tight">
+                        <span className="font-semibold text-slate-800 font-mono">{formatDate(repair.fecha_informado)}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {formatDaysAgoLabel(repair.fecha_informado)}
+                        </span>
                       </div>
                     </td>
                     <td className="text-right whitespace-nowrap">
