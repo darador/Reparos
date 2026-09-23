@@ -3,12 +3,13 @@
 import { ProjectFormModal } from "@/components/projects/ProjectFormModal";
 import { RepairFilters } from "@/components/repairs/RepairFilters";
 import { RepairFormModal } from "@/components/repairs/RepairFormModal";
+import { RepairReportModal } from "@/components/repairs/RepairReportModal";
 import { RepairTable } from "@/components/repairs/RepairTable";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { repository } from "@/lib/store/repository";
 import { Repair } from "@/lib/types/database";
-import { FolderGit2, Plus, Wrench } from "lucide-react";
+import { FileText, FolderGit2, Plus, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function RepairsPage() {
@@ -16,6 +17,7 @@ export default function RepairsPage() {
   const [isLoading, setIsLoading] = useState(!repository.isLoaded);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [isNewRepairOpen, setIsNewRepairOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const [selectedRepairForEvent, setSelectedRepairForEvent] = useState<Repair | null>(null);
 
   // Filters
@@ -80,6 +82,32 @@ export default function RepairsPage() {
     setOnlyReiterated(false);
   };
 
+  const getActiveFiltersList = () => {
+    const active: string[] = [];
+    if (search.trim()) active.push(`Búsqueda: "${search.trim()}"`);
+    if (statusId !== 'all') {
+      const st = repository.getRepairStatuses().find(s => s.id === statusId);
+      if (st) active.push(`Estado: ${st.name}`);
+    }
+    if (responsibleId !== 'all') {
+      if (responsibleId.startsWith('sector:')) {
+        active.push(`Sector: ${responsibleId.replace('sector:', '')}`);
+      } else {
+        const resp = repository.getResponsibleParties().find(r => r.id === responsibleId);
+        if (resp) active.push(`Responsable: ${resp.name}`);
+      }
+    }
+    if (priority !== 'all') active.push(`Prioridad: ${priority}`);
+    if (typeId !== 'all') {
+      const tp = repository.getRepairTypes().find(t => t.id === typeId);
+      if (tp) active.push(`Tipo: ${tp.name}`);
+    }
+    if (distrito !== 'all') active.push(`Distrito: ${distrito}`);
+    if (central !== 'all') active.push(`Central: ${central}`);
+    if (onlyReiterated) active.push(`Solo Reiterados`);
+    return active;
+  };
+
   return (
     <div className="space-y-4">
       {/* Header Bar */}
@@ -98,6 +126,15 @@ export default function RepairsPage() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setIsReportOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded font-semibold border border-slate-300 shadow-2xs transition-colors"
+            title="Generar vista previa y reporte en texto para copiar y pegar en mail / Outlook"
+          >
+            <FileText className="h-3.5 w-3.5 text-slate-600" />
+            <span>Generar reporte</span>
+          </button>
+
           <button
             onClick={() => setIsNewProjectOpen(true)}
             className="inline-flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded font-medium shadow-2xs transition-colors"
@@ -171,6 +208,13 @@ export default function RepairsPage() {
         projects={repository.getProjects()}
         repairTypes={repository.getRepairTypes()}
         responsibleParties={repository.getResponsibleParties()}
+      />
+
+      <RepairReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        repairs={repairs}
+        activeFilters={getActiveFiltersList()}
       />
 
       {selectedRepairForEvent && (
