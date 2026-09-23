@@ -488,6 +488,7 @@ class DataRepository {
     priority?: Repair['priority'];
     solicitante?: string;
     current_responsible_id?: string;
+    fecha_informado?: string;
     fecha_compromiso?: string;
     observaciones?: string;
     user_name?: string;
@@ -505,6 +506,13 @@ class DataRepository {
       validRespId = null;
     }
 
+    let finalFechaInformado = new Date().toISOString();
+    if (data.fecha_informado) {
+      finalFechaInformado = data.fecha_informado.includes('T')
+        ? new Date(data.fecha_informado).toISOString()
+        : new Date(`${data.fecha_informado}T12:00:00`).toISOString();
+    }
+
     const newRepair: Repair = {
       id: generateUUID(),
       project_id: data.project_id,
@@ -514,7 +522,7 @@ class DataRepository {
       solicitante: data.solicitante,
       current_responsible_id: validRespId || undefined,
       current_status_id: initialStatusId,
-      fecha_informado: new Date().toISOString(),
+      fecha_informado: finalFechaInformado,
       fecha_compromiso: data.fecha_compromiso,
       observaciones: data.observaciones,
       created_at: new Date().toISOString(),
@@ -595,10 +603,18 @@ class DataRepository {
       targetRespId = undefined;
     }
 
+    let targetFechaInformado = oldRepair.fecha_informado;
+    if (data.fecha_informado) {
+      targetFechaInformado = data.fecha_informado.includes('T')
+        ? new Date(data.fecha_informado).toISOString()
+        : new Date(`${data.fecha_informado}T12:00:00`).toISOString();
+    }
+
     const updated: Repair = {
       ...oldRepair,
       ...data,
       current_responsible_id: targetRespId,
+      fecha_informado: targetFechaInformado,
       updated_at: new Date().toISOString()
     };
 
@@ -613,6 +629,7 @@ class DataRepository {
           solicitante: updated.solicitante || null,
           current_responsible_id: targetRespId || null,
           current_status_id: updated.current_status_id,
+          fecha_informado: updated.fecha_informado,
           fecha_compromiso: updated.fecha_compromiso || null,
           observaciones: updated.observaciones || null,
           updated_at: updated.updated_at

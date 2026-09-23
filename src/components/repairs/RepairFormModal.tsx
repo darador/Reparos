@@ -17,6 +17,7 @@ interface RepairFormModalProps {
     priority?: RepairPriority;
     solicitante?: string;
     current_responsible_id?: string;
+    fecha_informado?: string;
     fecha_compromiso?: string;
     observaciones?: string;
   }) => Promise<void> | void;
@@ -48,6 +49,7 @@ export function RepairFormModal({
   const [responsibleChoice, setResponsibleChoice] = useState('');
   const [customResponsibleName, setCustomResponsibleName] = useState('');
   
+  const [fechaInformado, setFechaInformado] = useState('');
   const [fechaCompromiso, setFechaCompromiso] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [error, setError] = useState('');
@@ -55,6 +57,8 @@ export function RepairFormModal({
 
   useEffect(() => {
     if (!isOpen) return;
+
+    const todayStr = new Date().toISOString().split('T')[0];
 
     if (repairToEdit) {
       setProjectId(repairToEdit.project_id);
@@ -88,6 +92,7 @@ export function RepairFormModal({
         setCustomResponsibleName('');
       }
 
+      setFechaInformado(repairToEdit.fecha_informado ? repairToEdit.fecha_informado.split('T')[0] : todayStr);
       setFechaCompromiso(repairToEdit.fecha_compromiso ? repairToEdit.fecha_compromiso.split('T')[0] : '');
       setObservaciones(repairToEdit.observaciones || '');
     } else {
@@ -99,6 +104,7 @@ export function RepairFormModal({
       setCustomSolicitante('');
       setResponsibleChoice('');
       setCustomResponsibleName('');
+      setFechaInformado(todayStr);
       setFechaCompromiso('');
       setObservaciones('');
     }
@@ -153,6 +159,7 @@ export function RepairFormModal({
         priority,
         solicitante: finalSolicitante || undefined,
         current_responsible_id: finalResponsibleId,
+        fecha_informado: fechaInformado || undefined,
         fecha_compromiso: fechaCompromiso || undefined,
         observaciones: observaciones.trim() || undefined
       });
@@ -326,6 +333,21 @@ export function RepairFormModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Fecha del Reparo (Informado) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                required
+                disabled={isSubmitting}
+                value={fechaInformado}
+                onChange={(e) => setFechaInformado(e.target.value)}
+                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white font-mono text-slate-900"
+              />
+              <p className="text-[10px] text-slate-400 mt-0.5">Fecha en que se reportó la incidencia</p>
+            </div>
+
+            <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
                 Fecha Compromiso <span className="text-slate-400 font-normal">(Opcional)</span>
               </label>
@@ -334,22 +356,24 @@ export function RepairFormModal({
                 disabled={isSubmitting}
                 value={fechaCompromiso}
                 onChange={(e) => setFechaCompromiso(e.target.value)}
-                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white font-mono"
+                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white font-mono text-slate-900"
               />
+              <p className="text-[10px] text-slate-400 mt-0.5">Plazo estimado de solución</p>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                Observaciones <span className="text-slate-400 font-normal">(Opcional)</span>
-              </label>
-              <input
-                type="text"
-                disabled={isSubmitting}
-                placeholder="Notas adicionales..."
-                value={observaciones}
-                onChange={(e) => setObservaciones(e.target.value)}
-                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white"
-              />
-            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              Observaciones <span className="text-slate-400 font-normal">(Opcional)</span>
+            </label>
+            <input
+              type="text"
+              disabled={isSubmitting}
+              placeholder="Notas adicionales..."
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+              className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white"
+            />
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
