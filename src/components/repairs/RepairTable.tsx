@@ -20,15 +20,27 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
   const [repairToEdit, setRepairToEdit] = useState<Repair | null>(null);
   const [showCentralColumn, setShowCentralColumn] = useState<boolean>(true);
 
-  if (repairs.length === 0) {
-    return (
-      <div className="bg-white border border-slate-200 rounded p-8 text-center text-slate-500">
-        <Wrench className="h-8 w-8 mx-auto text-slate-400 mb-2" />
-        <p className="font-medium text-slate-700">No se encontraron reparos</p>
-        <p className="text-xs text-slate-500 mt-1">Intente cambiar los filtros aplicados o cargue un nuevo reparo.</p>
-      </div>
-    );
-  }
+  const activeParties = repository.getResponsibleParties();
+  const partyNames = React.useMemo(() => {
+    return Array.from(new Set([
+      ...RESPONSABLES_INICIALES_LIST,
+      ...(activeParties || []).map(p => p.name)
+    ]));
+  }, [activeParties]);
+
+  const projectCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    (repairs || []).forEach(r => {
+      if (!r) return;
+      const sigest = r.project?.sigest || '';
+      const poligono = r.project?.poligono || '';
+      const key = r.project_id || (sigest && poligono ? `${sigest}_${poligono}` : undefined);
+      if (key) {
+        counts[key] = (counts[key] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [repairs]);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => ({
@@ -67,23 +79,15 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
     }
   };
 
-  // Get options list for responsible dropdown
-  const activeParties = repository.getResponsibleParties();
-  const partyNames = Array.from(new Set([
-    ...RESPONSABLES_INICIALES_LIST,
-    ...activeParties.map(p => p.name)
-  ]));
-
-  const projectCounts = React.useMemo(() => {
-    const counts: Record<string, number> = {};
-    repairs.forEach(r => {
-      const key = r.project_id || `${r.project?.sigest}_${r.project?.poligono}`;
-      if (key) {
-        counts[key] = (counts[key] || 0) + 1;
-      }
-    });
-    return counts;
-  }, [repairs]);
+  if (repairs.length === 0) {
+    return (
+      <div className="bg-white border border-slate-200 rounded p-8 text-center text-slate-500">
+        <Wrench className="h-8 w-8 mx-auto text-slate-400 mb-2" />
+        <p className="font-medium text-slate-700">No se encontraron reparos</p>
+        <p className="text-xs text-slate-500 mt-1">Intente cambiar los filtros aplicados o cargue un nuevo reparo.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
