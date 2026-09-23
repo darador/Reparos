@@ -155,7 +155,7 @@ function LoginFormContent() {
             href="/"
             className="text-xs text-slate-400 hover:text-slate-200 transition-colors font-medium hover:underline inline-flex items-center gap-1"
           >
-            ← Volver al Dashboard Resumen Público
+            ← Volver al Tablero Resumen
           </a>
         </div>
       </div>

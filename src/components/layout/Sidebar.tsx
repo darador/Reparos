@@ -16,7 +16,7 @@ const PROTECTED_NAV_ITEMS = [
 ];
 
 const PUBLIC_NAV_ITEMS = [
-  { href: '/', label: 'Dashboard Público', icon: LayoutDashboard },
+  { href: '/', label: 'Tablero Resumen', icon: LayoutDashboard },
   { href: '/login', label: 'Iniciar Sesión', icon: LogIn },
 ];
 
