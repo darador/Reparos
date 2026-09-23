@@ -100,7 +100,20 @@ export function RepairReportModal({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(reportText);
+      if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(reportText);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = reportText;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 3000);
     } catch (err) {

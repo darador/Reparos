@@ -2,6 +2,18 @@ import { INITIAL_PROJECTS, INITIAL_REPAIR_EVENTS, INITIAL_REPAIR_STATUSES, INITI
 import { createClient } from "../supabase/client";
 import { DashboardMetrics, Project, Repair, RepairEvent, RepairStatus, RepairType, ResponsibleParty } from "../types/database";
 
+// Safe cross-browser UUID generator fallback
+function generateUUID(): string {
+  if (typeof window !== 'undefined' && window.crypto && typeof window.crypto.randomUUID === 'function') {
+    return window.crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 // Supabase-Direct Data Store with strict Async Await confirmation & FK safety
 class DataRepository {
   public isLoaded: boolean = false;
@@ -113,7 +125,7 @@ class DataRepository {
     }
 
     const newItem: ResponsibleParty = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name: trimmed,
       type,
       is_active: true,
@@ -165,7 +177,7 @@ class DataRepository {
 
   async addRepairType(name: string, description?: string): Promise<RepairType> {
     const newItem: RepairType = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name,
       description,
       is_active: true,
@@ -285,7 +297,7 @@ class DataRepository {
     await this.ensureLoaded();
     const newProject: Project = {
       ...data,
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       ctos_count: Number(data.ctos_count) || 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -485,7 +497,7 @@ class DataRepository {
     }
 
     const newRepair: Repair = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       project_id: data.project_id,
       repair_type_id: targetTypeId,
       description: data.description,
@@ -502,7 +514,7 @@ class DataRepository {
     };
 
     const creationEvent: RepairEvent = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       repair_id: newRepair.id,
       event_type: 'creation',
       new_responsible_id: validRespId || undefined,
@@ -604,7 +616,7 @@ class DataRepository {
 
         if (targetRespId !== prevResponsibleId) {
           const editEvent: RepairEvent = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             repair_id: id,
             event_type: 'assignment',
             previous_responsible_id: prevResponsibleId || undefined,
@@ -709,7 +721,7 @@ class DataRepository {
     }
 
     const newEvent: RepairEvent = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       repair_id: data.repair_id,
       event_type: data.event_type,
       previous_responsible_id,

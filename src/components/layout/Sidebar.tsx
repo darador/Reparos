@@ -18,16 +18,24 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('sidebar_collapsed');
-    if (saved === 'true') {
-      setIsCollapsed(true);
+    try {
+      const saved = localStorage.getItem('sidebar_collapsed');
+      if (saved === 'true') {
+        setIsCollapsed(true);
+      }
+    } catch (e) {
+      // Ignore storage errors in private browsing/restricted contexts
     }
   }, []);
 
   const toggleCollapse = () => {
     const nextState = !isCollapsed;
     setIsCollapsed(nextState);
-    localStorage.setItem('sidebar_collapsed', String(nextState));
+    try {
+      localStorage.setItem('sidebar_collapsed', String(nextState));
+    } catch (e) {
+      // Ignore storage errors
+    }
   };
 
   return (
