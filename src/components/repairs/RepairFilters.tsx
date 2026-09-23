@@ -1,7 +1,9 @@
 'use client';
 
+import { RESPONSABLES_INICIALES_LIST, SOLICITANTES_LIST } from "@/lib/constants/initial-data";
 import { RepairPriority, RepairStatus, RepairType, ResponsibleParty } from "@/lib/types/database";
 import { Filter, RotateCcw, Search, X } from "lucide-react";
+import { useMemo } from "react";
 
 interface RepairFiltersProps {
   search: string;
@@ -52,6 +54,32 @@ export function RepairFilters({
   centrales,
   onResetFilters
 }: RepairFiltersProps) {
+  const candidateList = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+
+    // 1. Add catalog responsibleParties
+    responsibleParties.forEach(r => {
+      if (r.name?.trim()) {
+        map.set(r.name.trim().toLowerCase(), { id: r.id, name: r.name.trim() });
+      }
+    });
+
+    // 2. Add initial responsible list
+    RESPONSABLES_INICIALES_LIST.forEach(name => {
+      if (name?.trim() && !map.has(name.trim().toLowerCase())) {
+        map.set(name.trim().toLowerCase(), { id: `NAME:${name.trim()}`, name: name.trim() });
+      }
+    });
+
+    // 3. Add solicitantes list
+    SOLICITANTES_LIST.forEach(name => {
+      if (name?.trim() && !map.has(name.trim().toLowerCase())) {
+        map.set(name.trim().toLowerCase(), { id: `NAME:${name.trim()}`, name: name.trim() });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+  }, [responsibleParties]);
   const activeFiltersCount = 
     (search ? 1 : 0) +
     (statusId !== 'all' ? 1 : 0) +
@@ -137,7 +165,7 @@ export function RepairFilters({
             onChange={(e) => onResponsibleChange(e.target.value)}
             className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white text-slate-800 font-medium"
           >
-            <option value="all">Todos los Responsables</option>
+            <option value="all">Todos los Responsables / Solicitantes</option>
             <option value="unassigned">-- Sin asignar --</option>
             
             <optgroup label="Sectores / Áreas (Grupo Completo)">
@@ -145,10 +173,10 @@ export function RepairFilters({
               <option value="AREA:Ingeniería">⚙️ Todo Ingeniería (Todos los miembros de Ingeniería)</option>
             </optgroup>
 
-            <optgroup label="Responsables Individuales">
-              {responsibleParties.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
+            <optgroup label="Responsables y Solicitantes">
+              {candidateList.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
                 </option>
               ))}
             </optgroup>

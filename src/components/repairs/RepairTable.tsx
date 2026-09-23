@@ -82,10 +82,12 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh, hideActions =
 
   if (repairs.length === 0) {
     return (
-      <div className="bg-white border border-slate-200 rounded p-8 text-center text-slate-500">
+      <div className="bg-white border border-slate-200 rounded p-8 text-center text-slate-500 shadow-2xs">
         <Wrench className="h-8 w-8 mx-auto text-slate-400 mb-2" />
-        <p className="font-medium text-slate-700">No se encontraron reparos</p>
-        <p className="text-xs text-slate-500 mt-1">Intente cambiar los filtros aplicados o cargue un nuevo reparo.</p>
+        <p className="font-bold text-slate-800 text-sm">no posee reparos para resolver.</p>
+        <p className="text-xs text-slate-500 mt-1 font-mono">
+          No hay reparos o atenciones pendientes asociadas al criterio seleccionado.
+        </p>
       </div>
     );
   }

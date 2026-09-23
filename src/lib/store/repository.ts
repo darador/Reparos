@@ -429,19 +429,36 @@ class DataRepository {
           return respName.startsWith(areaName) || respName.includes(areaName);
         });
       } else {
-        const targetParty = this.responsibleParties.find(p => p.id === filters.responsibleId);
-        const targetName = (targetParty ? targetParty.name : filters.responsibleId).toLowerCase().replace('ía', 'ia');
+        let targetName = '';
+        let targetId: string | undefined = undefined;
 
-        if (targetName === 'obras' || targetName === 'ingenieria') {
+        if (filters.responsibleId.startsWith('NAME:')) {
+          targetName = filters.responsibleId.replace('NAME:', '').trim().toLowerCase();
+        } else {
+          targetId = filters.responsibleId;
+          const targetParty = this.responsibleParties.find(p => p.id === filters.responsibleId);
+          targetName = (targetParty ? targetParty.name : filters.responsibleId).trim().toLowerCase();
+        }
+
+        const normTarget = targetName.replace('ía', 'ia');
+
+        if (normTarget === 'obras' || normTarget === 'ingenieria') {
           list = list.filter(r => {
             const respName = (r.current_responsible?.name || '').toLowerCase().replace('ía', 'ia');
-            return r.current_responsible_id === filters.responsibleId || respName.startsWith(targetName) || respName.includes(targetName);
+            return (targetId && r.current_responsible_id === targetId) || respName.startsWith(normTarget) || respName.includes(normTarget);
           });
         } else {
-          list = list.filter(r => 
-            r.current_responsible_id === filters.responsibleId || 
-            (r.current_responsible?.name || '').toLowerCase() === (targetParty?.name || '').toLowerCase()
-          );
+          list = list.filter(r => {
+            const respName = (r.current_responsible?.name || '').toLowerCase();
+            const solName = (r.solicitante || '').toLowerCase();
+            return (
+              (targetId && r.current_responsible_id === targetId) || 
+              respName === targetName ||
+              solName === targetName ||
+              (targetName !== '' && respName.includes(targetName)) ||
+              (targetName !== '' && solName.includes(targetName))
+            );
+          });
         }
       }
     }
