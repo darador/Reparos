@@ -11,23 +11,49 @@ import { useEffect, useState } from "react";
 export default function PendingViewPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'unassigned' | 'critical' | 'reiterated' | 'verification' | 'finalized'>('all');
   const [repairs, setRepairs] = useState<Repair[]>([]);
+  const [counts, setCounts] = useState({
+    pending: 0,
+    unassigned: 0,
+    critical: 0,
+    reiterated: 0,
+    verification: 0,
+    finalized: 0
+  });
   const [isLoading, setIsLoading] = useState(!repository.isLoaded);
   const [selectedRepairForEvent, setSelectedRepairForEvent] = useState<Repair | null>(null);
 
   const loadData = () => {
+    const allRepairs = repository.getRepairs();
+    const allPending = repository.getRepairs({ onlyPending: true });
+
+    const unassignedCount = allPending.filter(r => !r.current_responsible_id).length;
+    const criticalCount = allPending.filter(r => r.priority === 'Crítica' || r.priority === 'Alta').length;
+    const reiteratedCount = allPending.filter(r => (r.reiteration_count || 0) > 0).length;
+    const verificationCount = allRepairs.filter(r => r.current_status?.category === 'resolved' || r.current_status?.name === 'VERIFICACIÓN RESUELTO').length;
+    const finalizedCount = allRepairs.filter(r => r.current_status?.category === 'closed' || r.current_status?.name === 'FINALIZADO').length;
+
+    setCounts({
+      pending: allPending.length,
+      unassigned: unassignedCount,
+      critical: criticalCount,
+      reiterated: reiteratedCount,
+      verification: verificationCount,
+      finalized: finalizedCount
+    });
+
     if (activeTab === 'verification') {
-      const resolvedList = repository.getRepairs().filter(r => r.current_status?.category === 'resolved' || r.current_status?.name === 'VERIFICACIÓN RESUELTO');
+      const resolvedList = allRepairs.filter(r => r.current_status?.category === 'resolved' || r.current_status?.name === 'VERIFICACIÓN RESUELTO');
       setRepairs(resolvedList);
       return;
     }
 
     if (activeTab === 'finalized') {
-      const finalizedList = repository.getRepairs().filter(r => r.current_status?.category === 'closed' || r.current_status?.name === 'FINALIZADO');
+      const finalizedList = allRepairs.filter(r => r.current_status?.category === 'closed' || r.current_status?.name === 'FINALIZADO');
       setRepairs(finalizedList);
       return;
     }
 
-    let list = repository.getRepairs({ onlyPending: true });
+    let list = allPending;
 
     if (activeTab === 'unassigned') {
       list = list.filter(r => !r.current_responsible_id);
@@ -52,17 +78,10 @@ export default function PendingViewPage() {
     init();
   }, [activeTab]);
 
-  const handleLogEvent = (data: any) => {
-    repository.addRepairEvent(data);
+  const handleLogEvent = async (data: any) => {
+    await repository.addRepairEvent(data);
     loadData();
   };
-
-  const allPending = repository.getRepairs({ onlyPending: true });
-  const unassignedCount = allPending.filter(r => !r.current_responsible_id).length;
-  const criticalCount = allPending.filter(r => r.priority === 'Crítica' || r.priority === 'Alta').length;
-  const reiteratedCount = allPending.filter(r => (r.reiteration_count || 0) > 0).length;
-  const verificationCount = repository.getRepairs().filter(r => r.current_status?.category === 'resolved' || r.current_status?.name === 'VERIFICACIÓN RESUELTO').length;
-  const finalizedCount = repository.getRepairs().filter(r => r.current_status?.category === 'closed' || r.current_status?.name === 'FINALIZADO').length;
 
   return (
     <div className="space-y-4">
@@ -73,7 +92,7 @@ export default function PendingViewPage() {
             <LayoutDashboard className="h-4 w-4 text-blue-600" />
             <span>Tablero Resumen — Reparos y Atenciones</span>
             <span className="text-[11px] bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded font-mono font-bold">
-              {allPending.length} pendientes
+              {counts.pending} pendientes
             </span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -93,7 +112,7 @@ export default function PendingViewPage() {
           }`}
         >
           <Wrench className="h-3.5 w-3.5" />
-          <span>Todos los Pendientes ({allPending.length})</span>
+          <span>Todos los Pendientes ({counts.pending})</span>
         </button>
 
         <button
@@ -105,7 +124,7 @@ export default function PendingViewPage() {
           }`}
         >
           <UserX className="h-3.5 w-3.5 text-amber-500" />
-          <span>Sin Responsable ({unassignedCount})</span>
+          <span>Sin Responsable ({counts.unassigned})</span>
         </button>
 
         <button
@@ -117,7 +136,7 @@ export default function PendingViewPage() {
           }`}
         >
           <AlertCircle className="h-3.5 w-3.5 text-red-500" />
-          <span>Urgentes ({criticalCount})</span>
+          <span>Urgentes ({counts.critical})</span>
         </button>
 
         <button
@@ -129,7 +148,7 @@ export default function PendingViewPage() {
           }`}
         >
           <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
-          <span>Reiterados ({reiteratedCount})</span>
+          <span>Reiterados ({counts.reiterated})</span>
         </button>
 
         <button
@@ -141,7 +160,7 @@ export default function PendingViewPage() {
           }`}
         >
           <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
-          <span>Para Verificar ({verificationCount})</span>
+          <span>Para Verificar ({counts.verification})</span>
         </button>
 
         <button
@@ -153,7 +172,7 @@ export default function PendingViewPage() {
           }`}
         >
           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-          <span>Finalizados ({finalizedCount})</span>
+          <span>Finalizados ({counts.finalized})</span>
         </button>
       </div>
 

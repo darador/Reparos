@@ -767,8 +767,8 @@ class DataRepository {
 
   // Helper to accurately count reiterations from event history
   getRepairReiterationCount(repairId: string, eventsList?: RepairEvent[]): number {
-    const events = (eventsList || this.events.filter(e => e.repair_id === repairId))
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const rawEvents = eventsList || this.events.filter(e => e.repair_id === repairId);
+    const events = [...rawEvents].sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
 
     let count = 0;
     let hasHadClaim = false;
@@ -846,7 +846,7 @@ class DataRepository {
       return e.event_type === 'reiteration' || e.verification_result === 'no_solucionado' || (isPrevResolvedOrClosed && e.event_type !== 'closure');
     });
 
-    const lastEvent = repairEvents.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    const lastEvent = [...repairEvents].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
 
     return {
       ...r,

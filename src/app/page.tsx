@@ -14,7 +14,15 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function OperationalDashboard() {
-  const [metrics, setMetrics] = useState(repository.getDashboardMetrics());
+  const [metrics, setMetrics] = useState({
+    totalProjects: 0,
+    activeProjects: 0,
+    totalRepairs: 0,
+    pendingRepairs: 0,
+    reiteratedRepairs: 0,
+    resolvedAwaitingVerification: 0,
+    finalizedRepairs: 0
+  });
   const [repairs, setRepairs] = useState<Repair[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(!repository.isLoaded);
