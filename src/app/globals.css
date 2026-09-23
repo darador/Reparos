@@ -55,9 +55,9 @@
 }
 
 .data-table th {
-  @apply bg-slate-100 text-slate-700 font-semibold px-2.5 py-2 border-b border-slate-200 uppercase tracking-wider text-[10px];
+  @apply bg-slate-100 text-slate-700 font-semibold px-2 py-1.5 border-b border-slate-200 uppercase tracking-wider text-[10px];
 }
 
 .data-table td {
-  @apply px-2.5 py-2 border-b border-slate-100 align-middle text-slate-800 text-xs;
+  @apply px-2 py-1.5 border-b border-slate-100 align-middle text-slate-800 text-xs;
 }

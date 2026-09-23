@@ -121,15 +121,15 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
         <table className="data-table">
           <thead>
             <tr>
-              <th className="w-6"></th>
-              <th className="whitespace-nowrap">SIGEST / Polígono</th>
+              <th className="w-5"></th>
+              <th className="whitespace-nowrap">SIGEST / POLÍGONO</th>
               {showCentralColumn && <th className="whitespace-nowrap">CENTRAL</th>}
               <th className="whitespace-nowrap">TIPO</th>
-              <th className="min-w-[280px] max-w-[460px]">DESCRIPCIÓN / SOLICITANTE</th>
-              <th className="min-w-[160px]">RESPONSABLE</th>
+              <th className="min-w-[180px] max-w-[340px]">DESCRIPCIÓN / SOLICITANTE</th>
+              <th className="min-w-[130px] max-w-[150px]">RESPONSABLE</th>
               <th>ESTADO</th>
-              <th className="whitespace-nowrap">REITEROS</th>
-              <th className="whitespace-nowrap">RECLAMOS</th>
+              <th className="whitespace-nowrap text-center">REITEROS</th>
+              <th className="whitespace-nowrap text-center">RECLAMOS</th>
               <th className="whitespace-nowrap">INFORMADO</th>
               <th className="text-right whitespace-nowrap">ACCIONES</th>
             </tr>
@@ -179,24 +179,24 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
                     </td>
                     <td className="whitespace-nowrap">
                       {repair.project ? (
-                        <div className="inline-flex items-center gap-1.5 flex-wrap">
+                        <div className="flex flex-col gap-0.5 items-start">
                           <Link
                             href={`/proyectos/${repair.project.id}`}
-                            className="inline-flex items-center gap-1.5 font-mono group"
+                            className="inline-flex items-center gap-1 font-mono group"
                             title={`Ver proyecto SIGEST: ${repair.project.sigest} | Polígono: ${repair.project.poligono}`}
                           >
-                            <span className="font-black text-slate-900 text-sm tracking-tight group-hover:text-blue-600 transition-colors">
+                            <span className="font-black text-slate-900 text-xs tracking-tight group-hover:text-blue-600 transition-colors">
                               {repair.project.sigest}
                             </span>
                             <span className="text-slate-400 font-sans text-xs">/</span>
-                            <span className="font-bold text-blue-700 bg-blue-50/90 border border-blue-200/90 px-2 py-0.5 rounded text-[13px] shadow-2xs group-hover:bg-blue-100 group-hover:border-blue-300 transition-colors">
+                            <span className="font-bold text-blue-700 bg-blue-50/90 border border-blue-200/90 px-1.5 py-0.2 rounded text-xs shadow-2xs group-hover:bg-blue-100 group-hover:border-blue-300 transition-colors">
                               {repair.project.poligono}
                             </span>
                           </Link>
 
                           {isMultipleInProject && (
                             <span
-                              className="inline-flex items-center gap-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-300 px-1.5 py-0.5 rounded font-mono shadow-2xs"
+                              className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-300 px-1 py-0.2 rounded font-mono shadow-2xs"
                               title={`Este polígono tiene ${totalInProject} reparos registrados`}
                             >
                               <span>📂 {totalInProject} en polígono</span>
@@ -212,7 +212,7 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
                     {showCentralColumn && (
                       <td className="whitespace-nowrap">
                         {repair.project?.central ? (
-                          <span className="font-bold text-slate-800 bg-slate-100 border border-slate-200/90 px-2 py-0.5 rounded text-[11px] font-mono">
+                          <span className="font-bold text-slate-800 bg-slate-100 border border-slate-200/90 px-1.5 py-0.5 rounded text-[10px] font-mono">
                             {repair.project.central}
                           </span>
                         ) : (
@@ -222,23 +222,23 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
                     )}
 
                     <td className="whitespace-nowrap">
-                      <span className="font-medium text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 text-[11px]">
+                      <span className="font-medium text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 text-[10px]">
                         {repair.repair_type?.name || 'Otro'}
                       </span>
                     </td>
                     
                     {/* Columna DESCRIPCION destacada */}
-                    <td className="min-w-[280px] max-w-[460px] py-2 px-3">
+                    <td className="min-w-[180px] max-w-[340px] py-1.5 px-2">
                       <Link
                         href={`/reparos/${repair.id}`}
-                        className="font-semibold text-slate-900 hover:text-blue-700 text-[13px] md:text-sm leading-snug block transition-colors"
+                        className="font-semibold text-slate-900 hover:text-blue-700 text-xs leading-snug block transition-colors"
                       >
                         {repair.description}
                       </Link>
                       {repair.solicitante && (
-                        <div className="text-[11px] text-slate-500 mt-1 font-sans flex items-center gap-1">
+                        <div className="text-[10px] text-slate-500 mt-0.5 font-sans flex items-center gap-1">
                           <span className="text-slate-400">Sol:</span>
-                          <span className="font-semibold text-slate-800 bg-slate-100/80 px-1.5 py-0.2 rounded border border-slate-200/60">
+                          <span className="font-semibold text-slate-800 bg-slate-100/80 px-1 py-0.2 rounded border border-slate-200/60">
                             {repair.solicitante}
                           </span>
                         </div>
@@ -246,7 +246,7 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
                     </td>
 
                     {/* Columna RESPONSABLE con combo interactivo de fácil edición */}
-                    <td className="min-w-[160px]">
+                    <td className="min-w-[130px] max-w-[150px]">
                       <select
                         value={partyNames.includes(currentRespName) ? currentRespName : (repair.current_responsible ? '__CUSTOM_EXISTING__' : '__UNASSIGNED__')}
                         onChange={(e) => {
@@ -260,7 +260,7 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh }: RepairTable
                             handleResponsibleChange(repair.id, val);
                           }
                         }}
-                        className="w-full text-[11px] font-semibold text-slate-800 bg-white border border-slate-300 rounded px-2 py-1 shadow-2xs hover:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                        className="w-full text-[10px] font-semibold text-slate-800 bg-white border border-slate-300 rounded px-1.5 py-0.5 shadow-2xs hover:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
                         title="Haz clic para cambiar el responsable de este reparo de forma rápida"
                       >
                         <option value="__UNASSIGNED__">-- Sin asignar --</option>
