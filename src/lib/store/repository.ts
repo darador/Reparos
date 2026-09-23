@@ -1,3 +1,4 @@
+import { getStoredAuthUser, getUserDisplayName } from "../auth";
 import { INITIAL_PROJECTS, INITIAL_REPAIR_EVENTS, INITIAL_REPAIR_STATUSES, INITIAL_REPAIR_TYPES, INITIAL_REPAIRS, INITIAL_RESPONSIBLE_PARTIES } from "../constants/initial-data";
 import { createClient } from "../supabase/client";
 import { DashboardMetrics, Project, Repair, RepairEvent, RepairStatus, RepairType, ResponsibleParty } from "../types/database";
@@ -23,6 +24,14 @@ class DataRepository {
   private repairs: Repair[];
   private events: RepairEvent[];
   private responsibleParties: ResponsibleParty[];
+
+  private getActiveUserDisplayName(fallbackInput?: string): string {
+    const stored = getStoredAuthUser();
+    if (stored && stored.username) {
+      return stored.displayName || getUserDisplayName(stored.username);
+    }
+    return fallbackInput || 'Usuario Sistema';
+  }
   private repairTypes: RepairType[];
   private repairStatuses: RepairStatus[];
 
@@ -301,7 +310,7 @@ class DataRepository {
       ctos_count: Number(data.ctos_count) || 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      created_by: data.created_by || 'Usuario Sistema'
+      created_by: this.getActiveUserDisplayName(data.created_by)
     };
 
     if (typeof window !== 'undefined') {
@@ -510,7 +519,7 @@ class DataRepository {
       observaciones: data.observaciones,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      created_by: data.user_name || 'Usuario Sistema'
+      created_by: this.getActiveUserDisplayName(data.user_name)
     };
 
     const creationEvent: RepairEvent = {
@@ -521,7 +530,7 @@ class DataRepository {
       new_status_id: initialStatusId,
       notes: validRespId ? 'Reparo registrado y derivado inicialmente.' : 'Reparo registrado en el sistema (PENDIENTE).',
       created_at: new Date().toISOString(),
-      created_by: data.user_name || 'Usuario Sistema'
+      created_by: this.getActiveUserDisplayName(data.user_name)
     };
 
     if (typeof window !== 'undefined') {
@@ -625,7 +634,7 @@ class DataRepository {
             new_status_id: updated.current_status_id,
             notes: 'Responsable modificado en edición.',
             created_at: new Date().toISOString(),
-            created_by: user_name || 'Usuario Sistema'
+            created_by: this.getActiveUserDisplayName(user_name)
           };
           this.events.push(editEvent);
 
@@ -731,7 +740,7 @@ class DataRepository {
       verification_result: data.verification_result,
       notes: data.notes,
       created_at: new Date().toISOString(),
-      created_by: data.user_name || 'Usuario Sistema'
+      created_by: this.getActiveUserDisplayName(data.user_name)
     };
 
     if (typeof window !== 'undefined') {

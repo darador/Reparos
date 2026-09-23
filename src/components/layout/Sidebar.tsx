@@ -1,21 +1,29 @@
 'use client';
 
+import { getStoredAuthUser } from '@/lib/auth';
+import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
-import { AlertCircle, ChevronLeft, ChevronRight, FolderGit2, LayoutDashboard, Settings, Wrench } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, FolderGit2, LayoutDashboard, LogIn, Settings, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-const NAV_ITEMS = [
+const PROTECTED_NAV_ITEMS = [
   { href: '/reparos', label: 'Reparos', icon: Wrench },
   { href: '/proyectos', label: 'Proyectos FTTH', icon: FolderGit2 },
   { href: '/pendientes', label: 'Tablero Resumen', icon: AlertCircle },
   { href: '/configuracion/catalogos', label: 'Configuración', icon: Settings },
 ];
 
+const PUBLIC_NAV_ITEMS = [
+  { href: '/', label: 'Dashboard Público', icon: LayoutDashboard },
+  { href: '/login', label: 'Iniciar Sesión', icon: LogIn },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!getStoredAuthUser());
 
   useEffect(() => {
     try {
@@ -24,7 +32,26 @@ export function Sidebar() {
         setIsCollapsed(true);
       }
     } catch (e) {
-      // Ignore storage errors in private browsing/restricted contexts
+      // Ignore
+    }
+
+    // Sync auth state
+    const user = getStoredAuthUser();
+    setIsAuthenticated(!!user);
+
+    const supabase = createBrowserClient();
+    if (supabase) {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        setIsAuthenticated(!!user || !!getStoredAuthUser());
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        setIsAuthenticated(!!session?.user || !!getStoredAuthUser());
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
     }
   }, []);
 
@@ -37,6 +64,8 @@ export function Sidebar() {
       // Ignore storage errors
     }
   };
+
+  const navItems = isAuthenticated ? PROTECTED_NAV_ITEMS : PUBLIC_NAV_ITEMS;
 
   return (
     <aside
@@ -70,7 +99,7 @@ export function Sidebar() {
 
       {/* Navigation Items */}
       <nav className="flex-1 p-1.5 space-y-1">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
 
