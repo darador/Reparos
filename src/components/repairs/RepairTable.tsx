@@ -250,35 +250,41 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh, hideActions =
                       )}
                     </td>
 
-                    {/* Columna RESPONSABLE con combo interactivo de fácil edición */}
+                    {/* Columna RESPONSABLE */}
                     <td className="min-w-[130px] max-w-[150px]">
-                      <select
-                        value={partyNames.includes(currentRespName) ? currentRespName : (repair.current_responsible ? '__CUSTOM_EXISTING__' : '__UNASSIGNED__')}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === '__PROMPT_NEW__') {
-                            const newName = prompt('Ingrese el nombre del nuevo Responsable:');
-                            if (newName && newName.trim()) {
-                              handleResponsibleChange(repair.id, newName.trim());
+                      {hideActions ? (
+                        <span className="font-semibold text-slate-800 text-[11px] truncate block px-1">
+                          {repair.current_responsible?.name || <em className="text-slate-400 font-normal">Sin asignar</em>}
+                        </span>
+                      ) : (
+                        <select
+                          value={partyNames.includes(currentRespName) ? currentRespName : (repair.current_responsible ? '__CUSTOM_EXISTING__' : '__UNASSIGNED__')}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '__PROMPT_NEW__') {
+                              const newName = prompt('Ingrese el nombre del nuevo Responsable:');
+                              if (newName && newName.trim()) {
+                                handleResponsibleChange(repair.id, newName.trim());
+                              }
+                            } else {
+                              handleResponsibleChange(repair.id, val);
                             }
-                          } else {
-                            handleResponsibleChange(repair.id, val);
-                          }
-                        }}
-                        className="w-full text-[10px] font-semibold text-slate-800 bg-white border border-slate-300 rounded px-1.5 py-0.5 shadow-2xs hover:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-                        title="Haz clic para cambiar el responsable de este reparo de forma rápida"
-                      >
-                        <option value="__UNASSIGNED__">-- Sin asignar --</option>
-                        {partyNames.map((name) => (
-                          <option key={name} value={name}>
-                            {name}
-                          </option>
-                        ))}
-                        {repair.current_responsible && !partyNames.includes(currentRespName) && (
-                          <option value="__CUSTOM_EXISTING__">{currentRespName}</option>
-                        )}
-                        <option value="__PROMPT_NEW__">✍️ Escribir otro responsable...</option>
-                      </select>
+                          }}
+                          className="w-full text-[10px] font-semibold text-slate-800 bg-white border border-slate-300 rounded px-1.5 py-0.5 shadow-2xs hover:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                          title="Haz clic para cambiar el responsable de este reparo de forma rápida"
+                        >
+                          <option value="__UNASSIGNED__">-- Sin asignar --</option>
+                          {partyNames.map((name) => (
+                            <option key={name} value={name}>
+                              {name}
+                            </option>
+                          ))}
+                          {repair.current_responsible && !partyNames.includes(currentRespName) && (
+                            <option value="__CUSTOM_EXISTING__">{currentRespName}</option>
+                          )}
+                          <option value="__PROMPT_NEW__">✍️ Escribir otro responsable...</option>
+                        </select>
+                      )}
                     </td>
 
                     <td className="whitespace-nowrap">

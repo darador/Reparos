@@ -1,5 +1,6 @@
 'use client';
 
+import { RepairFilters } from "@/components/repairs/RepairFilters";
 import { RepairTable } from "@/components/repairs/RepairTable";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
@@ -22,38 +23,64 @@ export default function PendingViewPage() {
   const [isLoading, setIsLoading] = useState(!repository.isLoaded);
   const [selectedRepairForEvent, setSelectedRepairForEvent] = useState<Repair | null>(null);
 
-  const loadData = () => {
-    const allRepairs = repository.getRepairs();
-    const allPending = repository.getRepairs({ onlyPending: true });
+  // Filter state
+  const [search, setSearch] = useState('');
+  const [statusId, setStatusId] = useState('all');
+  const [responsibleId, setResponsibleId] = useState('all');
+  const [priority, setPriority] = useState('all');
+  const [typeId, setTypeId] = useState('all');
+  const [distrito, setDistrito] = useState('all');
+  const [central, setCentral] = useState('all');
+  const [onlyReiterated, setOnlyReiterated] = useState(false);
 
-    const unassignedCount = allPending.filter(r => !r.current_responsible_id).length;
-    const criticalCount = allPending.filter(r => r.priority === 'Crítica' || r.priority === 'Alta').length;
-    const reiteratedCount = allPending.filter(r => (r.reiteration_count || 0) > 0).length;
-    const verificationCount = allRepairs.filter(r => r.current_status?.category === 'resolved' || r.current_status?.name === 'VERIFICACIÓN RESUELTO').length;
-    const finalizedCount = allRepairs.filter(r => r.current_status?.category === 'closed' || r.current_status?.name === 'FINALIZADO').length;
+  const resetFilters = () => {
+    setSearch('');
+    setStatusId('all');
+    setResponsibleId('all');
+    setPriority('all');
+    setTypeId('all');
+    setDistrito('all');
+    setCentral('all');
+    setOnlyReiterated(false);
+  };
+
+  const loadData = () => {
+    const allRepairsRaw = repository.getRepairs();
+    const allPendingRaw = repository.getRepairs({ onlyPending: true });
 
     setCounts({
-      pending: allPending.length,
-      unassigned: unassignedCount,
-      critical: criticalCount,
-      reiterated: reiteratedCount,
-      verification: verificationCount,
-      finalized: finalizedCount
+      pending: allPendingRaw.length,
+      unassigned: allPendingRaw.filter(r => !r.current_responsible_id).length,
+      critical: allPendingRaw.filter(r => r.priority === 'Crítica' || r.priority === 'Alta').length,
+      reiterated: allPendingRaw.filter(r => (r.reiteration_count || 0) > 0).length,
+      verification: allRepairsRaw.filter(r => r.current_status?.category === 'resolved' || r.current_status?.name === 'VERIFICACIÓN RESUELTO').length,
+      finalized: allRepairsRaw.filter(r => r.current_status?.category === 'closed' || r.current_status?.name === 'FINALIZADO').length
+    });
+
+    const filteredBase = repository.getRepairs({
+      search,
+      statusId,
+      responsibleId,
+      priority,
+      typeId,
+      distrito,
+      central,
+      onlyReiterated
     });
 
     if (activeTab === 'verification') {
-      const resolvedList = allRepairs.filter(r => r.current_status?.category === 'resolved' || r.current_status?.name === 'VERIFICACIÓN RESUELTO');
+      const resolvedList = filteredBase.filter(r => r.current_status?.category === 'resolved' || r.current_status?.name === 'VERIFICACIÓN RESUELTO');
       setRepairs(resolvedList);
       return;
     }
 
     if (activeTab === 'finalized') {
-      const finalizedList = allRepairs.filter(r => r.current_status?.category === 'closed' || r.current_status?.name === 'FINALIZADO');
+      const finalizedList = filteredBase.filter(r => r.current_status?.category === 'closed' || r.current_status?.name === 'FINALIZADO');
       setRepairs(finalizedList);
       return;
     }
 
-    let list = allPending;
+    let list = filteredBase.filter(r => r.current_status?.category === 'pending' || r.current_status?.category === 'in_progress');
 
     if (activeTab === 'unassigned') {
       list = list.filter(r => !r.current_responsible_id);
@@ -76,7 +103,7 @@ export default function PendingViewPage() {
       setIsLoading(false);
     }
     init();
-  }, [activeTab]);
+  }, [activeTab, search, statusId, responsibleId, priority, typeId, distrito, central, onlyReiterated]);
 
   const handleLogEvent = async (data: any) => {
     await repository.addRepairEvent(data);
@@ -100,6 +127,32 @@ export default function PendingViewPage() {
           </p>
         </div>
       </div>
+
+      {/* Filtros avanzados */}
+      <RepairFilters
+        search={search}
+        onSearchChange={setSearch}
+        statusId={statusId}
+        onStatusChange={setStatusId}
+        responsibleId={responsibleId}
+        onResponsibleChange={setResponsibleId}
+        priority={priority}
+        onPriorityChange={setPriority}
+        typeId={typeId}
+        onTypeChange={setTypeId}
+        distrito={distrito}
+        onDistritoChange={setDistrito}
+        central={central}
+        onCentralChange={setCentral}
+        onlyReiterated={onlyReiterated}
+        onOnlyReiteratedChange={setOnlyReiterated}
+        repairStatuses={repository.getRepairStatuses()}
+        responsibleParties={repository.getResponsibleParties()}
+        repairTypes={repository.getRepairTypes()}
+        distritos={repository.getDistritos()}
+        centrales={repository.getCentrales()}
+        onResetFilters={resetFilters}
+      />
 
       {/* Tabs */}
       <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 text-xs font-medium bg-white p-1.5 rounded border">
@@ -203,3 +256,4 @@ export default function PendingViewPage() {
     </div>
   );
 }
+
