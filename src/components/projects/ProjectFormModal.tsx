@@ -1,5 +1,6 @@
 'use client';
 
+import { DISTRITOS_LIST } from "@/lib/constants/initial-data";
 import { OperationalStatus, Project } from "@/lib/types/database";
 import { Edit3, Loader2, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -34,6 +35,7 @@ export function ProjectFormModal({
   const [sigest, setSigest] = useState(initialSigest);
   const [poligono, setPoligono] = useState('');
   const [distrito, setDistrito] = useState('');
+  const [customDistrito, setCustomDistrito] = useState('');
   const [central, setCentral] = useState('');
   const [titulo, setTitulo] = useState('');
   const [ejecutor, setEjecutor] = useState('');
@@ -50,7 +52,19 @@ export function ProjectFormModal({
       if (projectToEdit) {
         setSigest(projectToEdit.sigest || '');
         setPoligono(projectToEdit.poligono || '');
-        setDistrito(projectToEdit.distrito || '');
+        
+        const dis = (projectToEdit.distrito || '').trim().toUpperCase();
+        if (DISTRITOS_LIST.includes(dis)) {
+          setDistrito(dis);
+          setCustomDistrito('');
+        } else if (dis) {
+          setDistrito('__CUSTOM__');
+          setCustomDistrito(projectToEdit.distrito || '');
+        } else {
+          setDistrito('');
+          setCustomDistrito('');
+        }
+
         setCentral(projectToEdit.central || '');
         setTitulo(projectToEdit.titulo || '');
         
@@ -74,6 +88,7 @@ export function ProjectFormModal({
         setSigest(initialSigest);
         setPoligono('');
         setDistrito('');
+        setCustomDistrito('');
         setCentral('');
         setTitulo('');
         setEjecutor('');
@@ -101,6 +116,7 @@ export function ProjectFormModal({
       return;
     }
 
+    const finalDistrito = distrito === '__CUSTOM__' ? customDistrito.trim() : distrito.trim();
     const finalEjecutor = ejecutor === '__CUSTOM__' ? customEjecutor.trim() : ejecutor.trim();
 
     setError('');
@@ -110,7 +126,7 @@ export function ProjectFormModal({
       await onSubmit({
         sigest: sigest.trim(),
         poligono: poligono.trim(),
-        distrito: distrito.trim() || undefined,
+        distrito: finalDistrito || undefined,
         central: central.trim() || undefined,
         titulo: titulo.trim() || undefined,
         ejecutor: finalEjecutor || undefined,
@@ -192,14 +208,32 @@ export function ProjectFormModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Distrito</label>
-              <input
-                type="text"
+              <select
                 disabled={isSubmitting}
-                placeholder="Ej. Florencio Varela"
                 value={distrito}
                 onChange={(e) => setDistrito(e.target.value)}
-                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded"
-              />
+                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white text-slate-900 font-medium"
+              >
+                <option value="">-- Seleccionar Distrito --</option>
+                {DISTRITOS_LIST.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+                <option value="__CUSTOM__">✍️ Escribir otro distrito...</option>
+              </select>
+
+              {distrito === '__CUSTOM__' && (
+                <input
+                  type="text"
+                  required
+                  disabled={isSubmitting}
+                  placeholder="Nombre del distrito..."
+                  value={customDistrito}
+                  onChange={(e) => setCustomDistrito(e.target.value)}
+                  className="w-full text-xs px-3 py-1.5 border border-blue-400 rounded mt-1.5 bg-blue-50/50"
+                />
+              )}
             </div>
 
             <div>

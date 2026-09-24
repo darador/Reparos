@@ -49,3 +49,10 @@ export const RESPONSABLES_INICIALES_LIST = [
   'Ingeniería / BENITEZ DANIEL',
   'Ingeniería / PANDIANI'
 ];
+
+export const DISTRITOS_LIST = [
+  'FLORENCIO VARELA',
+  'LANUS',
+  'LOMAS',
+  'MONTEGRANDE'
+];
