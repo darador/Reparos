@@ -16,7 +16,23 @@ interface RepairTableProps {
   hideActions?: boolean;
 }
 
-export function RepairTable({ repairs, onLogEventClick, onRefresh, hideActions = false }: RepairTableProps) {
+const GROUP_THEMES = [
+  { border: "border-l-indigo-600", badge: "bg-indigo-100 text-indigo-900 border-indigo-300" },
+  { border: "border-l-emerald-600", badge: "bg-emerald-100 text-emerald-900 border-emerald-300" },
+  { border: "border-l-violet-600", badge: "bg-violet-100 text-violet-900 border-violet-300" },
+  { border: "border-l-amber-500", badge: "bg-amber-100 text-amber-900 border-amber-300" },
+  { border: "border-l-teal-600", badge: "bg-teal-100 text-teal-900 border-teal-300" },
+  { border: "border-l-rose-500", badge: "bg-rose-100 text-rose-900 border-rose-300" },
+  { border: "border-l-cyan-600", badge: "bg-cyan-100 text-cyan-900 border-cyan-300" },
+  { border: "border-l-blue-600", badge: "bg-blue-100 text-blue-900 border-blue-300" },
+];
+
+export function RepairTable({
+  repairs,
+  onLogEventClick,
+  onRefresh,
+  hideActions = false
+}: RepairTableProps) {
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [repairToEdit, setRepairToEdit] = useState<Repair | null>(null);
   const [showCentralColumn, setShowCentralColumn] = useState<boolean>(true);
@@ -41,6 +57,21 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh, hideActions =
       }
     });
     return counts;
+  }, [repairs]);
+
+  const projectGroupIndexMap = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    let counter = 0;
+    (repairs || []).forEach(r => {
+      if (!r) return;
+      const sigest = r.project?.sigest || '';
+      const poligono = r.project?.poligono || '';
+      const key = r.project_id || (sigest && poligono ? `${sigest}_${poligono}` : undefined);
+      if (key && map[key] === undefined) {
+        map[key] = counter++;
+      }
+    });
+    return map;
   }, [repairs]);
 
   const toggleExpand = (id: string) => {
@@ -152,19 +183,27 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh, hideActions =
               const totalInProject = projectCounts[pKey] || 1;
               const isMultipleInProject = totalInProject > 1;
 
+              const groupIndex = projectGroupIndexMap[pKey] ?? 0;
+              const groupTheme = GROUP_THEMES[groupIndex % GROUP_THEMES.length];
+
+              const prevPKey = index > 0 ? (repairs[index - 1].project_id || `${repairs[index - 1].project?.sigest}_${repairs[index - 1].project?.poligono}`) : null;
+              const isFirstRowOfGroup = index > 0 && pKey !== prevPKey;
+
               const rowBgClass = hasReiterations
                 ? "bg-amber-50/70 hover:bg-amber-100/70"
                 : isExpanded
                 ? "bg-blue-50/50"
                 : isMultipleInProject
-                ? "bg-indigo-50/30 hover:bg-indigo-50/70"
+                ? "bg-slate-50/80 hover:bg-blue-50/40"
                 : isEven
                 ? "bg-slate-50 hover:bg-blue-50/40"
                 : "bg-white hover:bg-blue-50/40";
 
+              const topBorderClass = isFirstRowOfGroup ? "border-t-2 border-slate-400/80" : "border-b border-slate-200/80";
+
               const borderClass = isMultipleInProject
-                ? "border-l-4 border-l-indigo-500 border-b border-slate-200/80"
-                : "border-b border-slate-200/80";
+                ? `border-l-4 ${groupTheme.border} ${topBorderClass}`
+                : `border-l-2 border-l-slate-300 ${topBorderClass}`;
 
               const currentRespName = repair.current_responsible?.name || '__UNASSIGNED__';
 
@@ -203,7 +242,7 @@ export function RepairTable({ repairs, onLogEventClick, onRefresh, hideActions =
 
                           {isMultipleInProject && (
                             <span
-                              className="inline-flex items-center gap-0.5 text-[9px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-300 px-1 py-0.2 rounded font-mono shadow-2xs"
+                              className={`inline-flex items-center gap-0.5 text-[9px] font-bold ${groupTheme.badge} px-1.5 py-0.2 rounded font-mono shadow-2xs`}
                               title={`Este polígono tiene ${totalInProject} reparos registrados`}
                             >
                               <span>📂 {totalInProject} en polígono</span>
