@@ -315,6 +315,19 @@ class DataRepository {
 
   async createProject(data: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
     await this.ensureLoaded();
+
+    const targetSigest = (data.sigest || '').trim().toLowerCase();
+    const targetPoligono = (data.poligono || '').trim().toLowerCase();
+
+    const duplicate = this.projects.find(p => 
+      (p.sigest || '').trim().toLowerCase() === targetSigest &&
+      (p.poligono || '').trim().toLowerCase() === targetPoligono
+    );
+
+    if (duplicate) {
+      throw new Error(`Ya existe un proyecto cargado con el mismo SIGEST (${data.sigest.trim()}) y Polígono (${data.poligono.trim()}).`);
+    }
+
     const newProject: Project = {
       ...data,
       id: generateUUID(),
@@ -359,6 +372,20 @@ class DataRepository {
     await this.ensureLoaded();
     const index = this.projects.findIndex(p => p.id === id);
     if (index === -1) throw new Error("Proyecto no encontrado");
+
+    const currentProject = this.projects[index];
+    const targetSigest = (data.sigest !== undefined ? data.sigest : currentProject.sigest || '').trim().toLowerCase();
+    const targetPoligono = (data.poligono !== undefined ? data.poligono : currentProject.poligono || '').trim().toLowerCase();
+
+    const duplicate = this.projects.find(p => 
+      p.id !== id &&
+      (p.sigest || '').trim().toLowerCase() === targetSigest &&
+      (p.poligono || '').trim().toLowerCase() === targetPoligono
+    );
+
+    if (duplicate) {
+      throw new Error(`Ya existe otro proyecto cargado con el mismo SIGEST y Polígono.`);
+    }
 
     const updated = {
       ...this.projects[index],
