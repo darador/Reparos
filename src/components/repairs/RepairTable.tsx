@@ -1,13 +1,15 @@
 'use client';
 
+import { getStoredAuthUser } from "@/lib/auth";
 import { repository } from "@/lib/store/repository";
 import { Repair } from "@/lib/types/database";
 import { formatDate, formatDateTime, formatDaysAgoLabel } from "@/lib/utils";
-import { AlertCircle, AlertTriangle, ArrowRight, ArrowUpRight, Building2, ChevronDown, ChevronUp, Edit, History, Plus, Wrench } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, ArrowUpRight, Building2, ChevronDown, ChevronUp, Edit, History, Plus, Trash2, Wrench } from "lucide-react";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { RepairFormModal, RESPONSABLES_INICIALES_LIST } from "./RepairFormModal";
 import { StatusBadge } from "../shared/Badges";
+import { ConfirmDeleteModal } from "../shared/ConfirmDeleteModal";
 
 interface RepairTableProps {
   repairs: Repair[];
@@ -35,7 +37,13 @@ export function RepairTable({
 }: RepairTableProps) {
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [repairToEdit, setRepairToEdit] = useState<Repair | null>(null);
+  const [repairToDelete, setRepairToDelete] = useState<Repair | null>(null);
   const [showCentralColumn, setShowCentralColumn] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsAuthenticated(!!getStoredAuthUser());
+  }, []);
 
   const activeParties = repository.getResponsibleParties();
   const partyNames = React.useMemo(() => {
@@ -383,6 +391,16 @@ export function RepairTable({
                           >
                             <Edit className="h-3.5 w-3.5 text-slate-600" />
                           </button>
+
+                          {isAuthenticated && (
+                            <button
+                              onClick={() => setRepairToDelete(repair)}
+                              className="inline-flex items-center justify-center text-[11px] bg-slate-50 hover:bg-red-50 text-slate-700 hover:text-red-600 px-2 py-1 font-medium transition-colors"
+                              title="Borrar este reparo"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}
@@ -496,6 +514,39 @@ export function RepairTable({
           repairTypes={repository.getRepairTypes()}
           responsibleParties={repository.getResponsibleParties()}
           repairToEdit={repairToEdit}
+        />
+      )}
+
+      {/* Delete Repair Confirmation Modal */}
+      {repairToDelete && (
+        <ConfirmDeleteModal
+          isOpen={!!repairToDelete}
+          title="Confirmar eliminación de reparo"
+          description={
+            <div className="space-y-2">
+              <p>
+                ¿Estás seguro de que deseas eliminar permanentemente este reparo del proyecto{" "}
+                <strong className="text-slate-900 font-mono">
+                  SIGEST {repairToDelete.project?.sigest || ''} / {repairToDelete.project?.poligono || ''}
+                </strong>?
+              </p>
+              {repairToDelete.description && (
+                <p className="p-2 bg-slate-100 rounded text-slate-700 italic border border-slate-200">
+                  "{repairToDelete.description}"
+                </p>
+              )}
+              <p className="text-red-600 font-medium">
+                Esta acción eliminará el reparo y todo su historial de eventos. No se puede deshacer.
+              </p>
+            </div>
+          }
+          confirmText="Eliminar Reparo"
+          onConfirm={async () => {
+            await repository.deleteRepair(repairToDelete.id);
+            setRepairToDelete(null);
+            if (onRefresh) onRefresh();
+          }}
+          onClose={() => setRepairToDelete(null)}
         />
       )}
     </div>

@@ -2,27 +2,36 @@
 
 import { RepairFormModal } from "@/components/repairs/RepairFormModal";
 import { PriorityBadge, StatusBadge } from "@/components/shared/Badges";
+import { ConfirmDeleteModal } from "@/components/shared/ConfirmDeleteModal";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { RepairTimeline } from "@/components/timeline/RepairTimeline";
+import { getStoredAuthUser } from "@/lib/auth";
 import { repository } from "@/lib/store/repository";
 import { EventType, Repair, RepairEvent } from "@/lib/types/database";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { AlertTriangle, ArrowLeft, CheckCircle2, Edit, History, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Edit, History, Trash2, Wrench } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function RepairDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const repairId = params.id as string;
 
   const [repair, setRepair] = useState<Repair | undefined>(undefined);
   const [events, setEvents] = useState<RepairEvent[]>([]);
   const [isLogEventOpen, setIsLogEventOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [initialEventType, setInitialEventType] = useState<EventType>('follow_up');
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    setIsAuthenticated(!!getStoredAuthUser());
+  }, []);
 
   const loadData = () => {
     const r = repository.getRepairById(repairId);
@@ -129,6 +138,17 @@ export default function RepairDetailPage() {
 
           {/* Operational action menu bar */}
           <div className="flex flex-wrap items-center gap-1.5">
+            {isAuthenticated && (
+              <button
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="text-xs bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1.5 rounded border border-red-200 font-semibold transition-colors flex items-center gap-1"
+                title="Borrar este reparo"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                <span>Borrar Reparo</span>
+              </button>
+            )}
+
             <button
               onClick={() => setIsEditOpen(true)}
               className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded border border-slate-300 font-semibold transition-colors flex items-center gap-1"
@@ -252,6 +272,39 @@ export default function RepairDetailPage() {
           responsibleParties={repository.getResponsibleParties()}
           repairStatuses={repository.getRepairStatuses()}
           initialEventType={initialEventType}
+        />
+      )}
+
+      {/* Delete Repair Confirmation Modal */}
+      {isDeleteModalOpen && repair && (
+        <ConfirmDeleteModal
+          isOpen={isDeleteModalOpen}
+          title="Confirmar eliminación de reparo"
+          description={
+            <div className="space-y-2">
+              <p>
+                ¿Estás seguro de que deseas eliminar permanentemente este reparo de{" "}
+                <strong className="text-slate-900 font-mono">
+                  SIGEST {repair.project?.sigest || ''} / {repair.project?.poligono || ''}
+                </strong>?
+              </p>
+              {repair.description && (
+                <p className="p-2 bg-slate-100 rounded text-slate-700 italic border border-slate-200">
+                  "{repair.description}"
+                </p>
+              )}
+              <p className="text-red-600 font-medium">
+                Esta acción eliminará el reparo y todo su historial de eventos. No se puede deshacer.
+              </p>
+            </div>
+          }
+          confirmText="Eliminar Reparo"
+          onConfirm={async () => {
+            await repository.deleteRepair(repairId);
+            setIsDeleteModalOpen(false);
+            router.push('/reparos');
+          }}
+          onClose={() => setIsDeleteModalOpen(false)}
         />
       )}
     </div>

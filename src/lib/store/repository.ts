@@ -422,6 +422,33 @@ class DataRepository {
     return this.getProjectById(id) || updated;
   }
 
+  async deleteProject(id: string): Promise<void> {
+    await this.ensureLoaded();
+    const index = this.projects.findIndex(p => p.id === id);
+    if (index === -1) return;
+
+    const projectRepairIds = this.repairs.filter(r => r.project_id === id).map(r => r.id);
+
+    if (typeof window !== 'undefined') {
+      const supabase = createClient();
+      if (supabase) {
+        if (projectRepairIds.length > 0) {
+          await supabase.from('repair_events').delete().in('repair_id', projectRepairIds);
+          await supabase.from('repairs').delete().eq('project_id', id);
+        }
+        const { error } = await supabase.from('projects').delete().eq('id', id);
+        if (error) {
+          console.error("Error deleting project in Supabase:", error.message);
+          throw new Error("No se pudo eliminar el proyecto en Supabase: " + error.message);
+        }
+      }
+    }
+
+    this.projects.splice(index, 1);
+    this.repairs = this.repairs.filter(r => r.project_id !== id);
+    this.events = this.events.filter(e => !projectRepairIds.includes(e.repair_id));
+  }
+
   // --- REPAIRS ---
   getRepairs(filters?: {
     search?: string;
@@ -738,6 +765,30 @@ class DataRepository {
 
   async updateRepairResponsible(id: string, responsibleId: string | undefined, user_name?: string): Promise<Repair> {
     return await this.updateRepair(id, { current_responsible_id: responsibleId }, user_name);
+  }
+
+  async deleteRepair(id: string): Promise<void> {
+    await this.ensureLoaded();
+    const index = this.repairs.findIndex(r => r.id === id);
+    if (index === -1) return;
+
+    if (typeof window !== 'undefined') {
+      const supabase = createClient();
+      if (supabase) {
+        const { error: evtErr } = await supabase.from('repair_events').delete().eq('repair_id', id);
+        if (evtErr) {
+          console.warn("Notice: repair_events delete warning:", evtErr.message);
+        }
+        const { error: repErr } = await supabase.from('repairs').delete().eq('id', id);
+        if (repErr) {
+          console.error("Error deleting repair in Supabase:", repErr.message);
+          throw new Error("No se pudo eliminar el reparo en Supabase: " + repErr.message);
+        }
+      }
+    }
+
+    this.repairs.splice(index, 1);
+    this.events = this.events.filter(e => e.repair_id !== id);
   }
 
   // --- EVENTS & TIMELINE ---

@@ -4,25 +4,34 @@ import { ProjectFormModal } from "@/components/projects/ProjectFormModal";
 import { RepairFormModal } from "@/components/repairs/RepairFormModal";
 import { RepairTable } from "@/components/repairs/RepairTable";
 import { ProjectStatusBadge } from "@/components/shared/Badges";
+import { ConfirmDeleteModal } from "@/components/shared/ConfirmDeleteModal";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
+import { getStoredAuthUser } from "@/lib/auth";
 import { repository } from "@/lib/store/repository";
 import { Project, Repair } from "@/lib/types/database";
-import { ArrowLeft, Edit3, FolderGit2, Plus, Wrench } from "lucide-react";
+import { ArrowLeft, Edit3, FolderGit2, Plus, Trash2, Wrench } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function ProjectDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const projectId = params.id as string;
 
   const [project, setProject] = useState<Project | undefined>(undefined);
   const [repairs, setRepairs] = useState<Repair[]>([]);
   const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isNewRepairOpen, setIsNewRepairOpen] = useState(false);
   const [selectedRepairForEvent, setSelectedRepairForEvent] = useState<Repair | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    setIsAuthenticated(!!getStoredAuthUser());
+  }, []);
 
   const loadProjectData = () => {
     const proj = repository.getProjectById(projectId);
@@ -111,6 +120,17 @@ export default function ProjectDetailPage() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {isAuthenticated && (
+              <button
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="inline-flex items-center gap-1.5 text-xs bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1.5 rounded border border-red-200 font-medium transition-colors"
+                title="Borrar este proyecto"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                <span>Borrar Proyecto</span>
+              </button>
+            )}
+
             <button
               onClick={() => setIsEditProjectOpen(true)}
               className="inline-flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded border border-slate-300 font-medium transition-colors"
@@ -217,6 +237,40 @@ export default function ProjectDetailPage() {
           repair={selectedRepairForEvent}
           responsibleParties={repository.getResponsibleParties()}
           repairStatuses={repository.getRepairStatuses()}
+        />
+      )}
+
+      {/* Delete Project Confirmation Modal */}
+      {isDeleteModalOpen && project && (
+        <ConfirmDeleteModal
+          isOpen={isDeleteModalOpen}
+          title="Confirmar eliminación de proyecto"
+          description={
+            <div className="space-y-2">
+              <p>
+                ¿Estás seguro de que deseas eliminar permanentemente el proyecto{" "}
+                <strong className="text-slate-900 font-mono">
+                  SIGEST {project.sigest} / Polígono {project.poligono}
+                </strong>?
+              </p>
+              {repairs.length > 0 ? (
+                <p className="p-2.5 bg-amber-50 border border-amber-200 text-amber-900 rounded font-medium">
+                  ⚠️ Atención: Este proyecto posee {repairs.length} reparo(s) registrado(s). Al borrar el proyecto se eliminarán todos sus reparos e historial.
+                </p>
+              ) : (
+                <p className="text-slate-500">
+                  Esta acción eliminará el proyecto de la base de datos. No se puede deshacer.
+                </p>
+              )}
+            </div>
+          }
+          confirmText="Eliminar Proyecto"
+          onConfirm={async () => {
+            await repository.deleteProject(projectId);
+            setIsDeleteModalOpen(false);
+            router.push('/proyectos');
+          }}
+          onClose={() => setIsDeleteModalOpen(false)}
         />
       )}
     </div>

@@ -3,6 +3,7 @@
 import { ProjectFormModal } from "@/components/projects/ProjectFormModal";
 import { ProjectTable } from "@/components/projects/ProjectTable";
 import { RepairFormModal } from "@/components/repairs/RepairFormModal";
+import { ConfirmDeleteModal } from "@/components/shared/ConfirmDeleteModal";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { MetricStrip } from "@/components/shared/MetricStrip";
 import { repository } from "@/lib/store/repository";
@@ -29,6 +30,7 @@ export default function ProjectsPage() {
 
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   const [isNewRepairOpen, setIsNewRepairOpen] = useState(false);
   const [selectedProjectForRepair, setSelectedProjectForRepair] = useState<string>('');
@@ -183,6 +185,9 @@ export default function ProjectsPage() {
             setProjectToEdit(proj);
             setIsNewProjectOpen(true);
           }}
+          onDeleteProjectClick={(proj) => {
+            setProjectToDelete(proj);
+          }}
         />
       )}
 
@@ -209,6 +214,40 @@ export default function ProjectsPage() {
         responsibleParties={repository.getResponsibleParties()}
         defaultProjectId={selectedProjectForRepair}
       />
+
+      {/* Delete Project Confirmation Modal */}
+      {projectToDelete && (
+        <ConfirmDeleteModal
+          isOpen={!!projectToDelete}
+          title="Confirmar eliminación de proyecto"
+          description={
+            <div className="space-y-2">
+              <p>
+                ¿Estás seguro de que deseas eliminar permanentemente el proyecto{" "}
+                <strong className="text-slate-900 font-mono">
+                  SIGEST {projectToDelete.sigest} / Polígono {projectToDelete.poligono}
+                </strong>?
+              </p>
+              {(projectToDelete.repairs_count || 0) > 0 ? (
+                <p className="p-2.5 bg-amber-50 border border-amber-200 text-amber-900 rounded font-medium">
+                  ⚠️ Atención: Este proyecto contiene {projectToDelete.repairs_count} reparo(s) asociado(s). Al eliminar el proyecto, también se borrarán todos sus reparos y su historial.
+                </p>
+              ) : (
+                <p className="text-slate-500">
+                  Esta acción eliminará el proyecto de la base de datos. No se puede deshacer.
+                </p>
+              )}
+            </div>
+          }
+          confirmText="Eliminar Proyecto"
+          onConfirm={async () => {
+            await repository.deleteProject(projectToDelete.id);
+            setProjectToDelete(null);
+            loadProjects();
+          }}
+          onClose={() => setProjectToDelete(null)}
+        />
+      )}
     </div>
   );
 }

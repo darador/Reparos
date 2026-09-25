@@ -1,18 +1,27 @@
 'use client';
 
+import { getStoredAuthUser } from "@/lib/auth";
 import { Project } from "@/lib/types/database";
 import { formatDate } from "@/lib/utils";
-import { Edit3, FolderGit2, Wrench } from "lucide-react";
+import { Edit3, FolderGit2, Trash2, Wrench } from "lucide-react";
 import Link from "next/link";
+import React, { useEffect, useState } from "react";
 import { ProjectStatusBadge } from "../shared/Badges";
 
 interface ProjectTableProps {
   projects: Project[];
   onNewRepairClick?: (project: Project) => void;
   onEditProjectClick?: (project: Project) => void;
+  onDeleteProjectClick?: (project: Project) => void;
 }
 
-export function ProjectTable({ projects, onNewRepairClick, onEditProjectClick }: ProjectTableProps) {
+export function ProjectTable({ projects, onNewRepairClick, onEditProjectClick, onDeleteProjectClick }: ProjectTableProps) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsAuthenticated(!!getStoredAuthUser());
+  }, []);
+
   if (projects.length === 0) {
     return (
       <div className="bg-white border border-slate-200 rounded p-8 text-center text-slate-500">
@@ -122,6 +131,15 @@ export function ProjectTable({ projects, onNewRepairClick, onEditProjectClick }:
                         title="Editar datos del proyecto"
                       >
                         <Edit3 className="h-3.5 w-3.5 text-slate-600" />
+                      </button>
+                    )}
+                    {isAuthenticated && onDeleteProjectClick && (
+                      <button
+                        onClick={() => onDeleteProjectClick(project)}
+                        className="inline-flex items-center justify-center text-[11px] bg-slate-50 hover:bg-red-50 text-slate-700 hover:text-red-600 px-2 py-1 font-medium transition-colors"
+                        title="Borrar este proyecto"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
                       </button>
                     )}
                   </div>
