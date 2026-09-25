@@ -54,5 +54,5 @@ export const DISTRITOS_LIST = [
   'FLORENCIO VARELA',
   'LANUS',
   'LOMAS',
-  'MONTEGRANDE'
+  'MONTE GRANDE'
 ];

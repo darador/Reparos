@@ -53,13 +53,14 @@ export function ProjectFormModal({
         setSigest(projectToEdit.sigest || '');
         setPoligono(projectToEdit.poligono || '');
         
-        const dis = (projectToEdit.distrito || '').trim().toUpperCase();
+        let dis = (projectToEdit.distrito || '').trim().toUpperCase();
+        if (dis === 'MONTEGRANDE') dis = 'MONTE GRANDE';
         if (DISTRITOS_LIST.includes(dis)) {
           setDistrito(dis);
           setCustomDistrito('');
         } else if (dis) {
           setDistrito('__CUSTOM__');
-          setCustomDistrito(projectToEdit.distrito || '');
+          setCustomDistrito(dis);
         } else {
           setDistrito('');
           setCustomDistrito('');
@@ -116,7 +117,10 @@ export function ProjectFormModal({
       return;
     }
 
-    const finalDistrito = distrito === '__CUSTOM__' ? customDistrito.trim() : distrito.trim();
+    let finalDistrito = distrito === '__CUSTOM__' ? customDistrito.trim() : distrito.trim();
+    if (finalDistrito.toUpperCase() === 'MONTEGRANDE') {
+      finalDistrito = 'MONTE GRANDE';
+    }
     const finalEjecutor = ejecutor === '__CUSTOM__' ? customEjecutor.trim() : ejecutor.trim();
 
     setError('');

@@ -1,5 +1,5 @@
 import { getStoredAuthUser, getUserDisplayName } from "../auth";
-import { INITIAL_PROJECTS, INITIAL_REPAIR_EVENTS, INITIAL_REPAIR_STATUSES, INITIAL_REPAIR_TYPES, INITIAL_REPAIRS, INITIAL_RESPONSIBLE_PARTIES, SOLICITANTES_LIST } from "../constants/initial-data";
+import { DISTRITOS_LIST, INITIAL_PROJECTS, INITIAL_REPAIR_EVENTS, INITIAL_REPAIR_STATUSES, INITIAL_REPAIR_TYPES, INITIAL_REPAIRS, INITIAL_RESPONSIBLE_PARTIES, SOLICITANTES_LIST } from "../constants/initial-data";
 import { createClient } from "../supabase/client";
 import { DashboardMetrics, Project, Repair, RepairEvent, RepairStatus, RepairType, ResponsibleParty } from "../types/database";
 
@@ -90,7 +90,15 @@ class DataRepository {
       ]);
 
       if (projRes.data) {
-        this.projects = projRes.data;
+        this.projects = projRes.data.map(p => {
+          if (p.distrito && p.distrito.replace(/\s+/g, '').toUpperCase() === 'MONTEGRANDE') {
+            p.distrito = 'MONTE GRANDE';
+            if (supabase) {
+              supabase.from('projects').update({ distrito: 'MONTE GRANDE' }).eq('id', p.id).then();
+            }
+          }
+          return p;
+        });
       }
       if (repRes.data) {
         this.repairs = repRes.data;
@@ -218,10 +226,14 @@ class DataRepository {
   }
 
   getDistritos(): string[] {
-    const list = this.projects
-      .map(p => p.distrito?.trim())
-      .filter((d): d is string => !!d);
-    return Array.from(new Set(list)).sort();
+    const set = new Set<string>(DISTRITOS_LIST);
+    (this.projects || []).forEach(p => {
+      if (p.distrito?.trim()) {
+        const norm = p.distrito.replace(/\s+/g, '').toUpperCase() === 'MONTEGRANDE' ? 'MONTE GRANDE' : p.distrito.trim();
+        set.add(norm);
+      }
+    });
+    return Array.from(set).sort();
   }
 
   getCentrales(): string[] {
@@ -284,8 +296,13 @@ class DataRepository {
     }
 
     if (query?.distrito && query.distrito !== 'all') {
-      const targetDis = query.distrito.toLowerCase();
-      result = result.filter(p => (p.distrito || '').toLowerCase() === targetDis);
+      const isMonteGrande = query.distrito.replace(/\s+/g, '').toUpperCase() === 'MONTEGRANDE';
+      if (isMonteGrande) {
+        result = result.filter(p => (p.distrito || '').replace(/\s+/g, '').toUpperCase() === 'MONTEGRANDE');
+      } else {
+        const targetDis = query.distrito.toLowerCase();
+        result = result.filter(p => (p.distrito || '').toLowerCase() === targetDis);
+      }
     }
 
     if (query?.central && query.central !== 'all') {
@@ -328,8 +345,14 @@ class DataRepository {
       throw new Error(`Ya existe un proyecto cargado con el mismo SIGEST (${data.sigest.trim()}) y Polígono (${data.poligono.trim()}).`);
     }
 
+    let finalDistrito = data.distrito;
+    if (finalDistrito && finalDistrito.replace(/\s+/g, '').toUpperCase() === 'MONTEGRANDE') {
+      finalDistrito = 'MONTE GRANDE';
+    }
+
     const newProject: Project = {
       ...data,
+      distrito: finalDistrito,
       id: generateUUID(),
       ctos_count: Number(data.ctos_count) || 0,
       created_at: new Date().toISOString(),
@@ -387,9 +410,15 @@ class DataRepository {
       throw new Error(`Ya existe otro proyecto cargado con el mismo SIGEST y Polígono.`);
     }
 
+    let finalDistrito = data.distrito !== undefined ? data.distrito : currentProject.distrito;
+    if (finalDistrito && finalDistrito.replace(/\s+/g, '').toUpperCase() === 'MONTEGRANDE') {
+      finalDistrito = 'MONTE GRANDE';
+    }
+
     const updated = {
       ...this.projects[index],
       ...data,
+      distrito: finalDistrito,
       ctos_count: data.ctos_count !== undefined ? Number(data.ctos_count) || 0 : this.projects[index].ctos_count,
       updated_at: new Date().toISOString()
     };
@@ -543,8 +572,13 @@ class DataRepository {
     }
 
     if (filters?.distrito && filters.distrito !== 'all') {
-      const targetDis = filters.distrito.toLowerCase();
-      list = list.filter(r => (r.project?.distrito || '').toLowerCase() === targetDis);
+      const isMonteGrande = filters.distrito.replace(/\s+/g, '').toUpperCase() === 'MONTEGRANDE';
+      if (isMonteGrande) {
+        list = list.filter(r => (r.project?.distrito || '').replace(/\s+/g, '').toUpperCase() === 'MONTEGRANDE');
+      } else {
+        const targetDis = filters.distrito.toLowerCase();
+        list = list.filter(r => (r.project?.distrito || '').toLowerCase() === targetDis);
+      }
     }
 
     if (filters?.central && filters.central !== 'all') {
