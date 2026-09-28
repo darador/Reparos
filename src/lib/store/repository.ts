@@ -956,7 +956,7 @@ class DataRepository {
 
     let count = 0;
     let inResolvedCycle = false;
-    let hasHadClaim = false;
+    let cycleCountedReiteration = false;
 
     events.forEach((e) => {
       const prevStatus = this.repairStatuses.find(s => s.id === e.previous_status_id);
@@ -967,21 +967,30 @@ class DataRepository {
 
       const isExplicitReiteration = e.event_type === 'reiteration' || e.verification_result === 'no_solucionado';
 
-      if (isNewResolved && e.event_type === 'resolution') {
+      // 1. When repair transitions into resolved state or has a resolution event
+      if (e.event_type === 'resolution' || (isNewResolved && !isPrevResolved)) {
         inResolvedCycle = true;
-      } else if ((inResolvedCycle || isPrevResolved) && (isExplicitReiteration || e.event_type === 'reclaim' || e.event_type === 'follow_up' || e.event_type === 'assignment' || e.event_type === 'verification' || e.event_type === 'derivation')) {
-        if (e.event_type !== 'resolution' && e.event_type !== 'closure') {
-          count++;
-          inResolvedCycle = false;
-        }
-      } else if (isExplicitReiteration) {
-        count++;
-      } else if (e.event_type === 'reclaim' && hasHadClaim) {
-        count++;
+        cycleCountedReiteration = false;
+        return;
       }
 
-      if (e.event_type === 'reclaim') {
-        hasHadClaim = true;
+      // 2. If repair was in a resolved cycle (or prev status was resolved)
+      if (inResolvedCycle || isPrevResolved) {
+        if (e.event_type !== 'closure') {
+          if (!cycleCountedReiteration) {
+            count++;
+            cycleCountedReiteration = true;
+          }
+          if (!isNewResolved) {
+            inResolvedCycle = false;
+          }
+        }
+        return;
+      }
+
+      // 3. Standalone explicit reiteration event outside resolved cycle
+      if (isExplicitReiteration) {
+        count++;
       }
     });
 
