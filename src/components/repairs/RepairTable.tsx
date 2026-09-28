@@ -38,7 +38,6 @@ export function RepairTable({
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [repairToEdit, setRepairToEdit] = useState<Repair | null>(null);
   const [repairToDelete, setRepairToDelete] = useState<Repair | null>(null);
-  const [showCentralColumn, setShowCentralColumn] = useState<boolean>(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   useEffect(() => {
@@ -133,46 +132,16 @@ export function RepairTable({
 
   return (
     <div className="space-y-2">
-      {/* Dynamic Optional Column Toggle Control */}
-      <div className="flex items-center justify-between bg-slate-50 border border-slate-200 px-3 py-1.5 rounded text-xs">
-        <div className="flex items-center gap-2">
-          <Building2 className="h-3.5 w-3.5 text-slate-500" />
-          <span className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider font-mono">Columnas Opcionales:</span>
-          <button
-            onClick={() => {
-              const nextVal = !showCentralColumn;
-              setShowCentralColumn(nextVal);
-              try {
-                localStorage.setItem('ftth_show_central', String(nextVal));
-              } catch (e) {}
-            }}
-            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-xs font-semibold border transition-colors ${
-              showCentralColumn
-                ? 'bg-blue-100 text-blue-900 border-blue-300'
-                : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
-            }`}
-            title="Mostrar u ocultar la columna Central en la tabla"
-          >
-            <span>Central</span>
-            <span className="text-[10px] font-mono">{showCentralColumn ? '👁️ ON' : '🙈 OFF'}</span>
-          </button>
-        </div>
-
-        <span className="text-[11px] text-slate-400 font-mono">
-          {showCentralColumn ? 'Central activada' : 'Central oculta'}
-        </span>
-      </div>
-
-      <div className="data-table-container rounded-t-none">
+      <div className="data-table-container">
         <table className="data-table">
           <thead>
             <tr>
               <th className="w-5"></th>
               <th className="whitespace-nowrap">SIGEST / POLÍGONO</th>
-              {showCentralColumn && <th className="whitespace-nowrap">CENTRAL</th>}
+              <th className="whitespace-nowrap">CENTRAL</th>
               <th className="whitespace-nowrap">TIPO</th>
               <th className="min-w-[180px] max-w-[340px]">DESCRIPCIÓN / SOLICITANTE</th>
-              <th className="min-w-[130px] max-w-[150px]">RESPONSABLE</th>
+              <th className="min-w-[135px] max-w-[170px]">RESPONSABLE</th>
               <th>ESTADO</th>
               <th className="whitespace-nowrap text-center">REITEROS</th>
               <th className="whitespace-nowrap text-center">RECLAMOS</th>
@@ -262,18 +231,16 @@ export function RepairTable({
                       )}
                     </td>
 
-                    {/* Columna Opcional CENTRAL */}
-                    {showCentralColumn && (
-                      <td className="whitespace-nowrap">
-                        {repair.project?.central ? (
-                          <span className="font-bold text-slate-800 bg-slate-100 border border-slate-200/90 px-1.5 py-0.5 rounded text-[10px] font-mono">
-                            {repair.project.central}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 font-mono text-xs">-</span>
-                        )}
-                      </td>
-                    )}
+                    {/* Columna CENTRAL */}
+                    <td className="whitespace-nowrap">
+                      {repair.project?.central ? (
+                        <span className="font-bold text-slate-800 bg-slate-100 border border-slate-200/90 px-1.5 py-0.5 rounded text-[10px] font-mono">
+                          {repair.project.central}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-mono text-xs">-</span>
+                      )}
+                    </td>
 
                     <td className="whitespace-nowrap">
                       <span className="font-medium text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 text-[10px]">
@@ -441,7 +408,7 @@ export function RepairTable({
                   {/* Desplegable de Hitos (Expanded Row) */}
                   {isExpanded && (
                     <tr className="bg-slate-50/90 border-b border-slate-300">
-                      <td colSpan={9 + (showCentralColumn ? 1 : 0) + (hideActions ? 0 : 1)} className="p-3">
+                      <td colSpan={10 + (hideActions ? 0 : 1)} className="p-3">
                         <div className="bg-white border border-slate-300 rounded p-3 shadow-2xs space-y-2">
                           <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
                             <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
