@@ -299,41 +299,73 @@ export function RepairTable({
                       )}
                     </td>
 
-                    {/* Columna RESPONSABLE */}
-                    <td className="min-w-[130px] max-w-[150px]">
-                      {hideActions ? (
-                        <span className="font-semibold text-slate-800 text-[11px] truncate block px-1">
-                          {repair.current_responsible?.name || <em className="text-slate-400 font-normal">Sin asignar</em>}
-                        </span>
-                      ) : (
-                        <select
-                          value={partyNames.includes(currentRespName) ? currentRespName : (repair.current_responsible ? '__CUSTOM_EXISTING__' : '__UNASSIGNED__')}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '__PROMPT_NEW__') {
-                              const newName = prompt('Ingrese el nombre del nuevo Responsable:');
-                              if (newName && newName.trim()) {
-                                handleResponsibleChange(repair.id, newName.trim());
-                              }
-                            } else {
-                              handleResponsibleChange(repair.id, val);
-                            }
-                          }}
-                          className="w-full text-[10px] font-semibold text-slate-800 bg-white border border-slate-300 rounded px-1.5 py-0.5 shadow-2xs hover:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-                          title="Haz clic para cambiar el responsable de este reparo de forma rápida"
-                        >
-                          <option value="__UNASSIGNED__">-- Sin asignar --</option>
-                          {partyNames.map((name) => (
-                            <option key={name} value={name}>
-                              {name}
-                            </option>
-                          ))}
-                          {repair.current_responsible && !partyNames.includes(currentRespName) && (
-                            <option value="__CUSTOM_EXISTING__">{currentRespName}</option>
-                          )}
-                          <option value="__PROMPT_NEW__">✍️ Escribir otro responsable...</option>
-                        </select>
-                      )}
+                    {/* Columna RESPONSABLE en 2 renglones */}
+                    <td className="min-w-[135px] max-w-[170px] align-top py-1.5">
+                      {(() => {
+                        const name = repair.current_responsible?.name;
+                        const renderTwoLines = () => {
+                          if (!name || !name.trim()) {
+                            return <em className="text-slate-400 font-normal text-[11px] px-1">Sin asignar</em>;
+                          }
+                          const trimmed = name.trim();
+                          if (trimmed.includes('/')) {
+                            const slashIndex = trimmed.indexOf('/');
+                            const area = trimmed.substring(0, slashIndex + 1).trim();
+                            const person = trimmed.substring(slashIndex + 1).trim();
+                            return (
+                              <div className="flex flex-col text-[11px] leading-tight px-1 py-0.5">
+                                <span className="text-[10px] text-slate-500 font-semibold font-mono whitespace-nowrap">{area}</span>
+                                <span className="font-bold text-slate-900 text-[11px] leading-snug whitespace-normal break-words">{person}</span>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="flex flex-col text-[11px] leading-tight px-1 py-0.5">
+                              <span className="font-bold text-slate-900 text-[11px] leading-snug whitespace-normal break-words">{trimmed}</span>
+                            </div>
+                          );
+                        };
+
+                        if (hideActions) {
+                          return renderTwoLines();
+                        }
+
+                        return (
+                          <div className="relative group/resp bg-white border border-slate-300 hover:border-blue-500 rounded shadow-2xs transition-colors cursor-pointer">
+                            <div className="flex items-center justify-between gap-1 pr-1">
+                              {renderTwoLines()}
+                              <ChevronDown className="h-3 w-3 text-slate-400 shrink-0" />
+                            </div>
+                            <select
+                              value={partyNames.includes(currentRespName) ? currentRespName : (repair.current_responsible ? '__CUSTOM_EXISTING__' : '__UNASSIGNED__')}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '__PROMPT_NEW__') {
+                                  const newName = prompt('Ingrese el nombre del nuevo Responsable:');
+                                  if (newName && newName.trim()) {
+                                    handleResponsibleChange(repair.id, newName.trim());
+                                  }
+                                } else {
+                                  handleResponsibleChange(repair.id, val);
+                                }
+                              }}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-[10px]"
+                              title="Haz clic para cambiar el responsable"
+                            >
+                              <option value="__UNASSIGNED__">-- Sin asignar --</option>
+                              {partyNames.map((n) => (
+                                <option key={n} value={n}>
+                                  {n}
+                                </option>
+                              ))}
+                              {repair.current_responsible && !partyNames.includes(currentRespName) && (
+                                <option value="__CUSTOM_EXISTING__">{currentRespName}</option>
+                              )}
+                              <option value="__PROMPT_NEW__">✍️ Escribir otro responsable...</option>
+                            </select>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     <td className="whitespace-nowrap">

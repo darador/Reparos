@@ -131,7 +131,7 @@ export default function ProjectsPage() {
             onChange={(e) => setDistrito(e.target.value)}
             className="border border-slate-300 rounded px-2.5 py-1.5 bg-white text-xs font-medium text-slate-800"
           >
-            <option value="all">Todos los Distritos</option>
+            <option value="all">Distrito</option>
             {distritos.map((d) => (
               <option key={d} value={d}>
                 {d}
@@ -145,7 +145,7 @@ export default function ProjectsPage() {
             onChange={(e) => setCentral(e.target.value)}
             className="border border-slate-300 rounded px-2.5 py-1.5 bg-white text-xs font-medium text-slate-800"
           >
-            <option value="all">Todas las Centrales</option>
+            <option value="all">Central</option>
             {centrales.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -159,7 +159,7 @@ export default function ProjectsPage() {
             onChange={(e) => setStatus(e.target.value)}
             className="border border-slate-300 rounded px-2.5 py-1.5 bg-white text-xs font-medium"
           >
-            <option value="all">Todas las situaciones</option>
+            <option value="all">Situación</option>
             <option value="Demorado">Demorado</option>
             <option value="En ejecución">En ejecución</option>
             <option value="Finalizado">Finalizado</option>

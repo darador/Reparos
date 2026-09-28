@@ -118,7 +118,7 @@ export function RepairFilters({
             onChange={(e) => onDistritoChange(e.target.value)}
             className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white font-medium text-slate-800"
           >
-            <option value="all">Todos los Distritos</option>
+            <option value="all">Distrito</option>
             {distritos.map((d) => (
               <option key={d} value={d}>
                 {d}
@@ -134,7 +134,7 @@ export function RepairFilters({
             onChange={(e) => onCentralChange(e.target.value)}
             className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white font-medium text-slate-800"
           >
-            <option value="all">Todas las Centrales</option>
+            <option value="all">Central</option>
             {centrales.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -150,7 +150,7 @@ export function RepairFilters({
             onChange={(e) => onStatusChange(e.target.value)}
             className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white"
           >
-            <option value="all">Todos los Estados</option>
+            <option value="all">Estado</option>
             {repairStatuses.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -166,12 +166,12 @@ export function RepairFilters({
             onChange={(e) => onResponsibleChange(e.target.value)}
             className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white text-slate-800 font-medium"
           >
-            <option value="all">Todos los Responsables</option>
+            <option value="all">Responsable</option>
             <option value="unassigned">-- Sin asignar --</option>
             
             <optgroup label="Sectores / Áreas (Grupo Completo)">
-              <option value="AREA:Obras">🏢 Todo Obras (Todos los miembros de Obras)</option>
-              <option value="AREA:Ingeniería">⚙️ Todo Ingeniería (Todos los miembros de Ingeniería)</option>
+              <option value="AREA:Obras">🏢 Sector Obras (Miembros de Obras)</option>
+              <option value="AREA:Ingeniería">⚙️ Sector Ingeniería (Miembros de Ingeniería)</option>
             </optgroup>
 
             <optgroup label="Responsables Individuales">
@@ -191,7 +191,7 @@ export function RepairFilters({
             onChange={(e) => onSolicitanteChange && onSolicitanteChange(e.target.value)}
             className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white text-slate-800 font-medium"
           >
-            <option value="all">Todos los Solicitantes</option>
+            <option value="all">Solicitante</option>
             {solicitantes.map((name) => (
               <option key={name} value={name}>
                 {name}
@@ -207,7 +207,7 @@ export function RepairFilters({
             onChange={(e) => onPriorityChange(e.target.value)}
             className="w-full text-xs px-2 py-1.5 border border-slate-300 rounded bg-white"
           >
-            <option value="all">Todas las Prioridades</option>
+            <option value="all">Prioridad</option>
             <option value="Normal">Normal</option>
             <option value="Alta">Alta</option>
             <option value="Crítica">Crítica</option>

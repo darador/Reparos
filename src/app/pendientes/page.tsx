@@ -171,7 +171,7 @@ export default function PendingViewPage() {
           }`}
         >
           <Wrench className="h-3.5 w-3.5" />
-          <span>Todos los Pendientes ({counts.pending})</span>
+          <span>Pendientes ({counts.pending})</span>
         </button>
 
         <button
