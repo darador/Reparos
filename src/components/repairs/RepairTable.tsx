@@ -2,7 +2,7 @@
 
 import { getStoredAuthUser } from "@/lib/auth";
 import { repository } from "@/lib/store/repository";
-import { Repair } from "@/lib/types/database";
+import { Repair, RepairEvent } from "@/lib/types/database";
 import { formatDate, formatDateTime, formatDaysAgoLabel } from "@/lib/utils";
 import { AlertCircle, AlertTriangle, ArrowRight, ArrowUpRight, Building2, ChevronDown, ChevronUp, Edit, History, Plus, Trash2, Wrench } from "lucide-react";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import React, { useEffect, useState } from "react";
 import { RepairFormModal, RESPONSABLES_INICIALES_LIST } from "./RepairFormModal";
 import { StatusBadge } from "../shared/Badges";
 import { ConfirmDeleteModal } from "../shared/ConfirmDeleteModal";
+import { EditEventModal } from "../timeline/EditEventModal";
 
 interface RepairTableProps {
   repairs: Repair[];
@@ -38,6 +39,8 @@ export function RepairTable({
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [repairToEdit, setRepairToEdit] = useState<Repair | null>(null);
   const [repairToDelete, setRepairToDelete] = useState<Repair | null>(null);
+  const [eventToEdit, setEventToEdit] = useState<RepairEvent | null>(null);
+  const [eventToDelete, setEventToDelete] = useState<RepairEvent | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   useEffect(() => {
@@ -116,6 +119,22 @@ export function RepairTable({
       setRepairToEdit(null);
       if (onRefresh) onRefresh();
     }
+  };
+
+  const handleDeleteEvent = async () => {
+    if (eventToDelete) {
+      await repository.deleteRepairEvent(eventToDelete.id);
+      setEventToDelete(null);
+      if (onRefresh) onRefresh();
+      else setExpandedIds(prev => ({ ...prev }));
+    }
+  };
+
+  const handleUpdateEvent = async (eventId: string, data: any) => {
+    await repository.updateRepairEvent(eventId, data);
+    setEventToEdit(null);
+    if (onRefresh) onRefresh();
+    else setExpandedIds(prev => ({ ...prev }));
   };
 
   if (repairs.length === 0) {
@@ -438,6 +457,7 @@ export function RepairTable({
                                     <th className="py-1 px-2 font-semibold">Estado</th>
                                     <th className="py-1 px-2 font-semibold">Usuario</th>
                                     <th className="py-1 px-2 font-semibold">Observación / Nota</th>
+                                    {isAuthenticated && <th className="py-1 px-2 text-right font-semibold">Acciones</th>}
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
@@ -486,6 +506,24 @@ export function RepairTable({
                                       <td className="py-1.5 px-2 text-slate-700 font-sans max-w-[280px]">
                                         {ev.notes || '-'}
                                       </td>
+                                      {isAuthenticated && (
+                                        <td className="py-1.5 px-2 text-right whitespace-nowrap">
+                                          <button
+                                            onClick={() => setEventToEdit(ev)}
+                                            className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors"
+                                            title="Editar este hito"
+                                          >
+                                            <Edit className="h-3.5 w-3.5" />
+                                          </button>
+                                          <button
+                                            onClick={() => setEventToDelete(ev)}
+                                            className="p-1 text-slate-400 hover:text-red-600 rounded transition-colors ml-1"
+                                            title="Borrar este hito"
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </button>
+                                        </td>
+                                      )}
                                     </tr>
                                   ))}
                                 </tbody>
@@ -513,6 +551,48 @@ export function RepairTable({
           repairTypes={repository.getRepairTypes()}
           responsibleParties={repository.getResponsibleParties()}
           repairToEdit={repairToEdit}
+        />
+      )}
+
+      {/* Edit Event Modal */}
+      {eventToEdit && (
+        <EditEventModal
+          isOpen={!!eventToEdit}
+          onClose={() => setEventToEdit(null)}
+          onSave={handleUpdateEvent}
+          event={eventToEdit}
+          responsibleParties={repository.getResponsibleParties()}
+          repairStatuses={repository.getRepairStatuses()}
+        />
+      )}
+
+      {/* Delete Event Confirmation Modal */}
+      {eventToDelete && (
+        <ConfirmDeleteModal
+          isOpen={!!eventToDelete}
+          title="Borrar Hito del Historial"
+          description={
+            <div className="space-y-2">
+              <p>
+                ¿Está seguro de que deseas eliminar permanentemente este hito (
+                <strong className="text-slate-900 font-mono">
+                  {eventToDelete.event_type}
+                </strong>
+                ) del historial?
+              </p>
+              {eventToDelete.notes && (
+                <p className="p-2 bg-slate-100 rounded text-slate-700 italic border border-slate-200 text-xs">
+                  "{eventToDelete.notes}"
+                </p>
+              )}
+              <p className="text-red-600 font-medium text-xs">
+                Esta acción recalculará el historial y el estado del reparo. No se puede deshacer.
+              </p>
+            </div>
+          }
+          confirmText="Eliminar Hito"
+          onConfirm={handleDeleteEvent}
+          onClose={() => setEventToDelete(null)}
         />
       )}
 

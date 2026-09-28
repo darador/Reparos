@@ -2,14 +2,17 @@
 
 import { RepairEvent } from "@/lib/types/database";
 import { formatDateTime, formatTimeAgo } from "@/lib/utils";
-import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, Clock, History, ShieldAlert, User, Wrench } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle2, Clock, Edit, History, ShieldAlert, Trash2, User, Wrench } from "lucide-react";
 import { StatusBadge } from "../shared/Badges";
 
 interface RepairTimelineProps {
   events: RepairEvent[];
+  onEditEvent?: (event: RepairEvent) => void;
+  onDeleteEvent?: (event: RepairEvent) => void;
+  isAuthenticated?: boolean;
 }
 
-export function RepairTimeline({ events }: RepairTimelineProps) {
+export function RepairTimeline({ events, onEditEvent, onDeleteEvent, isAuthenticated = false }: RepairTimelineProps) {
   if (events.length === 0) {
     return (
       <div className="bg-slate-50 border border-slate-200 rounded p-6 text-center text-slate-500 text-xs">
@@ -96,9 +99,34 @@ export function RepairTimeline({ events }: RepairTimelineProps) {
                   )}
                 </div>
 
-                <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2">
-                  <span>{formatDateTime(event.created_at)}</span>
-                  <span className="text-slate-400">({formatTimeAgo(event.created_at)})</span>
+                <div className="flex items-center gap-3">
+                  <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2">
+                    <span>{formatDateTime(event.created_at)}</span>
+                    <span className="text-slate-400">({formatTimeAgo(event.created_at)})</span>
+                  </div>
+
+                  {isAuthenticated && (
+                    <div className="flex items-center gap-1 border-l border-slate-200 pl-2">
+                      {onEditEvent && (
+                        <button
+                          onClick={() => onEditEvent(event)}
+                          className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-slate-100 transition-colors"
+                          title="Modificar este hito"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {onDeleteEvent && (
+                        <button
+                          onClick={() => onDeleteEvent(event)}
+                          className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors"
+                          title="Borrar este hito"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

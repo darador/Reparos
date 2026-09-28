@@ -949,6 +949,121 @@ class DataRepository {
     return newEvent;
   }
 
+  async deleteRepairEvent(eventId: string): Promise<void> {
+    await this.ensureLoaded();
+    const eventIndex = this.events.findIndex(e => e.id === eventId);
+    if (eventIndex === -1) return;
+
+    const event = this.events[eventIndex];
+    const repairId = event.repair_id;
+
+    if (typeof window !== 'undefined') {
+      const supabase = createClient();
+      if (supabase) {
+        const { error } = await supabase.from('repair_events').delete().eq('id', eventId);
+        if (error) {
+          console.error("Error deleting repair event in Supabase:", error.message);
+          throw new Error("No se pudo eliminar el hito en Supabase: " + error.message);
+        }
+      }
+    }
+
+    this.events.splice(eventIndex, 1);
+
+    // Recalculate repair state from remaining events
+    const remainingEvents = this.events
+      .filter(e => e.repair_id === repairId)
+      .sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+
+    const repair = this.repairs.find(r => r.id === repairId);
+    if (repair && remainingEvents.length > 0) {
+      const lastEv = remainingEvents[remainingEvents.length - 1];
+      let newStatusId = repair.current_status_id;
+      let newRespId = repair.current_responsible_id;
+
+      if (lastEv.new_status_id) {
+        newStatusId = lastEv.new_status_id;
+      }
+      if (lastEv.new_responsible_id) {
+        newRespId = lastEv.new_responsible_id;
+      }
+
+      await this.updateRepair(repairId, {
+        current_status_id: newStatusId,
+        current_responsible_id: newRespId
+      });
+    }
+  }
+
+  async updateRepairEvent(eventId: string, data: {
+    event_type?: RepairEvent['event_type'];
+    notes?: string;
+    new_responsible_id?: string;
+    new_status_id?: string;
+    verification_result?: RepairEvent['verification_result'];
+  }): Promise<RepairEvent> {
+    await this.ensureLoaded();
+    const eventIndex = this.events.findIndex(e => e.id === eventId);
+    if (eventIndex === -1) throw new Error("Hito no encontrado");
+
+    const existing = this.events[eventIndex];
+
+    const updated: RepairEvent = {
+      ...existing,
+      event_type: data.event_type || existing.event_type,
+      notes: data.notes !== undefined ? data.notes : existing.notes,
+      new_responsible_id: data.new_responsible_id !== undefined ? data.new_responsible_id : existing.new_responsible_id,
+      new_status_id: data.new_status_id !== undefined ? data.new_status_id : existing.new_status_id,
+      verification_result: data.verification_result !== undefined ? data.verification_result : existing.verification_result
+    };
+
+    if (typeof window !== 'undefined') {
+      const supabase = createClient();
+      if (supabase) {
+        const { error } = await supabase.from('repair_events').update({
+          event_type: updated.event_type,
+          notes: updated.notes || null,
+          new_responsible_id: updated.new_responsible_id || null,
+          new_status_id: updated.new_status_id || null,
+          verification_result: updated.verification_result || null
+        }).eq('id', eventId);
+
+        if (error) {
+          console.error("Error updating repair event in Supabase:", error.message);
+          throw new Error("No se pudo actualizar el hito en Supabase: " + error.message);
+        }
+      }
+    }
+
+    this.events[eventIndex] = updated;
+
+    // Recalculate repair state if needed
+    const remainingEvents = this.events
+      .filter(e => e.repair_id === existing.repair_id)
+      .sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+
+    const repair = this.repairs.find(r => r.id === existing.repair_id);
+    if (repair && remainingEvents.length > 0) {
+      const lastEv = remainingEvents[remainingEvents.length - 1];
+      let newStatusId = repair.current_status_id;
+      let newRespId = repair.current_responsible_id;
+
+      if (lastEv.new_status_id) {
+        newStatusId = lastEv.new_status_id;
+      }
+      if (lastEv.new_responsible_id) {
+        newRespId = lastEv.new_responsible_id;
+      }
+
+      await this.updateRepair(existing.repair_id, {
+        current_status_id: newStatusId,
+        current_responsible_id: newRespId
+      });
+    }
+
+    return updated;
+  }
+
   // Helper to accurately count reiterations from event history
   getRepairReiterationCount(repairId: string, eventsList?: RepairEvent[]): number {
     const rawEvents = eventsList || this.events.filter(e => e.repair_id === repairId);

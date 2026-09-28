@@ -4,6 +4,7 @@ import { RepairFormModal } from "@/components/repairs/RepairFormModal";
 import { PriorityBadge, StatusBadge } from "@/components/shared/Badges";
 import { ConfirmDeleteModal } from "@/components/shared/ConfirmDeleteModal";
 import { LoadingState } from "@/components/shared/LoadingState";
+import { EditEventModal } from "@/components/timeline/EditEventModal";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { RepairTimeline } from "@/components/timeline/RepairTimeline";
 import { getStoredAuthUser } from "@/lib/auth";
@@ -25,6 +26,8 @@ export default function RepairDetailPage() {
   const [isLogEventOpen, setIsLogEventOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [eventToEdit, setEventToEdit] = useState<RepairEvent | null>(null);
+  const [eventToDelete, setEventToDelete] = useState<RepairEvent | null>(null);
   const [initialEventType, setInitialEventType] = useState<EventType>('follow_up');
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -88,6 +91,20 @@ export default function RepairDetailPage() {
     await repository.updateRepair(repairId, data);
     loadData();
     setIsEditOpen(false);
+  };
+
+  const handleDeleteEvent = async () => {
+    if (eventToDelete) {
+      await repository.deleteRepairEvent(eventToDelete.id);
+      setEventToDelete(null);
+      loadData();
+    }
+  };
+
+  const handleUpdateEvent = async (eventId: string, data: any) => {
+    await repository.updateRepairEvent(eventId, data);
+    setEventToEdit(null);
+    loadData();
   };
 
   const hasReiterations = (repair.reiteration_count || 0) > 0;
@@ -259,7 +276,12 @@ export default function RepairDetailPage() {
           </button>
         </div>
 
-        <RepairTimeline events={events} />
+        <RepairTimeline
+          events={events}
+          isAuthenticated={isAuthenticated}
+          onEditEvent={(ev) => setEventToEdit(ev)}
+          onDeleteEvent={(ev) => setEventToDelete(ev)}
+        />
       </div>
 
       {/* Edit Repair Modal */}
@@ -272,6 +294,48 @@ export default function RepairDetailPage() {
           repairTypes={repository.getRepairTypes()}
           responsibleParties={repository.getResponsibleParties()}
           repairToEdit={repair}
+        />
+      )}
+
+      {/* Edit Event Modal */}
+      {eventToEdit && (
+        <EditEventModal
+          isOpen={!!eventToEdit}
+          onClose={() => setEventToEdit(null)}
+          onSave={handleUpdateEvent}
+          event={eventToEdit}
+          responsibleParties={repository.getResponsibleParties()}
+          repairStatuses={repository.getRepairStatuses()}
+        />
+      )}
+
+      {/* Delete Event Confirmation Modal */}
+      {eventToDelete && (
+        <ConfirmDeleteModal
+          isOpen={!!eventToDelete}
+          title="Borrar Hito del Historial"
+          description={
+            <div className="space-y-2">
+              <p>
+                ¿Está seguro de que deseas eliminar permanentemente este hito (
+                <strong className="text-slate-900 font-mono">
+                  {eventToDelete.event_type}
+                </strong>
+                ) del historial?
+              </p>
+              {eventToDelete.notes && (
+                <p className="p-2 bg-slate-100 rounded text-slate-700 italic border border-slate-200 text-xs">
+                  "{eventToDelete.notes}"
+                </p>
+              )}
+              <p className="text-red-600 font-medium text-xs">
+                Esta acción recalculará el historial y el estado del reparo. No se puede deshacer.
+              </p>
+            </div>
+          }
+          confirmText="Eliminar Hito"
+          onConfirm={handleDeleteEvent}
+          onClose={() => setEventToDelete(null)}
         />
       )}
 
