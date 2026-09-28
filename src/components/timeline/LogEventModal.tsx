@@ -3,7 +3,7 @@
 import { StatusBadge } from "@/components/shared/Badges";
 import { RESPONSABLES_INICIALES_LIST, SOLICITANTES_LIST } from "@/lib/constants/initial-data";
 import { repository } from "@/lib/store/repository";
-import { EventType, Repair, RepairStatus, ResponsibleParty } from "@/lib/types/database";
+import { EventType, Repair, RepairStatus, ResponsibleParty, VerificationResult } from "@/lib/types/database";
 import { History, Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -15,6 +15,7 @@ interface LogEventModalProps {
     event_type: EventType;
     new_responsible_id?: string;
     new_status_id?: string;
+    verification_result?: VerificationResult;
     notes?: string;
   }) => Promise<void> | void;
   repair: Repair;
@@ -86,7 +87,7 @@ export function LogEventModal({
   };
 
   const autoStatus = getAutoStatus();
-  const showDerivation = eventType === 'resolution' || eventType === 'assignment';
+  const showDerivation = eventType === 'resolution' || eventType === 'assignment' || eventType === 'verification' || eventType === 'reiteration';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +138,7 @@ export function LogEventModal({
         event_type: eventType,
         new_responsible_id: finalDerivationId,
         new_status_id: targetStatus?.id,
+        verification_result: (eventType === 'verification' || eventType === 'reiteration') ? 'no_solucionado' : undefined,
         notes: notes.trim() || undefined
       });
 
@@ -197,11 +199,12 @@ export function LogEventModal({
               onChange={(e) => setEventType(e.target.value as EventType)}
               className="w-full px-3 py-1.5 border border-slate-300 rounded bg-white text-slate-900 font-semibold"
             >
+              <option value="verification">🔄 VUELVE REITERADO A PENDIENTE (No solucionado / Falla persiste)</option>
               <option value="resolution">✅ VERIFICAR RESUELTO (Trabajo realizado por el sector)</option>
               <option value="closure">🏁 FINALIZADO (Solicitante verificó ok)</option>
               <option value="reclaim">⚠️ Reclamo / Reiteración de avance</option>
               <option value="assignment">👤 Cambio / Reasignación de Responsable</option>
-              <option value="follow_up">💬 + PENDIENTE OTROS (Permanece PENDIENTE)</option>
+              <option value="follow_up">💬 + PENDIENTE OTROS (Novedades / Seguimiento)</option>
             </select>
           </div>
 

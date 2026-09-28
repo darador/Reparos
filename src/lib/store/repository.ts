@@ -955,17 +955,28 @@ class DataRepository {
     const events = [...rawEvents].sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
 
     let count = 0;
+    let inResolvedCycle = false;
     let hasHadClaim = false;
 
     events.forEach((e) => {
       const prevStatus = this.repairStatuses.find(s => s.id === e.previous_status_id);
-      const isPrevResolvedOrClosed = prevStatus?.category === 'resolved' || prevStatus?.category === 'closed' || prevStatus?.name === 'VERIFICACIÓN RESUELTO' || prevStatus?.name === 'FINALIZADO';
+      const newStatus = this.repairStatuses.find(s => s.id === e.new_status_id);
+
+      const isPrevResolved = prevStatus?.category === 'resolved' || prevStatus?.category === 'closed' || prevStatus?.name === 'VERIFICACIÓN RESUELTO' || prevStatus?.name === 'FINALIZADO';
+      const isNewResolved = newStatus?.category === 'resolved' || newStatus?.category === 'closed' || newStatus?.name === 'VERIFICACIÓN RESUELTO' || newStatus?.name === 'FINALIZADO';
 
       const isExplicitReiteration = e.event_type === 'reiteration' || e.verification_result === 'no_solucionado';
-      const isReopeningFromResolved = isPrevResolvedOrClosed && (e.event_type === 'reclaim' || e.event_type === 'follow_up' || e.event_type === 'assignment' || e.event_type === 'verification' || e.event_type === 'derivation');
-      const isSubsequentClaim = e.event_type === 'reclaim' && hasHadClaim;
 
-      if (isExplicitReiteration || isReopeningFromResolved || isSubsequentClaim) {
+      if (isNewResolved && e.event_type === 'resolution') {
+        inResolvedCycle = true;
+      } else if ((inResolvedCycle || isPrevResolved) && (isExplicitReiteration || e.event_type === 'reclaim' || e.event_type === 'follow_up' || e.event_type === 'assignment' || e.event_type === 'verification' || e.event_type === 'derivation')) {
+        if (e.event_type !== 'resolution' && e.event_type !== 'closure') {
+          count++;
+          inResolvedCycle = false;
+        }
+      } else if (isExplicitReiteration) {
+        count++;
+      } else if (e.event_type === 'reclaim' && hasHadClaim) {
         count++;
       }
 

@@ -10,7 +10,7 @@ import { getStoredAuthUser } from "@/lib/auth";
 import { repository } from "@/lib/store/repository";
 import { EventType, Repair, RepairEvent } from "@/lib/types/database";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { AlertTriangle, ArrowLeft, CheckCircle2, Edit, History, Trash2, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Edit, History, RotateCcw, Trash2, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -168,14 +168,27 @@ export default function RepairDetailPage() {
                   <History className="h-3.5 w-3.5 text-slate-600" />
                   <span>+ PENDIENTE OTROS</span>
                 </button>
-                <button
-                  onClick={() => openLogEvent('resolution')}
-                  className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded font-medium shadow-2xs transition-colors flex items-center gap-1"
-                  title="Marcar como resuelto y derivar al solicitante para verificación"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  <span>VERIFICAR RESUELTO</span>
-                </button>
+
+                {repair.current_status?.name === 'VERIFICACIÓN RESUELTO' ? (
+                  <button
+                    onClick={() => openLogEvent('verification')}
+                    className="text-xs bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded font-semibold shadow-2xs transition-colors flex items-center gap-1"
+                    title="Vuelve a PENDIENTE debido a que no fue solucionado en la verificación"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span>VUELVE REITERADO A PENDIENTE</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => openLogEvent('resolution')}
+                    className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded font-medium shadow-2xs transition-colors flex items-center gap-1"
+                    title="Marcar como resuelto y derivar al solicitante para verificación"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>VERIFICAR RESUELTO</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => openLogEvent('closure')}
                   className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded font-medium shadow-2xs transition-colors flex items-center gap-1"

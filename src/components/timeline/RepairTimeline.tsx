@@ -44,7 +44,10 @@ export function RepairTimeline({ events }: RepairTimelineProps) {
     }
   };
 
-  const getEventLabel = (eventType: RepairEvent['event_type']) => {
+  const getEventLabel = (eventType: RepairEvent['event_type'], verificationResult?: string) => {
+    if (eventType === 'verification' && verificationResult === 'no_solucionado') {
+      return 'Vuelve Reiterado a Pendiente';
+    }
     switch (eventType) {
       case 'creation': return 'Reparo Creado';
       case 'assignment': return 'Asignación / Reasignación';
@@ -53,7 +56,7 @@ export function RepairTimeline({ events }: RepairTimelineProps) {
       case 'follow_up': return 'Seguimiento Operativo';
       case 'derivation': return 'Derivación';
       case 'verification': return 'Verificación de Trabajo';
-      case 'reiteration': return 'Reiteración de Reparo';
+      case 'reiteration': return 'Vuelve Reiterado a Pendiente';
       case 'resolution': return 'Reparo Resuelto';
       case 'closure': return 'Caso Cerrado';
       default: return eventType;
@@ -81,7 +84,7 @@ export function RepairTimeline({ events }: RepairTimelineProps) {
             }`}>
               <div className="flex items-center justify-between gap-2 mb-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-slate-900">{getEventLabel(event.event_type)}</span>
+                  <span className="font-semibold text-slate-900">{getEventLabel(event.event_type, event.verification_result)}</span>
                   {event.verification_result && (
                     <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold uppercase ${
                       event.verification_result === 'solucionado' 
