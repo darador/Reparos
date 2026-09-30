@@ -3,7 +3,7 @@
 import { getStoredAuthUser } from "@/lib/auth";
 import { Project } from "@/lib/types/database";
 import { formatDate } from "@/lib/utils";
-import { Edit3, FolderGit2, Trash2, Wrench } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Edit3, FolderGit2, Trash2, Wrench } from "lucide-react";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { ProjectStatusBadge } from "../shared/Badges";
@@ -15,12 +15,97 @@ interface ProjectTableProps {
   onDeleteProjectClick?: (project: Project) => void;
 }
 
+type ProjectSortColumn = 'sigest' | 'central' | 'ejecutor' | 'ctos' | 'situacion' | 'reparos' | 'created_at';
+type SortDirection = 'asc' | 'desc';
+
 export function ProjectTable({ projects, onNewRepairClick, onEditProjectClick, onDeleteProjectClick }: ProjectTableProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [sortColumn, setSortColumn] = useState<ProjectSortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   useEffect(() => {
     setIsAuthenticated(!!getStoredAuthUser());
   }, []);
+
+  const handleSort = (column: ProjectSortColumn) => {
+    if (sortColumn === column) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        setSortColumn(null);
+        setSortDirection('asc');
+      }
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedProjects = React.useMemo(() => {
+    if (!sortColumn) return projects;
+
+    return [...projects].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      switch (sortColumn) {
+        case 'sigest':
+          valA = `${a.sigest || ''}_${a.poligono || ''}`;
+          valB = `${b.sigest || ''}_${b.poligono || ''}`;
+          break;
+        case 'central':
+          valA = `${a.distrito || ''}_${a.central || ''}`;
+          valB = `${b.distrito || ''}_${b.central || ''}`;
+          break;
+        case 'ejecutor':
+          valA = a.ejecutor || '';
+          valB = b.ejecutor || '';
+          break;
+        case 'ctos':
+          valA = a.ctos_count || 0;
+          valB = b.ctos_count || 0;
+          break;
+        case 'situacion':
+          valA = a.situacion_operativa || '';
+          valB = b.situacion_operativa || '';
+          break;
+        case 'reparos':
+          valA = a.repairs_count || 0;
+          valB = b.repairs_count || 0;
+          break;
+        case 'created_at':
+          valA = new Date(a.created_at || 0).getTime();
+          valB = new Date(b.created_at || 0).getTime();
+          break;
+      }
+
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return sortDirection === 'asc' ? valA - valB : valB - valA;
+      }
+
+      const strA = String(valA).toLowerCase();
+      const strB = String(valB).toLowerCase();
+      return sortDirection === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
+    });
+  }, [projects, sortColumn, sortDirection]);
+
+  const renderSortHeader = (column: ProjectSortColumn, label: string, className: string = '') => {
+    const isActive = sortColumn === column;
+    return (
+      <th
+        onClick={() => handleSort(column)}
+        className={`cursor-pointer select-none group hover:bg-slate-200/80 transition-colors ${className}`}
+        title={`Ordenar por ${label}`}
+      >
+        <div className="flex items-center gap-1 font-semibold">
+          <span>{label}</span>
+          {!isActive && <ArrowUpDown className="h-3 w-3 text-slate-400 group-hover:text-slate-600 transition-colors" />}
+          {isActive && sortDirection === 'asc' && <ArrowUp className="h-3.5 w-3.5 text-blue-600 font-bold" />}
+          {isActive && sortDirection === 'desc' && <ArrowDown className="h-3.5 w-3.5 text-blue-600 font-bold" />}
+        </div>
+      </th>
+    );
+  };
 
   if (projects.length === 0) {
     return (
@@ -37,18 +122,18 @@ export function ProjectTable({ projects, onNewRepairClick, onEditProjectClick, o
       <table className="data-table">
         <thead>
           <tr>
-            <th>SIGEST / Polígono</th>
-            <th>Distrito / Central</th>
-            <th>Ejecutor</th>
-            <th>CTOs / Alim.</th>
-            <th>Situación</th>
-            <th>Reparos</th>
-            <th>Creación</th>
+            {renderSortHeader('sigest', 'SIGEST / Polígono')}
+            {renderSortHeader('central', 'Distrito / Central')}
+            {renderSortHeader('ejecutor', 'Ejecutor')}
+            {renderSortHeader('ctos', 'CTOs / Alim.')}
+            {renderSortHeader('situacion', 'Situación')}
+            {renderSortHeader('reparos', 'Reparos')}
+            {renderSortHeader('created_at', 'Creación')}
             <th className="text-right">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {projects.map((project, index) => {
+          {sortedProjects.map((project, index) => {
             const isEven = index % 2 === 0;
             const rowBgClass = isEven ? "bg-slate-50/70 hover:bg-blue-50/30" : "bg-white hover:bg-blue-50/30";
 

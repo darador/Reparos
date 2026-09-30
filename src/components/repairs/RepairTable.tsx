@@ -4,7 +4,7 @@ import { getStoredAuthUser } from "@/lib/auth";
 import { repository } from "@/lib/store/repository";
 import { Repair, RepairEvent } from "@/lib/types/database";
 import { formatDate, formatDateTime, formatDaysAgoLabel } from "@/lib/utils";
-import { AlertCircle, AlertTriangle, ArrowRight, ArrowUpRight, Building2, ChevronDown, ChevronUp, Edit, History, Plus, Trash2, Wrench } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowDown, ArrowRight, ArrowUp, ArrowUpDown, ArrowUpRight, Building2, ChevronDown, ChevronUp, Edit, History, Plus, Trash2, Wrench } from "lucide-react";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { RepairFormModal, RESPONSABLES_INICIALES_LIST } from "./RepairFormModal";
@@ -30,6 +30,10 @@ const GROUP_THEMES = [
   { border: "border-l-blue-600", badge: "bg-blue-100 text-blue-900 border-blue-300" },
 ];
 
+type SortColumn = 'project' | 'central' | 'tipo' | 'description' | 'responsible' | 'status' | 'reiteros' | 'reclamos' | 'informado';
+type HitoSortColumn = 'fecha' | 'hito' | 'responsable' | 'estado' | 'usuario' | 'observacion';
+type SortDirection = 'asc' | 'desc';
+
 export function RepairTable({
   repairs,
   onLogEventClick,
@@ -42,6 +46,13 @@ export function RepairTable({
   const [eventToEdit, setEventToEdit] = useState<RepairEvent | null>(null);
   const [eventToDelete, setEventToDelete] = useState<RepairEvent | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  // Sorting states
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  const [hitoSortColumn, setHitoSortColumn] = useState<HitoSortColumn | null>(null);
+  const [hitoSortDirection, setHitoSortDirection] = useState<SortDirection>('asc');
 
   useEffect(() => {
     setIsAuthenticated(!!getStoredAuthUser());
@@ -137,6 +148,170 @@ export function RepairTable({
     else setExpandedIds(prev => ({ ...prev }));
   };
 
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        setSortColumn(null);
+        setSortDirection('asc');
+      }
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const handleHitoSort = (column: HitoSortColumn) => {
+    if (hitoSortColumn === column) {
+      if (hitoSortDirection === 'asc') {
+        setHitoSortDirection('desc');
+      } else {
+        setHitoSortColumn(null);
+        setHitoSortDirection('asc');
+      }
+    } else {
+      setHitoSortColumn(column);
+      setHitoSortDirection('asc');
+    }
+  };
+
+  const sortedRepairs = React.useMemo(() => {
+    if (!sortColumn) return repairs;
+
+    return [...repairs].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      switch (sortColumn) {
+        case 'project':
+          valA = `${a.project?.sigest || ''}_${a.project?.poligono || ''}`;
+          valB = `${b.project?.sigest || ''}_${b.project?.poligono || ''}`;
+          break;
+        case 'central':
+          valA = `${a.project?.distrito || ''}_${a.project?.central || ''}`;
+          valB = `${b.project?.distrito || ''}_${b.project?.central || ''}`;
+          break;
+        case 'tipo':
+          valA = a.repair_type?.name || '';
+          valB = b.repair_type?.name || '';
+          break;
+        case 'description':
+          valA = `${a.description || ''}_${a.solicitante || ''}`;
+          valB = `${b.description || ''}_${b.solicitante || ''}`;
+          break;
+        case 'responsible':
+          valA = a.current_responsible?.name || '';
+          valB = b.current_responsible?.name || '';
+          break;
+        case 'status':
+          valA = a.current_status?.name || '';
+          valB = b.current_status?.name || '';
+          break;
+        case 'reiteros':
+          valA = a.reiteration_count || 0;
+          valB = b.reiteration_count || 0;
+          break;
+        case 'reclamos':
+          valA = a.reclaim_count || 0;
+          valB = b.reclaim_count || 0;
+          break;
+        case 'informado':
+          valA = new Date(a.fecha_informado || 0).getTime();
+          valB = new Date(b.fecha_informado || 0).getTime();
+          break;
+      }
+
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return sortDirection === 'asc' ? valA - valB : valB - valA;
+      }
+
+      const strA = String(valA).toLowerCase();
+      const strB = String(valB).toLowerCase();
+      return sortDirection === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
+    });
+  }, [repairs, sortColumn, sortDirection]);
+
+  const sortEvents = (rawEvents: RepairEvent[]) => {
+    if (!hitoSortColumn) return rawEvents;
+
+    return [...rawEvents].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      switch (hitoSortColumn) {
+        case 'fecha':
+          valA = new Date(a.created_at || 0).getTime();
+          valB = new Date(b.created_at || 0).getTime();
+          break;
+        case 'hito':
+          valA = a.event_type || '';
+          valB = b.event_type || '';
+          break;
+        case 'responsable':
+          valA = a.new_responsible?.name || '';
+          valB = b.new_responsible?.name || '';
+          break;
+        case 'estado':
+          valA = a.new_status?.name || '';
+          valB = b.new_status?.name || '';
+          break;
+        case 'usuario':
+          valA = a.created_by || '';
+          valB = b.created_by || '';
+          break;
+        case 'observacion':
+          valA = a.notes || '';
+          valB = b.notes || '';
+          break;
+      }
+
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return hitoSortDirection === 'asc' ? valA - valB : valB - valA;
+      }
+
+      const strA = String(valA).toLowerCase();
+      const strB = String(valB).toLowerCase();
+      return hitoSortDirection === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
+    });
+  };
+
+  const renderSortHeader = (column: SortColumn, label: string, className: string = '') => {
+    const isActive = sortColumn === column;
+    return (
+      <th
+        onClick={() => handleSort(column)}
+        className={`cursor-pointer select-none group hover:bg-slate-200/80 transition-colors ${className}`}
+        title={`Ordenar por ${label}`}
+      >
+        <div className="flex items-center gap-1">
+          <span>{label}</span>
+          {!isActive && <ArrowUpDown className="h-3 w-3 text-slate-400 group-hover:text-slate-600 transition-colors" />}
+          {isActive && sortDirection === 'asc' && <ArrowUp className="h-3.5 w-3.5 text-blue-600 font-bold" />}
+          {isActive && sortDirection === 'desc' && <ArrowDown className="h-3.5 w-3.5 text-blue-600 font-bold" />}
+        </div>
+      </th>
+    );
+  };
+
+  const renderHitoSortHeader = (column: HitoSortColumn, label: string, className: string = '') => {
+    const isActive = hitoSortColumn === column;
+    return (
+      <th
+        onClick={() => handleHitoSort(column)}
+        className={`cursor-pointer select-none group hover:bg-slate-200/80 transition-colors py-1 px-2 font-semibold ${className}`}
+        title={`Ordenar hitos por ${label}`}
+      >
+        <div className="flex items-center gap-1">
+          <span>{label}</span>
+          {!isActive && <ArrowUpDown className="h-2.5 w-2.5 text-slate-400 group-hover:text-slate-600" />}
+          {isActive && hitoSortDirection === 'asc' && <ArrowUp className="h-3 w-3 text-blue-600 font-bold" />}
+          {isActive && hitoSortDirection === 'desc' && <ArrowDown className="h-3 w-3 text-blue-600 font-bold" />}
+        </div>
+      </th>
+    );
+  };
+
   if (repairs.length === 0) {
     return (
       <div className="bg-white border border-slate-200 rounded p-8 text-center text-slate-500 shadow-2xs">
@@ -156,20 +331,20 @@ export function RepairTable({
           <thead>
             <tr>
               <th className="w-5"></th>
-              <th className="whitespace-nowrap">SIGEST / POLÍGONO</th>
-              <th className="whitespace-nowrap">CENTRAL</th>
-              <th className="whitespace-nowrap">TIPO</th>
-              <th className="min-w-[180px] max-w-[340px]">DESCRIPCIÓN / SOLICITANTE</th>
-              <th className="min-w-[135px] max-w-[170px]">RESPONSABLE</th>
-              <th>ESTADO</th>
-              <th className="whitespace-nowrap text-center">REITEROS</th>
-              <th className="whitespace-nowrap text-center">RECLAMOS</th>
-              <th className="whitespace-nowrap">INFORMADO</th>
+              {renderSortHeader('project', 'SIGEST / POLÍGONO', 'whitespace-nowrap')}
+              {renderSortHeader('central', 'CENTRAL', 'whitespace-nowrap')}
+              {renderSortHeader('tipo', 'TIPO', 'whitespace-nowrap')}
+              {renderSortHeader('description', 'DESCRIPCIÓN / SOLICITANTE', 'min-w-[180px] max-w-[340px]')}
+              {renderSortHeader('responsible', 'RESPONSABLE', 'min-w-[135px] max-w-[170px]')}
+              {renderSortHeader('status', 'ESTADO')}
+              {renderSortHeader('reiteros', 'REITEROS', 'whitespace-nowrap justify-center text-center')}
+              {renderSortHeader('reclamos', 'RECLAMOS', 'whitespace-nowrap justify-center text-center')}
+              {renderSortHeader('informado', 'INFORMADO', 'whitespace-nowrap')}
               {!hideActions && <th className="text-right whitespace-nowrap">ACCIONES</th>}
             </tr>
           </thead>
           <tbody>
-            {repairs.map((repair, index) => {
+            {sortedRepairs.map((repair, index) => {
               const hasReiterations = (repair.reiteration_count || 0) > 0;
               const isExpanded = !!expandedIds[repair.id];
               const events = isExpanded ? repository.getRepairEvents(repair.id) : [];
@@ -451,17 +626,17 @@ export function RepairTable({
                               <table className="w-full text-left text-xs border-collapse">
                                 <thead>
                                   <tr className="border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500 font-mono bg-slate-100/70">
-                                    <th className="py-1 px-2 font-semibold">Fecha y Hora</th>
-                                    <th className="py-1 px-2 font-semibold">Hito / Acción</th>
-                                    <th className="py-1 px-2 font-semibold">Responsable</th>
-                                    <th className="py-1 px-2 font-semibold">Estado</th>
-                                    <th className="py-1 px-2 font-semibold">Usuario</th>
-                                    <th className="py-1 px-2 font-semibold">Observación / Nota</th>
+                                    {renderHitoSortHeader('fecha', 'Fecha y Hora')}
+                                    {renderHitoSortHeader('hito', 'Hito / Acción')}
+                                    {renderHitoSortHeader('responsable', 'Responsable')}
+                                    {renderHitoSortHeader('estado', 'Estado')}
+                                    {renderHitoSortHeader('usuario', 'Usuario')}
+                                    {renderHitoSortHeader('observacion', 'Observación / Nota')}
                                     {isAuthenticated && <th className="py-1 px-2 text-right font-semibold">Acciones</th>}
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
-                                  {events.map((ev) => (
+                                  {sortEvents(events).map((ev) => (
                                     <tr key={ev.id} className="hover:bg-slate-50">
                                       <td className="py-1.5 px-2 text-slate-600 whitespace-nowrap">
                                         {formatDateTime(ev.created_at)}
