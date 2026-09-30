@@ -1,12 +1,14 @@
 'use client';
 
 import { RepairFilters } from "@/components/repairs/RepairFilters";
+import { RepairReportModal } from "@/components/repairs/RepairReportModal";
 import { RepairTable } from "@/components/repairs/RepairTable";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { MetricFilterKey, MetricStrip } from "@/components/shared/MetricStrip";
+import { getStoredAuthUser } from "@/lib/auth";
 import { repository } from "@/lib/store/repository";
 import { DashboardMetrics, Repair } from "@/lib/types/database";
-import { AlertCircle, AlertTriangle, CheckCircle2, LayoutDashboard, LogIn, UserX, Wrench } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle2, FileText, LayoutDashboard, LogIn, UserX, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -31,6 +33,8 @@ export default function TableroResumenRootPage() {
     finalizedRepairs: 0
   });
   const [isLoading, setIsLoading] = useState(!repository.isLoaded);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isReportOpen, setIsReportOpen] = useState<boolean>(false);
 
   // Filter state
   const [search, setSearch] = useState('');
@@ -42,6 +46,10 @@ export default function TableroResumenRootPage() {
   const [distrito, setDistrito] = useState('all');
   const [central, setCentral] = useState('all');
   const [onlyReiterated, setOnlyReiterated] = useState(false);
+
+  useEffect(() => {
+    setIsAuthenticated(!!getStoredAuthUser());
+  }, []);
 
   const resetFilters = () => {
     setSearch('');
@@ -119,6 +127,42 @@ export default function TableroResumenRootPage() {
     init();
   }, [activeTab, search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated]);
 
+  const getActiveFiltersList = () => {
+    const active: string[] = [];
+    if (search.trim()) active.push(`Búsqueda: "${search.trim()}"`);
+    if (statusId !== 'all') {
+      const st = repository.getRepairStatuses().find(s => s.id === statusId);
+      if (st) active.push(`Estado: ${st.name}`);
+    }
+    if (responsibleId !== 'all') {
+      if (responsibleId.startsWith('sector:')) {
+        active.push(`Sector: ${responsibleId.replace('sector:', '')}`);
+      } else {
+        const resp = repository.getResponsibleParties().find(r => r.id === responsibleId);
+        if (resp) active.push(`Responsable: ${resp.name}`);
+      }
+    }
+    if (solicitante !== 'all') {
+      active.push(`Solicitante: ${solicitante}`);
+    }
+    if (priority !== 'all') active.push(`Prioridad: ${priority}`);
+    if (typeId !== 'all') {
+      const tp = repository.getRepairTypes().find(t => t.id === typeId);
+      if (tp) active.push(`Tipo: ${tp.name}`);
+    }
+    if (distrito !== 'all') active.push(`Distrito: ${distrito}`);
+    if (central !== 'all') active.push(`Central: ${central}`);
+    if (onlyReiterated) active.push(`Solo Reiterados`);
+    if (activeTab !== 'all') {
+      if (activeTab === 'unassigned') active.push(`Pestaña: Sin Responsable`);
+      if (activeTab === 'critical') active.push(`Pestaña: Urgentes`);
+      if (activeTab === 'reiterated') active.push(`Pestaña: Reiterados`);
+      if (activeTab === 'verification') active.push(`Pestaña: Para Verificar`);
+      if (activeTab === 'finalized') active.push(`Pestaña: Finalizados`);
+    }
+    return active;
+  };
+
   if (isLoading) {
     return (
       <LoadingState
@@ -145,14 +189,25 @@ export default function TableroResumenRootPage() {
           </p>
         </div>
 
-        <div className="shrink-0">
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded shadow-xs transition-colors"
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setIsReportOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded font-semibold border border-slate-300 shadow-2xs transition-colors"
+            title="Generar vista previa y reporte en texto para copiar y pegar en mail / Outlook"
           >
-            <LogIn className="h-3.5 w-3.5" />
-            <span>Iniciar Sesión</span>
-          </Link>
+            <FileText className="h-3.5 w-3.5 text-slate-600" />
+            <span>Generar reporte</span>
+          </button>
+
+          {!isAuthenticated && (
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded shadow-xs transition-colors"
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              <span>Iniciar Sesión</span>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -288,7 +343,15 @@ export default function TableroResumenRootPage() {
         onRefresh={loadData}
         hideActions={true}
       />
+
+      <RepairReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        repairs={repairs}
+        activeFilters={getActiveFiltersList()}
+      />
     </div>
   );
 }
+
 
