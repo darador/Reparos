@@ -3,7 +3,7 @@
 import { RepairFilters } from "@/components/repairs/RepairFilters";
 import { RepairTable } from "@/components/repairs/RepairTable";
 import { LoadingState } from "@/components/shared/LoadingState";
-import { MetricStrip } from "@/components/shared/MetricStrip";
+import { MetricFilterKey, MetricStrip } from "@/components/shared/MetricStrip";
 import { repository } from "@/lib/store/repository";
 import { DashboardMetrics, Repair } from "@/lib/types/database";
 import { AlertCircle, AlertTriangle, CheckCircle2, LayoutDashboard, LogIn, UserX, Wrench } from "lucide-react";
@@ -157,7 +157,26 @@ export default function TableroResumenRootPage() {
       </div>
 
       {/* Métricas Resumen */}
-      <MetricStrip metrics={metrics} />
+      <MetricStrip
+        metrics={metrics}
+        activeFilter={
+          activeTab === 'verification'
+            ? 'resolved'
+            : activeTab === 'finalized'
+            ? 'finalized'
+            : activeTab === 'reiterated'
+            ? 'reiterated'
+            : activeTab === 'all'
+            ? 'pending'
+            : 'all'
+        }
+        onFilterChange={(key) => {
+          if (key === 'resolved') setActiveTab('verification');
+          else if (key === 'finalized') setActiveTab('finalized');
+          else if (key === 'reiterated') setActiveTab('reiterated');
+          else setActiveTab('all');
+        }}
+      />
 
       {/* Filtros avanzados */}
       <RepairFilters

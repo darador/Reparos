@@ -6,7 +6,7 @@ import { RepairFormModal } from "@/components/repairs/RepairFormModal";
 import { RepairReportModal } from "@/components/repairs/RepairReportModal";
 import { RepairTable } from "@/components/repairs/RepairTable";
 import { LoadingState } from "@/components/shared/LoadingState";
-import { MetricStrip } from "@/components/shared/MetricStrip";
+import { MetricFilterKey, MetricStrip } from "@/components/shared/MetricStrip";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { repository } from "@/lib/store/repository";
 import { DashboardMetrics, Repair } from "@/lib/types/database";
@@ -40,10 +40,11 @@ export default function RepairsPage() {
   const [distrito, setDistrito] = useState('all');
   const [central, setCentral] = useState('all');
   const [onlyReiterated, setOnlyReiterated] = useState(false);
+  const [metricFilter, setMetricFilter] = useState<MetricFilterKey>('all');
 
   const loadRepairs = () => {
     setMetrics(repository.getDashboardMetrics());
-    setRepairs(repository.getRepairs({
+    const baseRepairs = repository.getRepairs({
       search,
       statusId,
       responsibleId,
@@ -53,7 +54,20 @@ export default function RepairsPage() {
       distrito,
       central,
       onlyReiterated
-    }));
+    });
+
+    let filtered = baseRepairs;
+    if (metricFilter === 'pending') {
+      filtered = baseRepairs.filter(r => r.current_status?.category === 'pending' || r.current_status?.name === 'PENDIENTE');
+    } else if (metricFilter === 'resolved') {
+      filtered = baseRepairs.filter(r => r.current_status?.category === 'resolved' || r.current_status?.name === 'VERIFICACIÓN RESUELTO');
+    } else if (metricFilter === 'reiterated') {
+      filtered = baseRepairs.filter(r => (r.reiteration_count || 0) > 0);
+    } else if (metricFilter === 'finalized') {
+      filtered = baseRepairs.filter(r => r.current_status?.category === 'closed' || r.current_status?.name === 'FINALIZADO');
+    }
+
+    setRepairs(filtered);
   };
 
   useEffect(() => {
@@ -66,7 +80,7 @@ export default function RepairsPage() {
       setIsLoading(false);
     }
     init();
-  }, [search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated]);
+  }, [search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated, metricFilter]);
 
   const handleCreateProject = async (data: any) => {
     await repository.createProject(data);
@@ -94,6 +108,7 @@ export default function RepairsPage() {
     setDistrito('all');
     setCentral('all');
     setOnlyReiterated(false);
+    setMetricFilter('all');
   };
 
   const getActiveFiltersList = () => {
@@ -122,6 +137,12 @@ export default function RepairsPage() {
     if (distrito !== 'all') active.push(`Distrito: ${distrito}`);
     if (central !== 'all') active.push(`Central: ${central}`);
     if (onlyReiterated) active.push(`Solo Reiterados`);
+    if (metricFilter !== 'all') {
+      if (metricFilter === 'pending') active.push(`Tarjeta: Pendientes`);
+      if (metricFilter === 'resolved') active.push(`Tarjeta: Verificación Resuelto`);
+      if (metricFilter === 'reiterated') active.push(`Tarjeta: Reiterados`);
+      if (metricFilter === 'finalized') active.push(`Tarjeta: Finalizados`);
+    }
     return active;
   };
 
@@ -172,7 +193,11 @@ export default function RepairsPage() {
       </div>
 
       {/* Primary KPI Metric Strip */}
-      <MetricStrip metrics={metrics} />
+      <MetricStrip
+        metrics={metrics}
+        activeFilter={metricFilter}
+        onFilterChange={setMetricFilter}
+      />
 
       {/* Advanced Filters */}
       <RepairFilters
