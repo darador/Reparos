@@ -1071,40 +1071,32 @@ class DataRepository {
 
     let count = 0;
     let inResolvedCycle = false;
-    let cycleCountedReiteration = false;
 
     events.forEach((e) => {
       const prevStatus = this.repairStatuses.find(s => s.id === e.previous_status_id);
-      const newStatus = this.repairStatuses.find(s => s.id === e.new_status_id);
+      const rawNewStatus = e.new_status_id ? this.repairStatuses.find(s => s.id === e.new_status_id) : undefined;
+      const effectiveNewStatus = rawNewStatus || prevStatus;
 
-      const isPrevResolved = prevStatus?.category === 'resolved' || prevStatus?.category === 'closed' || prevStatus?.name === 'VERIFICACIÓN RESUELTO' || prevStatus?.name === 'FINALIZADO';
-      const isNewResolved = newStatus?.category === 'resolved' || newStatus?.category === 'closed' || newStatus?.name === 'VERIFICACIÓN RESUELTO' || newStatus?.name === 'FINALIZADO';
+      const isPrevResolved = prevStatus?.category === 'resolved' || prevStatus?.name === 'VERIFICACIÓN RESUELTO';
+      const isNewResolved = effectiveNewStatus?.category === 'resolved' || effectiveNewStatus?.name === 'VERIFICACIÓN RESUELTO' || effectiveNewStatus?.category === 'closed' || effectiveNewStatus?.name === 'FINALIZADO';
 
       const isExplicitReiteration = e.event_type === 'reiteration' || e.verification_result === 'no_solucionado';
 
-      // 1. When repair transitions into resolved state or has a resolution event
-      if (e.event_type === 'resolution' || (isNewResolved && !isPrevResolved)) {
+      // 1. If entering or remaining in resolved/finalized state or explicit resolution event
+      if (e.event_type === 'resolution' || isNewResolved) {
         inResolvedCycle = true;
-        cycleCountedReiteration = false;
         return;
       }
 
-      // 2. If repair was in a resolved cycle (or prev status was resolved)
-      if (inResolvedCycle || isPrevResolved) {
-        if (e.event_type !== 'closure') {
-          if (!cycleCountedReiteration) {
-            count++;
-            cycleCountedReiteration = true;
-          }
-          if (!isNewResolved) {
-            inResolvedCycle = false;
-          }
-        }
+      // 2. If repair was in resolved state and now transitions back to pending/active state
+      if ((inResolvedCycle || isPrevResolved) && !isNewResolved && e.event_type !== 'closure') {
+        count++;
+        inResolvedCycle = false;
         return;
       }
 
       // 3. Standalone explicit reiteration event outside resolved cycle
-      if (isExplicitReiteration) {
+      if (isExplicitReiteration && !inResolvedCycle) {
         count++;
       }
     });
@@ -1163,8 +1155,13 @@ class DataRepository {
     const reiterationsList = repairEvents.filter(e => {
       if (!e) return false;
       const prevStatus = (this.repairStatuses || []).find(s => s && s.id === e.previous_status_id);
-      const isPrevResolvedOrClosed = prevStatus?.category === 'resolved' || prevStatus?.category === 'closed';
-      return e.event_type === 'reiteration' || e.verification_result === 'no_solucionado' || (isPrevResolvedOrClosed && e.event_type !== 'closure');
+      const rawNewStatus = e.new_status_id ? (this.repairStatuses || []).find(s => s && s.id === e.new_status_id) : undefined;
+      const effectiveNewStatus = rawNewStatus || prevStatus;
+
+      const isPrevResolved = prevStatus?.category === 'resolved' || prevStatus?.name === 'VERIFICACIÓN RESUELTO';
+      const isNewResolved = effectiveNewStatus?.category === 'resolved' || effectiveNewStatus?.name === 'VERIFICACIÓN RESUELTO' || effectiveNewStatus?.category === 'closed' || effectiveNewStatus?.name === 'FINALIZADO';
+
+      return e.event_type === 'reiteration' || e.verification_result === 'no_solucionado' || (isPrevResolved && !isNewResolved && e.event_type !== 'closure');
     });
 
     const lastEvent = [...repairEvents].sort((a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime())[0];
