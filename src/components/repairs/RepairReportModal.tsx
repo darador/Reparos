@@ -18,7 +18,7 @@ export function RepairReportModal({
   repairs,
   activeFilters
 }: RepairReportModalProps) {
-  const [format, setFormat] = useState<'text' | 'table'>('text');
+  const [format, setFormat] = useState<'text' | 'table'>('table');
   const [copied, setCopied] = useState(false);
 
   // Generate plain text report grouped by SIGEST + Polígono + Central + Responsable
