@@ -46,6 +46,7 @@ export default function TableroResumenRootPage() {
   const [distrito, setDistrito] = useState('all');
   const [central, setCentral] = useState('all');
   const [onlyReiterated, setOnlyReiterated] = useState(false);
+  const [selectedCumplimientos, setSelectedCumplimientos] = useState<number[]>([]);
 
   useEffect(() => {
     setIsAuthenticated(!!getStoredAuthUser());
@@ -61,6 +62,13 @@ export default function TableroResumenRootPage() {
     setDistrito('all');
     setCentral('all');
     setOnlyReiterated(false);
+    setSelectedCumplimientos([]);
+  };
+
+  const toggleCumplimiento = (val: number) => {
+    setSelectedCumplimientos(prev =>
+      prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]
+    );
   };
 
   const loadData = () => {
@@ -87,7 +95,8 @@ export default function TableroResumenRootPage() {
       typeId,
       distrito,
       central,
-      onlyReiterated
+      onlyReiterated,
+      cumplimiento: selectedCumplimientos
     });
 
     if (activeTab === 'verification') {
@@ -125,7 +134,7 @@ export default function TableroResumenRootPage() {
       setIsLoading(false);
     }
     init();
-  }, [activeTab, search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated]);
+  }, [activeTab, search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated, selectedCumplimientos]);
 
   const getActiveFiltersList = () => {
     const active: string[] = [];
@@ -153,6 +162,7 @@ export default function TableroResumenRootPage() {
     if (distrito !== 'all') active.push(`Distrito: ${distrito}`);
     if (central !== 'all') active.push(`Central: ${central}`);
     if (onlyReiterated) active.push(`Solo Reiterados`);
+    if (selectedCumplimientos.length > 0) active.push(`Cumplimiento: ${selectedCumplimientos.map(c => `${c}%`).join(', ')}`);
     if (activeTab !== 'all') {
       if (activeTab === 'unassigned') active.push(`Pestaña: Sin Responsable`);
       if (activeTab === 'critical') active.push(`Pestaña: Urgentes`);
@@ -254,6 +264,8 @@ export default function TableroResumenRootPage() {
         onCentralChange={setCentral}
         onlyReiterated={onlyReiterated}
         onOnlyReiteratedChange={setOnlyReiterated}
+        selectedCumplimientos={selectedCumplimientos}
+        onCumplimientoToggle={toggleCumplimiento}
         repairStatuses={repository.getRepairStatuses()}
         responsibleParties={repository.getResponsibleParties()}
         repairTypes={repository.getRepairTypes()}

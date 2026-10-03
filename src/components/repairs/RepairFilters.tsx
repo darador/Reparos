@@ -25,6 +25,8 @@ interface RepairFiltersProps {
   onCentralChange: (val: string) => void;
   onlyReiterated: boolean;
   onOnlyReiteratedChange: (val: boolean) => void;
+  selectedCumplimientos?: number[];
+  onCumplimientoToggle?: (val: number) => void;
   repairStatuses: RepairStatus[];
   responsibleParties: ResponsibleParty[];
   repairTypes: RepairType[];
@@ -53,6 +55,8 @@ export function RepairFilters({
   onCentralChange,
   onlyReiterated,
   onOnlyReiteratedChange,
+  selectedCumplimientos = [],
+  onCumplimientoToggle,
   repairStatuses,
   responsibleParties,
   repairTypes,
@@ -89,7 +93,8 @@ export function RepairFilters({
     (typeId !== 'all' ? 1 : 0) +
     (distrito !== 'all' ? 1 : 0) +
     (central !== 'all' ? 1 : 0) +
-    (onlyReiterated ? 1 : 0);
+    (onlyReiterated ? 1 : 0) +
+    (selectedCumplimientos.length > 0 ? selectedCumplimientos.length : 0);
 
   return (
     <div className="bg-white border border-slate-200 rounded p-3 shadow-2xs space-y-3">
@@ -216,7 +221,7 @@ export function RepairFilters({
       </div>
 
       {/* Filter status bar & toggle flags */}
-      <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+      <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs flex-wrap gap-2">
         <div className="flex items-center gap-3 flex-wrap">
           <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 font-medium select-none">
             <input
@@ -227,6 +232,22 @@ export function RepairFilters({
             />
             <span className={onlyReiterated ? "text-red-700 font-bold" : ""}>Solo Reiterados / No solucionados</span>
           </label>
+
+          {/* Cumplimiento Checkboxes */}
+          <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+            <span className="text-slate-500 font-medium text-xs">Cumplimiento:</span>
+            {[5, 20, 80, 100].map((val) => (
+              <label key={val} className="flex items-center gap-1 cursor-pointer text-slate-700 font-medium select-none">
+                <input
+                  type="checkbox"
+                  checked={selectedCumplimientos.includes(val)}
+                  onChange={() => onCumplimientoToggle && onCumplimientoToggle(val)}
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className={selectedCumplimientos.includes(val) ? "text-blue-800 font-bold" : ""}>{val}%</span>
+              </label>
+            ))}
+          </div>
 
           {activeFiltersCount > 0 && (
             <span className="bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded text-[11px] font-medium flex items-center gap-1">

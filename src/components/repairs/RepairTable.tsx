@@ -30,7 +30,7 @@ const GROUP_THEMES = [
   { border: "border-l-blue-600", badge: "bg-blue-100 text-blue-900 border-blue-300" },
 ];
 
-type SortColumn = 'project' | 'central' | 'tipo' | 'description' | 'responsible' | 'status' | 'reiteros' | 'reclamos' | 'informado';
+type SortColumn = 'project' | 'cumplimiento' | 'central' | 'tipo' | 'description' | 'responsible' | 'status' | 'reiteros' | 'reclamos' | 'informado';
 type HitoSortColumn = 'fecha' | 'hito' | 'responsable' | 'estado' | 'usuario' | 'observacion';
 type SortDirection = 'asc' | 'desc';
 
@@ -188,6 +188,10 @@ export function RepairTable({
           valA = `${a.project?.sigest || ''}_${a.project?.poligono || ''}`;
           valB = `${b.project?.sigest || ''}_${b.project?.poligono || ''}`;
           break;
+        case 'cumplimiento':
+          valA = a.project?.porcentaje_cumplimiento ?? -1;
+          valB = b.project?.porcentaje_cumplimiento ?? -1;
+          break;
         case 'central':
           valA = `${a.project?.distrito || ''}_${a.project?.central || ''}`;
           valB = `${b.project?.distrito || ''}_${b.project?.central || ''}`;
@@ -332,6 +336,7 @@ export function RepairTable({
             <tr>
               <th className="w-5"></th>
               {renderSortHeader('project', 'SIGEST / POLÍGONO', 'whitespace-nowrap')}
+              {renderSortHeader('cumplimiento', 'CUMPLIMIENTO', 'whitespace-nowrap')}
               {renderSortHeader('central', 'CENTRAL', 'whitespace-nowrap')}
               {renderSortHeader('tipo', 'TIPO', 'whitespace-nowrap')}
               {renderSortHeader('description', 'DESCRIPCIÓN / SOLICITANTE', 'min-w-[180px] max-w-[340px]')}
@@ -420,6 +425,17 @@ export function RepairTable({
                             </span>
                           )}
                         </div>
+                      ) : (
+                        <span className="text-slate-400 font-mono text-xs">-</span>
+                      )}
+                    </td>
+
+                    {/* Columna CUMPLIMIENTO */}
+                    <td className="whitespace-nowrap">
+                      {repair.project?.porcentaje_cumplimiento !== undefined && repair.project?.porcentaje_cumplimiento !== null ? (
+                        <span className="font-mono font-bold text-blue-900 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded text-[10px]">
+                          {repair.project.porcentaje_cumplimiento}%
+                        </span>
                       ) : (
                         <span className="text-slate-400 font-mono text-xs">-</span>
                       )}
@@ -602,7 +618,7 @@ export function RepairTable({
                   {/* Desplegable de Hitos (Expanded Row) */}
                   {isExpanded && (
                     <tr className="bg-slate-50/90 border-b border-slate-300">
-                      <td colSpan={10 + (hideActions ? 0 : 1)} className="p-3">
+                      <td colSpan={11 + (hideActions ? 0 : 1)} className="p-3">
                         <div className="bg-white border border-slate-300 rounded p-3 shadow-2xs space-y-2">
                           <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
                             <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">

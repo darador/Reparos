@@ -500,6 +500,7 @@ class DataRepository {
     central?: string;
     onlyReiterated?: boolean;
     onlyPending?: boolean;
+    cumplimiento?: number[];
   }): Repair[] {
     let list = (this.repairs || []).filter(Boolean).map(r => this.enrichRepair(r)).filter(Boolean);
 
@@ -601,6 +602,10 @@ class DataRepository {
 
     if (filters?.onlyPending) {
       list = list.filter(r => r.current_status?.category === 'pending' || r.current_status?.name === 'PENDIENTE');
+    }
+
+    if (filters?.cumplimiento && filters.cumplimiento.length > 0) {
+      list = list.filter(r => r.project?.porcentaje_cumplimiento !== undefined && r.project?.porcentaje_cumplimiento !== null && filters.cumplimiento!.includes(r.project.porcentaje_cumplimiento));
     }
 
     return list.sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());

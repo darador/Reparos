@@ -40,6 +40,7 @@ export default function RepairsPage() {
   const [distrito, setDistrito] = useState('all');
   const [central, setCentral] = useState('all');
   const [onlyReiterated, setOnlyReiterated] = useState(false);
+  const [selectedCumplimientos, setSelectedCumplimientos] = useState<number[]>([]);
   const [metricFilter, setMetricFilter] = useState<MetricFilterKey>('all');
 
   const loadRepairs = () => {
@@ -53,7 +54,8 @@ export default function RepairsPage() {
       typeId,
       distrito,
       central,
-      onlyReiterated
+      onlyReiterated,
+      cumplimiento: selectedCumplimientos
     });
 
     let filtered = baseRepairs;
@@ -80,7 +82,7 @@ export default function RepairsPage() {
       setIsLoading(false);
     }
     init();
-  }, [search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated, metricFilter]);
+  }, [search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated, selectedCumplimientos, metricFilter]);
 
   const handleCreateProject = async (data: any) => {
     await repository.createProject(data);
@@ -108,7 +110,14 @@ export default function RepairsPage() {
     setDistrito('all');
     setCentral('all');
     setOnlyReiterated(false);
+    setSelectedCumplimientos([]);
     setMetricFilter('all');
+  };
+
+  const toggleCumplimiento = (val: number) => {
+    setSelectedCumplimientos(prev =>
+      prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]
+    );
   };
 
   const getActiveFiltersList = () => {
@@ -137,6 +146,7 @@ export default function RepairsPage() {
     if (distrito !== 'all') active.push(`Distrito: ${distrito}`);
     if (central !== 'all') active.push(`Central: ${central}`);
     if (onlyReiterated) active.push(`Solo Reiterados`);
+    if (selectedCumplimientos.length > 0) active.push(`Cumplimiento: ${selectedCumplimientos.map(c => `${c}%`).join(', ')}`);
     if (metricFilter !== 'all') {
       if (metricFilter === 'pending') active.push(`Tarjeta: Pendientes`);
       if (metricFilter === 'resolved') active.push(`Tarjeta: Verificación Resuelto`);
@@ -220,6 +230,8 @@ export default function RepairsPage() {
         onCentralChange={setCentral}
         onlyReiterated={onlyReiterated}
         onOnlyReiteratedChange={setOnlyReiterated}
+        selectedCumplimientos={selectedCumplimientos}
+        onCumplimientoToggle={toggleCumplimiento}
         repairStatuses={repository.getRepairStatuses()}
         responsibleParties={repository.getResponsibleParties()}
         repairTypes={repository.getRepairTypes()}
