@@ -26,6 +26,8 @@ export default function ProjectsPage() {
   const [status, setStatus] = useState('all');
   const [distrito, setDistrito] = useState('all');
   const [central, setCentral] = useState('all');
+  const [selectedCumplimientos, setSelectedCumplimientos] = useState<number[]>([]);
+  const [isCumplimientoOpen, setIsCumplimientoOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(!repository.isLoaded);
 
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
@@ -37,7 +39,7 @@ export default function ProjectsPage() {
 
   const loadProjects = () => {
     setMetrics(repository.getDashboardMetrics());
-    setProjects(repository.getProjects({ search, status, distrito, central }));
+    setProjects(repository.getProjects({ search, status, distrito, central, cumplimiento: selectedCumplimientos }));
   };
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function ProjectsPage() {
       setIsLoading(false);
     }
     init();
-  }, [search, status, distrito, central]);
+  }, [search, status, distrito, central, selectedCumplimientos]);
 
   const handleSaveProject = async (data: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
     if (projectToEdit) {
@@ -66,6 +68,12 @@ export default function ProjectsPage() {
   const handleCreateRepair = async (data: any) => {
     await repository.createRepair(data);
     loadProjects();
+  };
+
+  const toggleCumplimiento = (val: number) => {
+    setSelectedCumplimientos(prev =>
+      prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]
+    );
   };
 
   const distritos = repository.getDistritos();
@@ -125,6 +133,58 @@ export default function ProjectsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Cumplimiento Checkbox Filter */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsCumplimientoOpen(!isCumplimientoOpen)}
+              className={`border rounded px-2.5 py-1.5 bg-white text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                selectedCumplimientos.length > 0
+                  ? 'border-blue-500 bg-blue-50/50 text-blue-900 font-bold'
+                  : 'border-slate-300 text-slate-800'
+              }`}
+            >
+              <span>Cumplimiento</span>
+              {selectedCumplimientos.length > 0 && (
+                <span className="bg-blue-600 text-white text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold">
+                  {selectedCumplimientos.length}
+                </span>
+              )}
+            </button>
+
+            {isCumplimientoOpen && (
+              <div className="absolute right-0 mt-1 w-44 bg-white border border-slate-300 rounded shadow-lg p-2 z-30 animate-in fade-in zoom-in-95 duration-100 space-y-1">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-1 mb-1 font-semibold text-[11px] text-slate-700">
+                  <span>Cumplimiento %:</span>
+                  {selectedCumplimientos.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCumplimientos([])}
+                      className="text-[10px] text-blue-600 hover:underline"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+
+                {[20, 40, 60, 80, 100].map((val) => (
+                  <label
+                    key={val}
+                    className="flex items-center gap-2 px-2 py-1 hover:bg-slate-50 rounded cursor-pointer select-none text-xs font-mono font-medium text-slate-800"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedCumplimientos.includes(val)}
+                      onChange={() => toggleCumplimiento(val)}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>{val}%</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Distrito Filter */}
           <select
             value={distrito}

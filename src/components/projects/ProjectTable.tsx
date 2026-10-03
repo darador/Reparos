@@ -15,7 +15,7 @@ interface ProjectTableProps {
   onDeleteProjectClick?: (project: Project) => void;
 }
 
-type ProjectSortColumn = 'sigest' | 'central' | 'ejecutor' | 'ctos' | 'situacion' | 'reparos' | 'created_at';
+type ProjectSortColumn = 'sigest' | 'central' | 'ejecutor' | 'cumplimiento' | 'ctos' | 'situacion' | 'reparos' | 'created_at';
 type SortDirection = 'asc' | 'desc';
 
 export function ProjectTable({ projects, onNewRepairClick, onEditProjectClick, onDeleteProjectClick }: ProjectTableProps) {
@@ -60,6 +60,10 @@ export function ProjectTable({ projects, onNewRepairClick, onEditProjectClick, o
         case 'ejecutor':
           valA = a.ejecutor || '';
           valB = b.ejecutor || '';
+          break;
+        case 'cumplimiento':
+          valA = a.porcentaje_cumplimiento ?? -1;
+          valB = b.porcentaje_cumplimiento ?? -1;
           break;
         case 'ctos':
           valA = a.ctos_count || 0;
@@ -125,6 +129,7 @@ export function ProjectTable({ projects, onNewRepairClick, onEditProjectClick, o
             {renderSortHeader('sigest', 'SIGEST / Polígono')}
             {renderSortHeader('central', 'Distrito / Central')}
             {renderSortHeader('ejecutor', 'Ejecutor')}
+            {renderSortHeader('cumplimiento', 'Cumplimiento')}
             {renderSortHeader('ctos', 'CTOs / Alim.')}
             {renderSortHeader('situacion', 'Situación')}
             {renderSortHeader('reparos', 'Reparos')}
@@ -168,6 +173,15 @@ export function ProjectTable({ projects, onNewRepairClick, onEditProjectClick, o
                 </td>
                 <td className="text-slate-800 font-medium">
                   {project.ejecutor || '-'}
+                </td>
+                <td>
+                  {project.porcentaje_cumplimiento !== undefined && project.porcentaje_cumplimiento !== null ? (
+                    <span className="font-mono font-bold text-blue-900 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded text-xs">
+                      {project.porcentaje_cumplimiento}%
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 font-mono text-xs">-</span>
+                  )}
                 </td>
                 <td>
                   <div className="flex items-center gap-2 text-xs">

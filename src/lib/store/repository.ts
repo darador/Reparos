@@ -260,6 +260,7 @@ class DataRepository {
     status?: string;
     distrito?: string;
     central?: string;
+    cumplimiento?: number[];
   }): Project[] {
     let result = this.projects.map(project => {
       const projectRepairs = this.repairs.filter(r => r.project_id === project.id);
@@ -310,6 +311,10 @@ class DataRepository {
       result = result.filter(p => (p.central || '').toLowerCase() === targetCen);
     }
 
+    if (query?.cumplimiento && query.cumplimiento.length > 0) {
+      result = result.filter(p => p.porcentaje_cumplimiento !== undefined && p.porcentaje_cumplimiento !== null && query.cumplimiento!.includes(p.porcentaje_cumplimiento));
+    }
+
     return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 
@@ -355,6 +360,7 @@ class DataRepository {
       distrito: finalDistrito,
       id: generateUUID(),
       ctos_count: Number(data.ctos_count) || 0,
+      porcentaje_cumplimiento: data.porcentaje_cumplimiento !== undefined && data.porcentaje_cumplimiento !== null ? Number(data.porcentaje_cumplimiento) : null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       created_by: this.getActiveUserDisplayName(data.created_by)
@@ -374,6 +380,7 @@ class DataRepository {
           ctos_count: newProject.ctos_count,
           alimentacion: newProject.alimentacion || 'NO',
           situacion_operativa: newProject.situacion_operativa,
+          porcentaje_cumplimiento: newProject.porcentaje_cumplimiento ?? null,
           observaciones: newProject.observaciones || null,
           created_at: newProject.created_at,
           updated_at: newProject.updated_at,
@@ -420,6 +427,7 @@ class DataRepository {
       ...data,
       distrito: finalDistrito,
       ctos_count: data.ctos_count !== undefined ? Number(data.ctos_count) || 0 : this.projects[index].ctos_count,
+      porcentaje_cumplimiento: data.porcentaje_cumplimiento !== undefined ? (data.porcentaje_cumplimiento === null ? null : Number(data.porcentaje_cumplimiento)) : this.projects[index].porcentaje_cumplimiento,
       updated_at: new Date().toISOString()
     };
 
@@ -436,6 +444,7 @@ class DataRepository {
           ctos_count: updated.ctos_count,
           alimentacion: updated.alimentacion || 'NO',
           situacion_operativa: updated.situacion_operativa,
+          porcentaje_cumplimiento: updated.porcentaje_cumplimiento ?? null,
           observaciones: updated.observaciones || null,
           updated_at: updated.updated_at
         }).eq('id', id);

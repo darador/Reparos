@@ -68,6 +68,7 @@ export interface Project {
   ctos_count: number;
   alimentacion?: string;
   situacion_operativa: OperationalStatus;
+  porcentaje_cumplimiento?: number | null;
   fecha_asignacion?: string;
   fecha_inicio?: string;
   fecha_fin?: string;

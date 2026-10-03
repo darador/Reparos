@@ -43,6 +43,8 @@ export function ProjectFormModal({
   const [ctosCount, setCtosCount] = useState<number>(0);
   const [alimentacion, setAlimentacion] = useState('NO');
   const [situacion, setSituacion] = useState<OperationalStatus>('Demorado');
+  const [porcentajeCumplimiento, setPorcentajeCumplimiento] = useState<string>('');
+  const [customPorcentaje, setCustomPorcentaje] = useState<string>('');
   const [observaciones, setObservaciones] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,6 +86,21 @@ export function ProjectFormModal({
         setCtosCount(projectToEdit.ctos_count || 0);
         setAlimentacion(projectToEdit.alimentacion || 'NO');
         setSituacion(projectToEdit.situacion_operativa || 'Demorado');
+        
+        if (projectToEdit.porcentaje_cumplimiento !== undefined && projectToEdit.porcentaje_cumplimiento !== null) {
+          const valStr = String(projectToEdit.porcentaje_cumplimiento);
+          if (['20', '40', '60', '80', '100'].includes(valStr)) {
+            setPorcentajeCumplimiento(valStr);
+            setCustomPorcentaje('');
+          } else {
+            setPorcentajeCumplimiento('__CUSTOM__');
+            setCustomPorcentaje(valStr);
+          }
+        } else {
+          setPorcentajeCumplimiento('');
+          setCustomPorcentaje('');
+        }
+
         setObservaciones(projectToEdit.observaciones || '');
       } else {
         setSigest(initialSigest);
@@ -97,6 +114,8 @@ export function ProjectFormModal({
         setCtosCount(0);
         setAlimentacion('NO');
         setSituacion('Demorado');
+        setPorcentajeCumplimiento('');
+        setCustomPorcentaje('');
         setObservaciones('');
       }
       setError('');
@@ -123,6 +142,15 @@ export function ProjectFormModal({
     }
     const finalEjecutor = ejecutor === '__CUSTOM__' ? customEjecutor.trim() : ejecutor.trim();
 
+    let finalCumplimiento: number | null = null;
+    if (porcentajeCumplimiento === '__CUSTOM__') {
+      if (customPorcentaje.trim()) {
+        finalCumplimiento = Number(customPorcentaje.trim());
+      }
+    } else if (porcentajeCumplimiento) {
+      finalCumplimiento = Number(porcentajeCumplimiento);
+    }
+
     setError('');
     setIsSubmitting(true);
 
@@ -137,6 +165,7 @@ export function ProjectFormModal({
         ctos_count: Number(ctosCount) || 0,
         alimentacion: alimentacion.trim() || 'NO',
         situacion_operativa: situacion,
+        porcentaje_cumplimiento: finalCumplimiento,
         observaciones: observaciones.trim() || undefined,
         created_by: projectToEdit?.created_by || 'Dario'
       });
@@ -302,7 +331,7 @@ export function ProjectFormModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Cantidad de CTOs</label>
               <input
@@ -326,6 +355,37 @@ export function ProjectFormModal({
                 <option value="NO">NO</option>
                 <option value="SI">SI</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">Cumplimiento (%)</label>
+              <select
+                disabled={isSubmitting}
+                value={porcentajeCumplimiento}
+                onChange={(e) => setPorcentajeCumplimiento(e.target.value)}
+                className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white font-semibold text-slate-900"
+              >
+                <option value="">-- Sin cargar --</option>
+                <option value="20">20%</option>
+                <option value="40">40%</option>
+                <option value="60">60%</option>
+                <option value="80">80%</option>
+                <option value="100">100%</option>
+                <option value="__CUSTOM__">✍️ Otro...</option>
+              </select>
+
+              {porcentajeCumplimiento === '__CUSTOM__' && (
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  disabled={isSubmitting}
+                  placeholder="Ej. 50"
+                  value={customPorcentaje}
+                  onChange={(e) => setCustomPorcentaje(e.target.value)}
+                  className="w-full text-xs px-3 py-1.5 border border-blue-400 rounded mt-1.5 bg-blue-50/50 font-mono font-bold"
+                />
+              )}
             </div>
           </div>
 

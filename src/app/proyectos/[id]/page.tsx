@@ -151,7 +151,7 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* Technical Data Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 text-xs bg-slate-50/80 p-2.5 rounded border border-slate-100">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 text-xs bg-slate-50/80 p-2.5 rounded border border-slate-100">
           <div>
             <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-mono">Distrito</span>
             <span className="font-semibold text-slate-800">{project.distrito || '-'}</span>
@@ -165,6 +165,13 @@ export default function ProjectDetailPage() {
           <div>
             <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-mono">Equipo Ejecutor</span>
             <span className="font-semibold text-slate-800">{project.ejecutor || '-'}</span>
+          </div>
+
+          <div>
+            <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-mono">Cumplimiento</span>
+            <span className="font-semibold text-blue-900 font-mono">
+              {project.porcentaje_cumplimiento !== undefined && project.porcentaje_cumplimiento !== null ? `${project.porcentaje_cumplimiento}%` : '-'}
+            </span>
           </div>
 
           <div>
