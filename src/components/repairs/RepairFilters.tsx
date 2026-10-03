@@ -93,7 +93,6 @@ export function RepairFilters({
     (typeId !== 'all' ? 1 : 0) +
     (distrito !== 'all' ? 1 : 0) +
     (central !== 'all' ? 1 : 0) +
-    (onlyReiterated ? 1 : 0) +
     (selectedCumplimientos.length > 0 ? selectedCumplimientos.length : 0);
 
   return (
@@ -223,18 +222,8 @@ export function RepairFilters({
       {/* Filter status bar & toggle flags */}
       <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs flex-wrap gap-2">
         <div className="flex items-center gap-3 flex-wrap">
-          <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 font-medium select-none">
-            <input
-              type="checkbox"
-              checked={onlyReiterated}
-              onChange={(e) => onOnlyReiteratedChange(e.target.checked)}
-              className="rounded border-slate-300 text-red-600 focus:ring-red-500"
-            />
-            <span className={onlyReiterated ? "text-red-700 font-bold" : ""}>Solo Reiterados / No solucionados</span>
-          </label>
-
           {/* Cumplimiento Checkboxes */}
-          <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+          <div className="flex items-center gap-2">
             <span className="text-slate-500 font-medium text-xs">Cumplimiento:</span>
             {[5, 20, 80, 100].map((val) => (
               <label key={val} className="flex items-center gap-1 cursor-pointer text-slate-700 font-medium select-none">

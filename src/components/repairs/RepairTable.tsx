@@ -334,18 +334,18 @@ export function RepairTable({
         <table className="data-table">
           <thead>
             <tr>
-              <th className="w-5"></th>
-              {renderSortHeader('project', 'SIGEST / POLÍGONO', 'whitespace-nowrap')}
-              {renderSortHeader('cumplimiento', 'CUMPLIMIENTO', 'whitespace-nowrap')}
-              {renderSortHeader('central', 'CENTRAL', 'whitespace-nowrap')}
-              {renderSortHeader('tipo', 'TIPO', 'whitespace-nowrap')}
-              {renderSortHeader('description', 'DESCRIPCIÓN / SOLICITANTE', 'min-w-[180px] max-w-[340px]')}
-              {renderSortHeader('responsible', 'RESPONSABLE', 'min-w-[135px] max-w-[170px]')}
-              {renderSortHeader('status', 'ESTADO')}
-              {renderSortHeader('reiteros', 'REITEROS', 'whitespace-nowrap justify-center text-center')}
-              {renderSortHeader('reclamos', 'RECLAMOS', 'whitespace-nowrap justify-center text-center')}
-              {renderSortHeader('informado', 'INFORMADO', 'whitespace-nowrap')}
-              {!hideActions && <th className="text-right whitespace-nowrap">ACCIONES</th>}
+              <th className="w-4 px-1"></th>
+              {renderSortHeader('project', 'SIGEST / POLÍGONO', 'whitespace-nowrap px-1.5')}
+              {renderSortHeader('cumplimiento', '% CUMPL.', 'whitespace-nowrap px-1 justify-center text-center')}
+              {renderSortHeader('central', 'CENTRAL', 'whitespace-nowrap px-1.5')}
+              {renderSortHeader('tipo', 'TIPO', 'whitespace-nowrap px-1.5')}
+              {renderSortHeader('description', 'DESCRIPCIÓN / SOLICITANTE', 'min-w-[140px] max-w-[240px] px-1.5')}
+              {renderSortHeader('responsible', 'RESPONSABLE', 'min-w-[110px] max-w-[145px] px-1')}
+              {renderSortHeader('status', 'ESTADO', 'whitespace-nowrap px-1.5')}
+              {renderSortHeader('reiteros', 'REITEROS', 'whitespace-nowrap justify-center text-center px-1')}
+              {renderSortHeader('reclamos', 'RECLAMOS', 'whitespace-nowrap justify-center text-center px-1')}
+              {renderSortHeader('informado', 'INFORMADO', 'whitespace-nowrap px-1.5')}
+              {!hideActions && <th className="text-right whitespace-nowrap px-1.5">ACCIONES</th>}
             </tr>
           </thead>
           <tbody>
@@ -386,10 +386,10 @@ export function RepairTable({
               return (
                 <React.Fragment key={repair.id}>
                   <tr className={`${rowBgClass} ${borderClass} transition-colors`}>
-                    <td>
+                    <td className="px-1 py-1">
                       <button
                         onClick={() => toggleExpand(repair.id)}
-                        className="p-1 text-slate-400 hover:text-slate-800 hover:bg-slate-200/80 rounded transition-colors"
+                        className="p-0.5 text-slate-400 hover:text-slate-800 hover:bg-slate-200/80 rounded transition-colors"
                         title={isExpanded ? "Ocultar hitos del historial" : "Desplegar hitos del historial"}
                       >
                         {isExpanded ? (
@@ -399,7 +399,7 @@ export function RepairTable({
                         )}
                       </button>
                     </td>
-                    <td className="whitespace-nowrap">
+                    <td className="whitespace-nowrap px-1.5 py-1">
                       {repair.project ? (
                         <div className="flex flex-col gap-0.5 items-start">
                           <Link
@@ -411,14 +411,14 @@ export function RepairTable({
                               {repair.project.sigest}
                             </span>
                             <span className="text-slate-400 font-sans text-xs">/</span>
-                            <span className="font-bold text-blue-700 bg-blue-50/90 border border-blue-200/90 px-1.5 py-0.2 rounded text-xs shadow-2xs group-hover:bg-blue-100 group-hover:border-blue-300 transition-colors">
+                            <span className="font-bold text-blue-700 bg-blue-50/90 border border-blue-200/90 px-1 py-0.2 rounded text-xs shadow-2xs group-hover:bg-blue-100 group-hover:border-blue-300 transition-colors">
                               {repair.project.poligono}
                             </span>
                           </Link>
 
                           {isMultipleInProject && (
                             <span
-                              className={`inline-flex items-center gap-0.5 text-[9px] font-bold ${groupTheme.badge} px-1.5 py-0.2 rounded font-mono shadow-2xs`}
+                              className={`inline-flex items-center gap-0.5 text-[9px] font-bold ${groupTheme.badge} px-1 py-0.2 rounded font-mono shadow-2xs`}
                               title={`Este polígono tiene ${totalInProject} reparos registrados`}
                             >
                               <span>📂 {totalInProject} en polígono</span>
@@ -430,10 +430,10 @@ export function RepairTable({
                       )}
                     </td>
 
-                    {/* Columna CUMPLIMIENTO */}
-                    <td className="whitespace-nowrap">
+                    {/* Columna % CUMPL. */}
+                    <td className="whitespace-nowrap text-center px-1 py-1">
                       {repair.project?.porcentaje_cumplimiento !== undefined && repair.project?.porcentaje_cumplimiento !== null ? (
-                        <span className="font-mono font-bold text-blue-900 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded text-[10px]">
+                        <span className="font-mono font-bold text-blue-900 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded text-[10px]">
                           {repair.project.porcentaje_cumplimiento}%
                         </span>
                       ) : (
@@ -442,9 +442,9 @@ export function RepairTable({
                     </td>
 
                     {/* Columna CENTRAL */}
-                    <td className="whitespace-nowrap">
+                    <td className="whitespace-nowrap px-1.5 py-1">
                       {repair.project?.central ? (
-                        <span className="font-bold text-slate-800 bg-slate-100 border border-slate-200/90 px-1.5 py-0.5 rounded text-[10px] font-mono">
+                        <span className="font-bold text-slate-800 bg-slate-100 border border-slate-200/90 px-1.5 py-0.2 rounded text-[10px] font-mono">
                           {repair.project.central}
                         </span>
                       ) : (
@@ -452,24 +452,24 @@ export function RepairTable({
                       )}
                     </td>
 
-                    <td className="whitespace-nowrap">
-                      <span className="font-medium text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 text-[10px]">
+                    <td className="whitespace-nowrap px-1.5 py-1">
+                      <span className="font-medium text-slate-900 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200 text-[10px]">
                         {repair.repair_type?.name || 'Otro'}
                       </span>
                     </td>
                     
                     {/* Columna DESCRIPCION destacada */}
-                    <td className="min-w-[180px] max-w-[340px] py-1.5 px-2">
+                    <td className="min-w-[140px] max-w-[240px] py-1 px-1.5">
                       <Link
                         href={`/reparos/${repair.id}`}
-                        className="font-semibold text-slate-900 hover:text-blue-700 text-xs leading-snug block transition-colors"
+                        className="font-semibold text-slate-900 hover:text-blue-700 text-[11px] leading-snug block transition-colors break-words"
                       >
                         {repair.description}
                       </Link>
                       {repair.solicitante && (
-                        <div className="text-[10px] text-slate-500 mt-0.5 font-sans flex items-center gap-1">
+                        <div className="text-[9px] text-slate-500 mt-0.5 font-sans flex items-center gap-1">
                           <span className="text-slate-400">Sol:</span>
-                          <span className="font-semibold text-slate-800 bg-slate-100/80 px-1 py-0.2 rounded border border-slate-200/60">
+                          <span className="font-semibold text-slate-800 bg-slate-100/80 px-1 py-0.2 rounded border border-slate-200/60 truncate max-w-[180px]">
                             {repair.solicitante}
                           </span>
                         </div>
@@ -477,12 +477,12 @@ export function RepairTable({
                     </td>
 
                     {/* Columna RESPONSABLE en 2 renglones */}
-                    <td className="min-w-[135px] max-w-[170px] align-top py-1.5">
+                    <td className="min-w-[110px] max-w-[145px] align-top py-1 px-1">
                       {(() => {
                         const name = repair.current_responsible?.name;
                         const renderTwoLines = () => {
                           if (!name || !name.trim()) {
-                            return <em className="text-slate-400 font-normal text-[11px] px-1">Sin asignar</em>;
+                            return <em className="text-slate-400 font-normal text-[10px] px-1">Sin asignar</em>;
                           }
                           const trimmed = name.trim();
                           if (trimmed.includes('/')) {
@@ -490,15 +490,15 @@ export function RepairTable({
                             const area = trimmed.substring(0, slashIndex + 1).trim();
                             const person = trimmed.substring(slashIndex + 1).trim();
                             return (
-                              <div className="flex flex-col text-[11px] leading-tight px-1 py-0.5">
-                                <span className="text-[10px] text-slate-500 font-semibold font-mono whitespace-nowrap">{area}</span>
-                                <span className="font-bold text-slate-900 text-[11px] leading-snug whitespace-normal break-words">{person}</span>
+                              <div className="flex flex-col text-[10px] leading-tight px-1 py-0.2">
+                                <span className="text-[9px] text-slate-500 font-semibold font-mono whitespace-nowrap">{area}</span>
+                                <span className="font-bold text-slate-900 text-[10px] leading-snug whitespace-normal break-words">{person}</span>
                               </div>
                             );
                           }
                           return (
-                            <div className="flex flex-col text-[11px] leading-tight px-1 py-0.5">
-                              <span className="font-bold text-slate-900 text-[11px] leading-snug whitespace-normal break-words">{trimmed}</span>
+                            <div className="flex flex-col text-[10px] leading-tight px-1 py-0.2">
+                              <span className="font-bold text-slate-900 text-[10px] leading-snug whitespace-normal break-words">{trimmed}</span>
                             </div>
                           );
                         };
@@ -509,7 +509,7 @@ export function RepairTable({
 
                         return (
                           <div className="relative group/resp bg-white border border-slate-300 hover:border-blue-500 rounded shadow-2xs transition-colors cursor-pointer">
-                            <div className="flex items-center justify-between gap-1 pr-1">
+                            <div className="flex items-center justify-between gap-0.5 pr-0.5">
                               {renderTwoLines()}
                               <ChevronDown className="h-3 w-3 text-slate-400 shrink-0" />
                             </div>
@@ -545,47 +545,47 @@ export function RepairTable({
                       })()}
                     </td>
 
-                    <td className="whitespace-nowrap">
+                    <td className="whitespace-nowrap px-1.5 py-1">
                       <StatusBadge 
                         name={repair.current_status?.name} 
                         category={repair.current_status?.category} 
                       />
                     </td>
-                    <td className="whitespace-nowrap">
+                    <td className="whitespace-nowrap px-1 py-1 text-center">
                       {hasReiterations ? (
-                        <div className="flex items-center gap-1 text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold w-fit">
-                          <AlertTriangle className="h-3 w-3 text-red-600 shrink-0" />
-                          <span>{repair.reiteration_count} reit.</span>
+                        <div className="inline-flex items-center gap-1 text-red-700 bg-red-50 border border-red-200 px-1 py-0.2 rounded text-[10px] font-mono font-bold">
+                          <AlertTriangle className="h-2.5 w-2.5 text-red-600 shrink-0" />
+                          <span>{repair.reiteration_count}</span>
                         </div>
                       ) : (
                         <span className="text-slate-400 text-xs font-mono">0</span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap">
+                    <td className="whitespace-nowrap px-1 py-1 text-center">
                       {(repair.reclaim_count || 0) > 0 ? (
-                        <div className="flex items-center gap-1 text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold w-fit">
-                          <AlertCircle className="h-3 w-3 text-amber-600 shrink-0" />
-                          <span>{repair.reclaim_count} recl.</span>
+                        <div className="inline-flex items-center gap-1 text-amber-800 bg-amber-50 border border-amber-200 px-1 py-0.2 rounded text-[10px] font-mono font-bold">
+                          <AlertCircle className="h-2.5 w-2.5 text-amber-600 shrink-0" />
+                          <span>{repair.reclaim_count}</span>
                         </div>
                       ) : (
                         <span className="text-slate-400 text-xs font-mono">0</span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap text-xs text-slate-600">
-                      <div className="flex flex-col text-[11px] leading-tight">
+                    <td className="whitespace-nowrap px-1.5 py-1 text-xs text-slate-600">
+                      <div className="flex flex-col text-[10px] leading-tight">
                         <span className="font-semibold text-slate-800 font-mono">{formatDate(repair.fecha_informado)}</span>
-                        <span className="text-[10px] text-slate-500 font-mono">
+                        <span className="text-[9px] text-slate-500 font-mono">
                           {formatDaysAgoLabel(repair.fecha_informado)}
                         </span>
                       </div>
                     </td>
                     {!hideActions && (
-                      <td className="text-right whitespace-nowrap">
+                      <td className="text-right whitespace-nowrap px-1.5 py-1">
                         <div className="inline-flex items-center rounded border border-slate-300 shadow-2xs overflow-hidden divide-x divide-slate-300 bg-white">
                           {onLogEventClick && (
                             <button
                               onClick={() => onLogEventClick(repair)}
-                              className="inline-flex items-center gap-1 text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 font-semibold transition-colors"
+                              className="inline-flex items-center gap-1 text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-1.5 py-0.5 font-semibold transition-colors"
                               title="Registrar Acción / Evento"
                             >
                               <Plus className="h-3 w-3" />
@@ -595,7 +595,7 @@ export function RepairTable({
 
                           <button
                             onClick={() => setRepairToEdit(repair)}
-                            className="inline-flex items-center justify-center text-[11px] bg-slate-50 hover:bg-slate-100 text-slate-700 px-2 py-1 font-medium transition-colors"
+                            className="inline-flex items-center justify-center text-[10px] bg-slate-50 hover:bg-slate-100 text-slate-700 px-1.5 py-0.5 font-medium transition-colors"
                             title="Editar datos del reparo"
                           >
                             <Edit className="h-3.5 w-3.5 text-slate-600" />
