@@ -89,7 +89,7 @@ export function ProjectFormModal({
         
         if (projectToEdit.porcentaje_cumplimiento !== undefined && projectToEdit.porcentaje_cumplimiento !== null) {
           const valStr = String(projectToEdit.porcentaje_cumplimiento);
-          if (['20', '40', '60', '80', '100'].includes(valStr)) {
+          if (['5', '20', '80', '100'].includes(valStr)) {
             setPorcentajeCumplimiento(valStr);
             setCustomPorcentaje('');
           } else {
@@ -366,9 +366,8 @@ export function ProjectFormModal({
                 className="w-full text-xs px-3 py-1.5 border border-slate-300 rounded bg-white font-semibold text-slate-900"
               >
                 <option value="">-- Sin cargar --</option>
+                <option value="5">5%</option>
                 <option value="20">20%</option>
-                <option value="40">40%</option>
-                <option value="60">60%</option>
                 <option value="80">80%</option>
                 <option value="100">100%</option>
                 <option value="__CUSTOM__">✍️ Otro...</option>
