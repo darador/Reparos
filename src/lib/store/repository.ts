@@ -369,7 +369,7 @@ class DataRepository {
     if (typeof window !== 'undefined') {
       const supabase = createClient();
       if (supabase) {
-        const { error } = await supabase.from('projects').insert([{
+        const payload: any = {
           id: newProject.id,
           sigest: newProject.sigest,
           poligono: newProject.poligono,
@@ -385,9 +385,18 @@ class DataRepository {
           created_at: newProject.created_at,
           updated_at: newProject.updated_at,
           created_by: newProject.created_by
-        }]);
+        };
 
-        if (error) {
+        let { error } = await supabase.from('projects').insert([payload]);
+
+        if (error && error.message?.includes('porcentaje_cumplimiento')) {
+          delete payload.porcentaje_cumplimiento;
+          const retry = await supabase.from('projects').insert([payload]);
+          if (retry.error) {
+            console.error("Error creating project in Supabase:", retry.error.message);
+            throw new Error("No se pudo guardar el proyecto en Supabase: " + retry.error.message);
+          }
+        } else if (error) {
           console.error("Error creating project in Supabase:", error.message);
           throw new Error("No se pudo guardar el proyecto en Supabase: " + error.message);
         }
@@ -434,7 +443,7 @@ class DataRepository {
     if (typeof window !== 'undefined') {
       const supabase = createClient();
       if (supabase) {
-        const { error } = await supabase.from('projects').update({
+        const payload: any = {
           sigest: updated.sigest,
           poligono: updated.poligono,
           distrito: updated.distrito || null,
@@ -447,9 +456,18 @@ class DataRepository {
           porcentaje_cumplimiento: updated.porcentaje_cumplimiento ?? null,
           observaciones: updated.observaciones || null,
           updated_at: updated.updated_at
-        }).eq('id', id);
+        };
 
-        if (error) {
+        let { error } = await supabase.from('projects').update(payload).eq('id', id);
+
+        if (error && error.message?.includes('porcentaje_cumplimiento')) {
+          delete payload.porcentaje_cumplimiento;
+          const retry = await supabase.from('projects').update(payload).eq('id', id);
+          if (retry.error) {
+            console.error("Error updating project in Supabase:", retry.error.message);
+            throw new Error("No se pudo actualizar el proyecto en Supabase: " + retry.error.message);
+          }
+        } else if (error) {
           console.error("Error updating project in Supabase:", error.message);
           throw new Error("No se pudo actualizar el proyecto en Supabase: " + error.message);
         }

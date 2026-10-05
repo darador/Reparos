@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS public.projects (
     ctos_count INT NOT NULL DEFAULT 0,
     alimentacion TEXT DEFAULT 'SI',
     situacion_operativa TEXT NOT NULL DEFAULT 'En ejecución',
+    porcentaje_cumplimiento NUMERIC,
     fecha_asignacion TIMESTAMPTZ,
     fecha_inicio TIMESTAMPTZ,
     fecha_fin TIMESTAMPTZ,
