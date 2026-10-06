@@ -33,6 +33,7 @@ export function RepairReportModal({
     type GroupMap = Map<string, {
       sigest: string;
       poligono: string;
+      cumplimiento: string;
       central: string;
       responsible: string;
       items: Repair[];
@@ -44,15 +45,18 @@ export function RepairReportModal({
       const sigest = r.project?.sigest || 'SIN SIGEST';
       const rawPoligono = r.project?.poligono || 'SIN POLÍGONO';
       const poligono = rawPoligono.replace(/^POL-/i, '').trim();
+      const cumplimientoVal = r.project?.porcentaje_cumplimiento;
+      const cumplimiento = cumplimientoVal !== undefined && cumplimientoVal !== null ? `${cumplimientoVal}%` : '-';
       const central = r.project?.central || '-';
       const responsible = r.current_responsible?.name || 'Sin asignar';
 
-      const groupKey = `${sigest}_${poligono}_${central}_${responsible}`;
+      const groupKey = `${sigest}_${poligono}_${cumplimiento}_${central}_${responsible}`;
 
       if (!groups.has(groupKey)) {
         groups.set(groupKey, {
           sigest,
           poligono,
+          cumplimiento,
           central,
           responsible,
           items: []
@@ -67,6 +71,7 @@ export function RepairReportModal({
     groupEntries.forEach((group, index) => {
       output += `SIGEST: ${group.sigest}\n`;
       output += `POLÍGONO: ${group.poligono}\n`;
+      output += `% CUMPL: ${group.cumplimiento}\n`;
       output += `CENTRAL: ${group.central}\n`;
       output += `RESPONSABLE: ${group.responsible}\n\n`;
 
@@ -102,6 +107,8 @@ export function RepairReportModal({
     const rows = repairs.map((r, i) => {
       const sigest = r.project?.sigest || 'SIN SIGEST';
       const poligono = (r.project?.poligono || '-').replace(/^POL-/i, '').trim();
+      const cumplimientoVal = r.project?.porcentaje_cumplimiento;
+      const cumplimiento = cumplimientoVal !== undefined && cumplimientoVal !== null ? `${cumplimientoVal}%` : '-';
       const central = r.project?.central || '-';
       const responsible = r.current_responsible?.name || 'Sin asignar';
       const typeName = r.repair_type?.name || 'Otro';
@@ -116,6 +123,7 @@ export function RepairReportModal({
         <tr style="background-color: ${bg};">
           <td style="padding: 7px 10px; border: 1px solid #cbd5e1; font-weight: bold; font-family: Arial, sans-serif; font-size: 11px;">${sigest}</td>
           <td style="padding: 7px 10px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">${poligono}</td>
+          <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: center; font-family: Arial, sans-serif; font-size: 11px; font-weight: bold; color: #1e3a8a;">${cumplimiento}</td>
           <td style="padding: 7px 10px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">${central}</td>
           <td style="padding: 7px 10px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px; font-weight: 600; color: #1e293b;">${responsible}</td>
           <td style="padding: 7px 10px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">${typeName}</td>
@@ -137,6 +145,7 @@ export function RepairReportModal({
             <tr style="background-color: #0f172a; color: #ffffff;">
               <th style="padding: 8px 10px; border: 1px solid #334155; text-align: left; font-size: 11px;">SIGEST</th>
               <th style="padding: 8px 10px; border: 1px solid #334155; text-align: left; font-size: 11px;">Polígono</th>
+              <th style="padding: 8px 10px; border: 1px solid #334155; text-align: center; font-size: 11px;">% Cumpl.</th>
               <th style="padding: 8px 10px; border: 1px solid #334155; text-align: left; font-size: 11px;">Central</th>
               <th style="padding: 8px 10px; border: 1px solid #334155; text-align: left; font-size: 11px;">Responsable</th>
               <th style="padding: 8px 10px; border: 1px solid #334155; text-align: left; font-size: 11px;">Tipo Reparo</th>
@@ -158,19 +167,24 @@ export function RepairReportModal({
   // Generate Tab-Separated Values (TSV) for plain text table fallback (Excel paste)
   const reportTableTsv = useMemo(() => {
     if (repairs.length === 0) return '';
-    const headers = ['SIGEST', 'Polígono', 'Central', 'Responsable', 'Tipo Reparo', 'Descripción', 'Solicitante', 'Reiteros', 'Informado', 'Estado'];
-    const rows = repairs.map(r => [
-      r.project?.sigest || 'SIN SIGEST',
-      (r.project?.poligono || '-').replace(/^POL-/i, '').trim(),
-      r.project?.central || '-',
-      r.current_responsible?.name || 'Sin asignar',
-      r.repair_type?.name || 'Otro',
-      (r.description || '').replace(/\n/g, ' '),
-      r.solicitante?.trim() || '-',
-      r.reiteration_count || 0,
-      formatDate(r.fecha_informado),
-      r.current_status?.name || 'Pendiente'
-    ].join('\t'));
+    const headers = ['SIGEST', 'Polígono', '% Cumpl.', 'Central', 'Responsable', 'Tipo Reparo', 'Descripción', 'Solicitante', 'Reiteros', 'Informado', 'Estado'];
+    const rows = repairs.map(r => {
+      const cumplimientoVal = r.project?.porcentaje_cumplimiento;
+      const cumplimiento = cumplimientoVal !== undefined && cumplimientoVal !== null ? `${cumplimientoVal}%` : '-';
+      return [
+        r.project?.sigest || 'SIN SIGEST',
+        (r.project?.poligono || '-').replace(/^POL-/i, '').trim(),
+        cumplimiento,
+        r.project?.central || '-',
+        r.current_responsible?.name || 'Sin asignar',
+        r.repair_type?.name || 'Otro',
+        (r.description || '').replace(/\n/g, ' '),
+        r.solicitante?.trim() || '-',
+        r.reiteration_count || 0,
+        formatDate(r.fecha_informado),
+        r.current_status?.name || 'Pendiente'
+      ].join('\t');
+    });
 
     return [headers.join('\t'), ...rows].join('\n');
   }, [repairs]);
