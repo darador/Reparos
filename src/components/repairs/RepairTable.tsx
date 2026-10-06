@@ -11,6 +11,7 @@ import { RepairFormModal, RESPONSABLES_INICIALES_LIST } from "./RepairFormModal"
 import { StatusBadge } from "../shared/Badges";
 import { ConfirmDeleteModal } from "../shared/ConfirmDeleteModal";
 import { EditEventModal } from "../timeline/EditEventModal";
+import { LogBulkEventModal } from "../timeline/LogBulkEventModal";
 
 interface RepairTableProps {
   repairs: Repair[];
@@ -41,11 +42,30 @@ export function RepairTable({
   hideActions = false
 }: RepairTableProps) {
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState<boolean>(false);
   const [repairToEdit, setRepairToEdit] = useState<Repair | null>(null);
   const [repairToDelete, setRepairToDelete] = useState<Repair | null>(null);
   const [eventToEdit, setEventToEdit] = useState<RepairEvent | null>(null);
   const [eventToDelete, setEventToDelete] = useState<RepairEvent | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  // Selection handlers
+  const toggleSelectRow = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === sortedRepairs.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(sortedRepairs.map(r => r.id));
+    }
+  };
+
+  const selectedRepairs = repairs.filter(r => selectedIds.includes(r.id));
 
   // Sorting states
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
@@ -330,11 +350,48 @@ export function RepairTable({
 
   return (
     <div className="space-y-2">
+      {/* Sticky Bulk Action Banner */}
+      {selectedIds.length > 0 && (
+        <div className="bg-slate-900 text-white p-2.5 rounded flex items-center justify-between shadow-md text-xs animate-in fade-in duration-100">
+          <div className="flex items-center gap-2 font-medium">
+            <span className="bg-emerald-500 text-slate-950 font-black px-2 py-0.5 rounded-full font-mono text-[11px]">
+              {selectedIds.length}
+            </span>
+            <span>{selectedIds.length === 1 ? 'reparo seleccionado' : 'reparos seleccionados'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsBulkModalOpen(true)}
+              className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded font-bold transition-colors shadow-2xs"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>+ Acción Masiva ({selectedIds.length})</span>
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="text-slate-400 hover:text-white underline px-2 py-1 font-medium"
+            >
+              Deseleccionar todos
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="data-table-container">
         <table className="data-table">
           <thead>
             <tr>
-              <th className="w-4 px-1"></th>
+              <th className="w-12 px-1 text-center whitespace-nowrap">
+                <div className="flex items-center gap-1 justify-center">
+                  <input
+                    type="checkbox"
+                    checked={sortedRepairs.length > 0 && selectedIds.length === sortedRepairs.length}
+                    onChange={toggleSelectAll}
+                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer h-3.5 w-3.5"
+                    title="Seleccionar / deseleccionar todos los reparos"
+                  />
+                </div>
+              </th>
               {renderSortHeader('project', 'SIGEST / POLÍGONO', 'whitespace-nowrap px-1.5')}
               {renderSortHeader('cumplimiento', '% CUMPL.', 'whitespace-nowrap px-1 justify-center text-center')}
               {renderSortHeader('central', 'CENTRAL', 'whitespace-nowrap px-1.5')}
@@ -352,6 +409,7 @@ export function RepairTable({
             {sortedRepairs.map((repair, index) => {
               const hasReiterations = (repair.reiteration_count || 0) > 0;
               const isExpanded = !!expandedIds[repair.id];
+              const isSelected = selectedIds.includes(repair.id);
               const events = isExpanded ? repository.getRepairEvents(repair.id) : [];
               const isEven = index % 2 === 0;
 
@@ -365,7 +423,9 @@ export function RepairTable({
               const prevPKey = index > 0 ? (repairs[index - 1].project_id || `${repairs[index - 1].project?.sigest}_${repairs[index - 1].project?.poligono}`) : null;
               const isFirstRowOfGroup = index > 0 && pKey !== prevPKey;
 
-              const rowBgClass = hasReiterations
+              const rowBgClass = isSelected
+                ? "bg-blue-100/90 hover:bg-blue-100"
+                : hasReiterations
                 ? "bg-amber-50/70 hover:bg-amber-100/70"
                 : isExpanded
                 ? "bg-blue-50/50"
@@ -386,18 +446,27 @@ export function RepairTable({
               return (
                 <React.Fragment key={repair.id}>
                   <tr className={`${rowBgClass} ${borderClass} transition-colors`}>
-                    <td className="px-1 py-1">
-                      <button
-                        onClick={() => toggleExpand(repair.id)}
-                        className="p-0.5 text-slate-400 hover:text-slate-800 hover:bg-slate-200/80 rounded transition-colors"
-                        title={isExpanded ? "Ocultar hitos del historial" : "Desplegar hitos del historial"}
-                      >
-                        {isExpanded ? (
-                          <ChevronUp className="h-3.5 w-3.5 text-blue-600 font-bold" />
-                        ) : (
-                          <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
-                        )}
-                      </button>
+                    <td className="px-1 py-1 text-center whitespace-nowrap">
+                      <div className="flex items-center gap-1 justify-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectRow(repair.id)}
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer h-3.5 w-3.5"
+                          title="Seleccionar este reparo"
+                        />
+                        <button
+                          onClick={() => toggleExpand(repair.id)}
+                          className="p-0.5 text-slate-400 hover:text-slate-800 hover:bg-slate-200/80 rounded transition-colors"
+                          title={isExpanded ? "Ocultar hitos del historial" : "Desplegar hitos del historial"}
+                        >
+                          {isExpanded ? (
+                            <ChevronUp className="h-3.5 w-3.5 text-blue-600 font-bold" />
+                          ) : (
+                            <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
+                          )}
+                        </button>
+                      </div>
                     </td>
                     <td className="whitespace-nowrap px-1.5 py-1">
                       {repair.project ? (
@@ -817,6 +886,32 @@ export function RepairTable({
             if (onRefresh) onRefresh();
           }}
           onClose={() => setRepairToDelete(null)}
+        />
+      )}
+
+      {/* Log Bulk Event Modal */}
+      {isBulkModalOpen && selectedRepairs.length > 0 && (
+        <LogBulkEventModal
+          isOpen={isBulkModalOpen}
+          onClose={() => setIsBulkModalOpen(false)}
+          onSubmit={async (data) => {
+            for (const rId of data.repair_ids) {
+              await repository.addRepairEvent({
+                repair_id: rId,
+                event_type: data.event_type,
+                new_responsible_id: data.new_responsible_id,
+                new_status_id: data.new_status_id,
+                verification_result: data.verification_result,
+                notes: data.notes
+              });
+            }
+            setSelectedIds([]);
+            setIsBulkModalOpen(false);
+            if (onRefresh) onRefresh();
+          }}
+          repairs={selectedRepairs}
+          responsibleParties={repository.getResponsibleParties()}
+          repairStatuses={repository.getRepairStatuses()}
         />
       )}
     </div>
