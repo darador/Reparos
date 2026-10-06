@@ -1,5 +1,6 @@
 'use client';
 
+import { ImportCumplimientoModal } from "@/components/projects/ImportCumplimientoModal";
 import { ProjectFormModal } from "@/components/projects/ProjectFormModal";
 import { ProjectTable } from "@/components/projects/ProjectTable";
 import { RepairFormModal } from "@/components/repairs/RepairFormModal";
@@ -8,7 +9,7 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { MetricStrip } from "@/components/shared/MetricStrip";
 import { repository } from "@/lib/store/repository";
 import { DashboardMetrics, Project } from "@/lib/types/database";
-import { FolderGit2, Plus, Search, X } from "lucide-react";
+import { FileSpreadsheet, FolderGit2, Plus, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function ProjectsPage() {
@@ -30,6 +31,7 @@ export default function ProjectsPage() {
   const [isCumplimientoOpen, setIsCumplimientoOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(!repository.isLoaded);
 
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
@@ -96,16 +98,27 @@ export default function ProjectsPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setProjectToEdit(null);
-            setIsNewProjectOpen(true);
-          }}
-          className="inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded font-medium shadow-2xs transition-colors shrink-0"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>Nuevo Proyecto</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded font-semibold shadow-2xs transition-colors"
+            title="Importar porcentajes de cumplimiento masivamente desde un archivo Excel"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            <span>Importar Excel (% Cumpl.)</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setProjectToEdit(null);
+              setIsNewProjectOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded font-medium shadow-2xs transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Nuevo Proyecto</span>
+          </button>
+        </div>
       </div>
 
       {/* Primary KPI Metric Strip */}
@@ -252,6 +265,12 @@ export default function ProjectsPage() {
       )}
 
       {/* Modals */}
+      <ImportCumplimientoModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={loadProjects}
+      />
+
       <ProjectFormModal
         isOpen={isNewProjectOpen}
         projectToEdit={projectToEdit}

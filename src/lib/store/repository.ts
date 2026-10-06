@@ -478,6 +478,127 @@ class DataRepository {
     return this.getProjectById(id) || updated;
   }
 
+  async bulkUpdateCumplimiento(
+    items: Array<{ sigest?: string; poligono?: string; central?: string; porcentaje_cumplimiento: number | null; titulo?: string; ejecutor?: string }>,
+    createIfNotExists: boolean = true
+  ): Promise<{ updated: number; created: number; matched: number }> {
+    await this.ensureLoaded();
+
+    let updatedCount = 0;
+    let createdCount = 0;
+    let matchedCount = 0;
+
+    for (const item of items) {
+      const sigestNorm = (item.sigest || '').trim().toLowerCase();
+      const poligonoNorm = (item.poligono || '').trim().toLowerCase();
+      const centralNorm = (item.central || '').trim().toLowerCase();
+
+      if (!poligonoNorm) continue;
+
+      let matchedIndex = this.projects.findIndex(p =>
+        (p.sigest || '').trim().toLowerCase() === sigestNorm &&
+        (p.poligono || '').trim().toLowerCase() === poligonoNorm
+      );
+
+      if (matchedIndex === -1 && centralNorm && sigestNorm) {
+        matchedIndex = this.projects.findIndex(p =>
+          (p.poligono || '').trim().toLowerCase() === poligonoNorm &&
+          (p.central || '').trim().toLowerCase() === centralNorm
+        );
+      }
+
+      if (matchedIndex === -1 && poligonoNorm) {
+        matchedIndex = this.projects.findIndex(p =>
+          (p.poligono || '').trim().toLowerCase() === poligonoNorm
+        );
+      }
+
+      const newPct = item.porcentaje_cumplimiento !== undefined && item.porcentaje_cumplimiento !== null ? Number(item.porcentaje_cumplimiento) : null;
+
+      if (matchedIndex !== -1) {
+        matchedCount++;
+        const targetProj = this.projects[matchedIndex];
+        if (targetProj.porcentaje_cumplimiento !== newPct) {
+          targetProj.porcentaje_cumplimiento = newPct;
+          targetProj.updated_at = new Date().toISOString();
+          updatedCount++;
+
+          if (typeof window !== 'undefined') {
+            const supabase = createClient();
+            if (supabase) {
+              const payload: any = {
+                porcentaje_cumplimiento: newPct,
+                updated_at: targetProj.updated_at
+              };
+              if (item.central && !targetProj.central) {
+                payload.central = item.central;
+                targetProj.central = item.central;
+              }
+              const { error } = await supabase.from('projects').update(payload).eq('id', targetProj.id);
+              if (error && error.message?.includes('porcentaje_cumplimiento')) {
+                delete payload.porcentaje_cumplimiento;
+                await supabase.from('projects').update(payload).eq('id', targetProj.id);
+              }
+            }
+          }
+        }
+      } else if (createIfNotExists && item.sigest && item.poligono) {
+        const newProj: Project = {
+          id: generateUUID(),
+          sigest: item.sigest.trim(),
+          poligono: item.poligono.trim(),
+          distrito: 'MONTE GRANDE',
+          central: item.central?.trim() || undefined,
+          titulo: item.titulo || `Proyecto ${item.sigest}/${item.poligono}`,
+          ejecutor: item.ejecutor || 'Obras',
+          ctos_count: 0,
+          alimentacion: 'NO',
+          situacion_operativa: 'En ejecución',
+          porcentaje_cumplimiento: newPct,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          created_by: 'Usuario Sistema (Importación Excel)'
+        };
+
+        this.projects.push(newProj);
+        createdCount++;
+        matchedCount++;
+
+        if (typeof window !== 'undefined') {
+          const supabase = createClient();
+          if (supabase) {
+            const payload: any = {
+              id: newProj.id,
+              sigest: newProj.sigest,
+              poligono: newProj.poligono,
+              central: newProj.central,
+              titulo: newProj.titulo,
+              ejecutor: newProj.ejecutor,
+              ctos_count: 0,
+              alimentacion: 'NO',
+              situacion_operativa: 'En ejecución',
+              porcentaje_cumplimiento: newPct,
+              created_at: newProj.created_at,
+              updated_at: newProj.updated_at,
+              created_by: newProj.created_by
+            };
+            const { error } = await supabase.from('projects').insert([payload]);
+            if (error && error.message?.includes('porcentaje_cumplimiento')) {
+              delete payload.porcentaje_cumplimiento;
+              await supabase.from('projects').insert([payload]);
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      updated: updatedCount,
+      created: createdCount,
+      matched: matchedCount
+    };
+  }
+
   async deleteProject(id: string): Promise<void> {
     await this.ensureLoaded();
     const index = this.projects.findIndex(p => p.id === id);
