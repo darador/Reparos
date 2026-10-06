@@ -351,7 +351,7 @@ export function RepairTable({
   return (
     <div className="space-y-2">
       {/* Sticky Bulk Action Banner */}
-      {selectedIds.length > 0 && (
+      {selectedIds.length > 0 && !hideActions && (
         <div className="bg-slate-900 text-white p-2.5 rounded flex items-center justify-between shadow-md text-xs animate-in fade-in duration-100">
           <div className="flex items-center gap-2 font-medium">
             <span className="bg-emerald-500 text-slate-950 font-black px-2 py-0.5 rounded-full font-mono text-[11px]">
@@ -381,17 +381,21 @@ export function RepairTable({
         <table className="data-table">
           <thead>
             <tr>
-              <th className="w-12 px-1 text-center whitespace-nowrap">
-                <div className="flex items-center gap-1 justify-center">
-                  <input
-                    type="checkbox"
-                    checked={sortedRepairs.length > 0 && selectedIds.length === sortedRepairs.length}
-                    onChange={toggleSelectAll}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer h-3.5 w-3.5"
-                    title="Seleccionar / deseleccionar todos los reparos"
-                  />
-                </div>
-              </th>
+              {!hideActions ? (
+                <th className="w-12 px-1 text-center whitespace-nowrap">
+                  <div className="flex items-center gap-1 justify-center">
+                    <input
+                      type="checkbox"
+                      checked={sortedRepairs.length > 0 && selectedIds.length === sortedRepairs.length}
+                      onChange={toggleSelectAll}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer h-3.5 w-3.5"
+                      title="Seleccionar / deseleccionar todos los reparos"
+                    />
+                  </div>
+                </th>
+              ) : (
+                <th className="w-6 px-1 text-center whitespace-nowrap"></th>
+              )}
               {renderSortHeader('project', 'SIGEST / POLÍGONO', 'whitespace-nowrap px-1.5')}
               {renderSortHeader('cumplimiento', '% CUMPL.', 'whitespace-nowrap px-1 justify-center text-center')}
               {renderSortHeader('central', 'CENTRAL', 'whitespace-nowrap px-1.5')}
@@ -448,13 +452,15 @@ export function RepairTable({
                   <tr className={`${rowBgClass} ${borderClass} transition-colors`}>
                     <td className="px-1 py-1 text-center whitespace-nowrap">
                       <div className="flex items-center gap-1 justify-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelectRow(repair.id)}
-                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer h-3.5 w-3.5"
-                          title="Seleccionar este reparo"
-                        />
+                        {!hideActions && (
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectRow(repair.id)}
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer h-3.5 w-3.5"
+                            title="Seleccionar este reparo"
+                          />
+                        )}
                         <button
                           onClick={() => toggleExpand(repair.id)}
                           className="p-0.5 text-slate-400 hover:text-slate-800 hover:bg-slate-200/80 rounded transition-colors"
@@ -890,7 +896,7 @@ export function RepairTable({
       )}
 
       {/* Log Bulk Event Modal */}
-      {isBulkModalOpen && selectedRepairs.length > 0 && (
+      {isBulkModalOpen && !hideActions && selectedRepairs.length > 0 && (
         <LogBulkEventModal
           isOpen={isBulkModalOpen}
           onClose={() => setIsBulkModalOpen(false)}
