@@ -41,6 +41,7 @@ export default function RepairsPage() {
   const [central, setCentral] = useState('all');
   const [onlyReiterated, setOnlyReiterated] = useState(false);
   const [selectedCumplimientos, setSelectedCumplimientos] = useState<number[]>([]);
+  const [hideFinalizedProjects, setHideFinalizedProjects] = useState(true);
   const [metricFilter, setMetricFilter] = useState<MetricFilterKey>('all');
 
   const loadRepairs = () => {
@@ -55,7 +56,8 @@ export default function RepairsPage() {
       distrito,
       central,
       onlyReiterated,
-      cumplimiento: selectedCumplimientos
+      cumplimiento: selectedCumplimientos,
+      excludeFinalizedProjects: hideFinalizedProjects && metricFilter !== 'finalized' && !selectedCumplimientos.includes(100)
     });
 
     let filtered = baseRepairs;
@@ -82,7 +84,7 @@ export default function RepairsPage() {
       setIsLoading(false);
     }
     init();
-  }, [search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated, selectedCumplimientos, metricFilter]);
+  }, [search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated, selectedCumplimientos, hideFinalizedProjects, metricFilter]);
 
   const handleCreateProject = async (data: any) => {
     await repository.createProject(data);
@@ -111,6 +113,7 @@ export default function RepairsPage() {
     setCentral('all');
     setOnlyReiterated(false);
     setSelectedCumplimientos([]);
+    setHideFinalizedProjects(true);
     setMetricFilter('all');
   };
 
@@ -232,6 +235,8 @@ export default function RepairsPage() {
         onOnlyReiteratedChange={setOnlyReiterated}
         selectedCumplimientos={selectedCumplimientos}
         onCumplimientoToggle={toggleCumplimiento}
+        hideFinalizedProjects={hideFinalizedProjects}
+        onHideFinalizedProjectsChange={setHideFinalizedProjects}
         repairStatuses={repository.getRepairStatuses()}
         responsibleParties={repository.getResponsibleParties()}
         repairTypes={repository.getRepairTypes()}

@@ -640,8 +640,17 @@ class DataRepository {
     onlyReiterated?: boolean;
     onlyPending?: boolean;
     cumplimiento?: number[];
+    excludeFinalizedProjects?: boolean;
   }): Repair[] {
     let list = (this.repairs || []).filter(Boolean).map(r => this.enrichRepair(r)).filter(Boolean);
+
+    if (filters?.excludeFinalizedProjects) {
+      list = list.filter(r => {
+        if (!r.project) return true;
+        const isFinalized = r.project.situacion_operativa === 'Finalizado' || r.project.porcentaje_cumplimiento === 100;
+        return !isFinalized;
+      });
+    }
 
     if (filters?.projectId) {
       list = list.filter(r => r.project_id === filters.projectId);

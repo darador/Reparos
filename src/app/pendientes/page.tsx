@@ -34,6 +34,7 @@ export default function PendingViewPage() {
   const [central, setCentral] = useState('all');
   const [onlyReiterated, setOnlyReiterated] = useState(false);
   const [selectedCumplimientos, setSelectedCumplimientos] = useState<number[]>([]);
+  const [hideFinalizedProjects, setHideFinalizedProjects] = useState(true);
 
   const resetFilters = () => {
     setSearch('');
@@ -46,6 +47,7 @@ export default function PendingViewPage() {
     setCentral('all');
     setOnlyReiterated(false);
     setSelectedCumplimientos([]);
+    setHideFinalizedProjects(true);
   };
 
   const toggleCumplimiento = (val: number) => {
@@ -77,7 +79,8 @@ export default function PendingViewPage() {
       distrito,
       central,
       onlyReiterated,
-      cumplimiento: selectedCumplimientos
+      cumplimiento: selectedCumplimientos,
+      excludeFinalizedProjects: hideFinalizedProjects && activeTab !== 'finalized' && !selectedCumplimientos.includes(100)
     });
 
     if (activeTab === 'verification') {
@@ -115,7 +118,7 @@ export default function PendingViewPage() {
       setIsLoading(false);
     }
     init();
-  }, [activeTab, search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated, selectedCumplimientos]);
+  }, [activeTab, search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated, selectedCumplimientos, hideFinalizedProjects]);
 
   const handleLogEvent = async (data: any) => {
     await repository.addRepairEvent(data);
@@ -163,6 +166,8 @@ export default function PendingViewPage() {
         onOnlyReiteratedChange={setOnlyReiterated}
         selectedCumplimientos={selectedCumplimientos}
         onCumplimientoToggle={toggleCumplimiento}
+        hideFinalizedProjects={hideFinalizedProjects}
+        onHideFinalizedProjectsChange={setHideFinalizedProjects}
         repairStatuses={repository.getRepairStatuses()}
         responsibleParties={repository.getResponsibleParties()}
         repairTypes={repository.getRepairTypes()}

@@ -47,6 +47,7 @@ export default function TableroResumenRootPage() {
   const [central, setCentral] = useState('all');
   const [onlyReiterated, setOnlyReiterated] = useState(false);
   const [selectedCumplimientos, setSelectedCumplimientos] = useState<number[]>([]);
+  const [hideFinalizedProjects, setHideFinalizedProjects] = useState(true);
 
   useEffect(() => {
     setIsAuthenticated(!!getStoredAuthUser());
@@ -63,6 +64,7 @@ export default function TableroResumenRootPage() {
     setCentral('all');
     setOnlyReiterated(false);
     setSelectedCumplimientos([]);
+    setHideFinalizedProjects(true);
   };
 
   const toggleCumplimiento = (val: number) => {
@@ -96,7 +98,8 @@ export default function TableroResumenRootPage() {
       distrito,
       central,
       onlyReiterated,
-      cumplimiento: selectedCumplimientos
+      cumplimiento: selectedCumplimientos,
+      excludeFinalizedProjects: hideFinalizedProjects && activeTab !== 'finalized' && !selectedCumplimientos.includes(100)
     });
 
     if (activeTab === 'verification') {
@@ -134,7 +137,7 @@ export default function TableroResumenRootPage() {
       setIsLoading(false);
     }
     init();
-  }, [activeTab, search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated, selectedCumplimientos]);
+  }, [activeTab, search, statusId, responsibleId, solicitante, priority, typeId, distrito, central, onlyReiterated, selectedCumplimientos, hideFinalizedProjects]);
 
   const getActiveFiltersList = () => {
     const active: string[] = [];
@@ -266,6 +269,8 @@ export default function TableroResumenRootPage() {
         onOnlyReiteratedChange={setOnlyReiterated}
         selectedCumplimientos={selectedCumplimientos}
         onCumplimientoToggle={toggleCumplimiento}
+        hideFinalizedProjects={hideFinalizedProjects}
+        onHideFinalizedProjectsChange={setHideFinalizedProjects}
         repairStatuses={repository.getRepairStatuses()}
         responsibleParties={repository.getResponsibleParties()}
         repairTypes={repository.getRepairTypes()}

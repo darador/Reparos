@@ -27,6 +27,8 @@ interface RepairFiltersProps {
   onOnlyReiteratedChange: (val: boolean) => void;
   selectedCumplimientos?: number[];
   onCumplimientoToggle?: (val: number) => void;
+  hideFinalizedProjects?: boolean;
+  onHideFinalizedProjectsChange?: (val: boolean) => void;
   repairStatuses: RepairStatus[];
   responsibleParties: ResponsibleParty[];
   repairTypes: RepairType[];
@@ -57,6 +59,8 @@ export function RepairFilters({
   onOnlyReiteratedChange,
   selectedCumplimientos = [],
   onCumplimientoToggle,
+  hideFinalizedProjects = true,
+  onHideFinalizedProjectsChange,
   repairStatuses,
   responsibleParties,
   repairTypes,
@@ -237,6 +241,19 @@ export function RepairFilters({
               </label>
             ))}
           </div>
+
+          {/* Ocultar Proyectos Finalizados Toggle */}
+          {onHideFinalizedProjectsChange && (
+            <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 font-medium select-none bg-slate-50 hover:bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-xs">
+              <input
+                type="checkbox"
+                checked={hideFinalizedProjects}
+                onChange={(e) => onHideFinalizedProjectsChange(e.target.checked)}
+                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span>Ocultar Proyectos Finalizados (100%)</span>
+            </label>
+          )}
 
           {activeFiltersCount > 0 && (
             <span className="bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded text-[11px] font-medium flex items-center gap-1">
