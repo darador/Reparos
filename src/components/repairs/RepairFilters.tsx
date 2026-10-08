@@ -229,7 +229,7 @@ export function RepairFilters({
           {/* Cumplimiento Checkboxes */}
           <div className="flex items-center gap-2">
             <span className="text-slate-500 font-medium text-xs">Cumplimiento:</span>
-            {[5, 20, 80, 100].map((val) => (
+            {[5, 20, 80, 90, 100].map((val) => (
               <label key={val} className="flex items-center gap-1 cursor-pointer text-slate-700 font-medium select-none">
                 <input
                   type="checkbox"
@@ -242,7 +242,7 @@ export function RepairFilters({
             ))}
           </div>
 
-          {/* Ocultar Proyectos Finalizados Toggle */}
+          {/* Ocultar Reparaciones Finalizadas Toggle */}
           {onHideFinalizedProjectsChange && (
             <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 font-medium select-none bg-slate-50 hover:bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-xs">
               <input
@@ -251,7 +251,7 @@ export function RepairFilters({
                 onChange={(e) => onHideFinalizedProjectsChange(e.target.checked)}
                 className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
-              <span>Ocultar Proyectos Finalizados (100%)</span>
+              <span>Ocultar Reparaciones Finalizadas</span>
             </label>
           )}
 

@@ -646,8 +646,7 @@ class DataRepository {
 
     if (filters?.excludeFinalizedProjects) {
       list = list.filter(r => {
-        if (!r.project) return true;
-        const isFinalized = r.project.situacion_operativa === 'Finalizado' || r.project.porcentaje_cumplimiento === 100;
+        const isFinalized = r.current_status?.name === 'FINALIZADO' || r.current_status?.category === 'closed';
         return !isFinalized;
       });
     }

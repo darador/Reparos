@@ -180,7 +180,7 @@ export default function ProjectsPage() {
                   )}
                 </div>
 
-                {[5, 20, 80, 100].map((val) => (
+                {[5, 20, 80, 90, 100].map((val) => (
                   <label
                     key={val}
                     className="flex items-center gap-2 px-2 py-1 hover:bg-slate-50 rounded cursor-pointer select-none text-xs font-mono font-medium text-slate-800"

@@ -36,7 +36,6 @@ export function MetricStrip({ metrics, activeFilter = 'all', onFilterChange }: M
         <div className="flex items-center gap-1.5">
           <span className="font-semibold text-slate-900 text-sm">{metrics.totalProjects}</span>
           <span className="text-slate-500 uppercase tracking-wider text-[11px]">Proyectos</span>
-          <span className="text-slate-400 font-normal">({metrics.activeProjects} en ejec.)</span>
         </div>
 
         <span className="text-slate-300 mx-0.5">|</span>
