@@ -1,6 +1,6 @@
 'use client';
 
-import { repository } from "@/lib/store/repository";
+import { normalizeCentral, repository } from "@/lib/store/repository";
 import { AlertCircle, CheckCircle2, FileSpreadsheet, Upload, X } from "lucide-react";
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
@@ -101,7 +101,7 @@ export function ImportCumplimientoModal({
         rawJson.forEach(row => {
           const sigest = String(row[sigestHeader || ''] || '').trim();
           const poligono = String(row[poligonoHeader || ''] || '').trim();
-          const central = String(row[centralHeader || ''] || '').trim();
+          const central = normalizeCentral(String(row[centralHeader || ''] || '')) || '';
           const rawPct = pctHeader ? row[pctHeader] : null;
 
           let pct: number | null = null;

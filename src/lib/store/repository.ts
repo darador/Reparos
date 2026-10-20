@@ -15,6 +15,21 @@ function generateUUID(): string {
   });
 }
 
+// Helper to normalize Central names (uppercase, single spaces, unified vowel accents while keeping Ñ)
+export function normalizeCentral(val?: string | null): string | undefined {
+  if (!val) return undefined;
+  const cleaned = val
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toUpperCase()
+    .replace(/[ÁÀÄÂ]/g, 'A')
+    .replace(/[ÉÈËÊ]/g, 'E')
+    .replace(/[ÍÌÏÎ]/g, 'I')
+    .replace(/[ÓÒÖÔ]/g, 'O')
+    .replace(/[ÚÙÜÛ]/g, 'U');
+  return cleaned || undefined;
+}
+
 // Supabase-Direct Data Store with strict Async Await confirmation & FK safety
 class DataRepository {
   public isLoaded: boolean = false;
@@ -91,11 +106,20 @@ class DataRepository {
 
       if (projRes.data) {
         this.projects = projRes.data.map(p => {
+          const updates: Record<string, string> = {};
           if (p.distrito && p.distrito.replace(/\s+/g, '').toUpperCase() === 'MONTEGRANDE') {
             p.distrito = 'MONTE GRANDE';
-            if (supabase) {
-              supabase.from('projects').update({ distrito: 'MONTE GRANDE' }).eq('id', p.id).then();
+            updates.distrito = 'MONTE GRANDE';
+          }
+          if (p.central) {
+            const normCentral = normalizeCentral(p.central);
+            if (normCentral && normCentral !== p.central) {
+              p.central = normCentral;
+              updates.central = normCentral;
             }
+          }
+          if (Object.keys(updates).length > 0 && supabase) {
+            supabase.from('projects').update(updates).eq('id', p.id).then();
           }
           return p;
         });
@@ -238,9 +262,9 @@ class DataRepository {
 
   getCentrales(): string[] {
     const list = this.projects
-      .map(p => p.central?.trim())
+      .map(p => normalizeCentral(p.central))
       .filter((c): c is string => !!c);
-    return Array.from(new Set(list)).sort();
+    return Array.from(new Set(list)).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
   }
 
   getSolicitantes(): string[] {
@@ -307,8 +331,8 @@ class DataRepository {
     }
 
     if (query?.central && query.central !== 'all') {
-      const targetCen = query.central.toLowerCase();
-      result = result.filter(p => (p.central || '').toLowerCase() === targetCen);
+      const targetCen = normalizeCentral(query.central);
+      result = result.filter(p => normalizeCentral(p.central) === targetCen);
     }
 
     if (query?.cumplimiento && query.cumplimiento.length > 0) {
@@ -354,10 +378,12 @@ class DataRepository {
     if (finalDistrito && finalDistrito.replace(/\s+/g, '').toUpperCase() === 'MONTEGRANDE') {
       finalDistrito = 'MONTE GRANDE';
     }
+    const finalCentral = normalizeCentral(data.central);
 
     const newProject: Project = {
       ...data,
       distrito: finalDistrito,
+      central: finalCentral,
       id: generateUUID(),
       ctos_count: Number(data.ctos_count) || 0,
       porcentaje_cumplimiento: data.porcentaje_cumplimiento !== undefined && data.porcentaje_cumplimiento !== null ? Number(data.porcentaje_cumplimiento) : null,
@@ -430,11 +456,13 @@ class DataRepository {
     if (finalDistrito && finalDistrito.replace(/\s+/g, '').toUpperCase() === 'MONTEGRANDE') {
       finalDistrito = 'MONTE GRANDE';
     }
+    const finalCentral = normalizeCentral(data.central !== undefined ? data.central : currentProject.central);
 
     const updated = {
       ...this.projects[index],
       ...data,
       distrito: finalDistrito,
+      central: finalCentral,
       ctos_count: data.ctos_count !== undefined ? Number(data.ctos_count) || 0 : this.projects[index].ctos_count,
       porcentaje_cumplimiento: data.porcentaje_cumplimiento !== undefined ? (data.porcentaje_cumplimiento === null ? null : Number(data.porcentaje_cumplimiento)) : this.projects[index].porcentaje_cumplimiento,
       updated_at: new Date().toISOString()
@@ -491,7 +519,7 @@ class DataRepository {
     for (const item of items) {
       const sigestNorm = (item.sigest || '').trim().toLowerCase();
       const poligonoNorm = (item.poligono || '').trim().toLowerCase();
-      const centralNorm = (item.central || '').trim().toLowerCase();
+      const centralNorm = normalizeCentral(item.central);
 
       if (!poligonoNorm) continue;
 
@@ -503,7 +531,7 @@ class DataRepository {
       if (matchedIndex === -1 && centralNorm && sigestNorm) {
         matchedIndex = this.projects.findIndex(p =>
           (p.poligono || '').trim().toLowerCase() === poligonoNorm &&
-          (p.central || '').trim().toLowerCase() === centralNorm
+          normalizeCentral(p.central) === centralNorm
         );
       }
 
@@ -530,9 +558,9 @@ class DataRepository {
                 porcentaje_cumplimiento: newPct,
                 updated_at: targetProj.updated_at
               };
-              if (item.central && !targetProj.central) {
-                payload.central = item.central;
-                targetProj.central = item.central;
+              if (centralNorm && !targetProj.central) {
+                payload.central = centralNorm;
+                targetProj.central = centralNorm;
               }
               const { error } = await supabase.from('projects').update(payload).eq('id', targetProj.id);
               if (error && error.message?.includes('porcentaje_cumplimiento')) {
@@ -548,7 +576,7 @@ class DataRepository {
           sigest: item.sigest.trim(),
           poligono: item.poligono.trim(),
           distrito: 'MONTE GRANDE',
-          central: item.central?.trim() || undefined,
+          central: centralNorm,
           titulo: item.titulo || `Proyecto ${item.sigest}/${item.poligono}`,
           ejecutor: item.ejecutor || 'Obras',
           ctos_count: 0,
@@ -739,8 +767,8 @@ class DataRepository {
     }
 
     if (filters?.central && filters.central !== 'all') {
-      const targetCen = filters.central.toLowerCase();
-      list = list.filter(r => (r.project?.central || '').toLowerCase() === targetCen);
+      const targetCen = normalizeCentral(filters.central);
+      list = list.filter(r => normalizeCentral(r.project?.central) === targetCen);
     }
 
     if (filters?.onlyReiterated) {
