@@ -35,7 +35,7 @@ const USERS = [
   { username: 'kozdronm', email: 'kozdronm@ftthreparos.com', full_name: 'Kozdronm', password: initialPassword },
   { username: 'jarae', email: 'jarae@ftthreparos.com', full_name: 'Jarae', password: initialPassword },
   { username: 'lopezfer', email: 'lopezfer@ftthreparos.com', full_name: 'Lopezfer', password: initialPassword },
-  { username: 'tujam', email: 'tujam@ftthreparos.com', full_name: 'Tujam', password: 'Obras2026' },
+  { username: 'tujam', email: 'tujam@ftthreparos.com', full_name: 'Tujam', password: 'Bera9090' },
 ];
 
 async function seed() {

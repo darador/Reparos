@@ -96,7 +96,7 @@ export async function loginWithUsernameAndPassword(usernameInput: string, passwo
 
   // Read custom password per user or fallback to default password
   const defaultPassword = process.env.INITIAL_USER_PASSWORD || 'Rojo2026';
-  const expectedPassword = normalized === 'tujam' ? 'Obras2026' : defaultPassword;
+  const expectedPassword = normalized === 'tujam' ? 'Bera9090' : defaultPassword;
 
   if (passwordInput !== expectedPassword) {
     return { success: false, error: 'Usuario o contraseña incorrectos.' };
