@@ -31,21 +31,21 @@ if (!supabaseUrl || !supabaseKey || !initialPassword) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const USERS = [
-  { username: 'adornor', email: 'adornor@ftthreparos.com', full_name: 'adornor' },
-  { username: 'kozdronm', email: 'kozdronm@ftthreparos.com', full_name: 'Kozdronm' },
-  { username: 'jarae', email: 'jarae@ftthreparos.com', full_name: 'Jarae' },
-  { username: 'lopezfer', email: 'lopezfer@ftthreparos.com', full_name: 'Lopezfer' },
-  { username: 'tujam', email: 'tujam@ftthreparos.com', full_name: 'Tujam' },
+  { username: 'adornor', email: 'adornor@ftthreparos.com', full_name: 'adornor', password: initialPassword },
+  { username: 'kozdronm', email: 'kozdronm@ftthreparos.com', full_name: 'Kozdronm', password: initialPassword },
+  { username: 'jarae', email: 'jarae@ftthreparos.com', full_name: 'Jarae', password: initialPassword },
+  { username: 'lopezfer', email: 'lopezfer@ftthreparos.com', full_name: 'Lopezfer', password: initialPassword },
+  { username: 'tujam', email: 'tujam@ftthreparos.com', full_name: 'Tujam', password: 'Obras2026' },
 ];
 
 async function seed() {
-  console.log("Seeding 4 internal users in Supabase Auth...");
+  console.log("Seeding internal users in Supabase Auth...");
 
   for (const user of USERS) {
     try {
       const { data, error } = await supabase.auth.signUp({
         email: user.email,
-        password: initialPassword,
+        password: user.password || initialPassword,
         options: {
           data: {
             username: user.username,

@@ -94,8 +94,9 @@ export async function loginWithUsernameAndPassword(usernameInput: string, passwo
     return { success: false, error: 'Usuario o contraseña incorrectos.' };
   }
 
-  // Read environment variable for initial password or default
-  const expectedPassword = process.env.INITIAL_USER_PASSWORD || 'Rojo2026';
+  // Read custom password per user or fallback to default password
+  const defaultPassword = process.env.INITIAL_USER_PASSWORD || 'Rojo2026';
+  const expectedPassword = normalized === 'tujam' ? 'Obras2026' : defaultPassword;
 
   if (passwordInput !== expectedPassword) {
     return { success: false, error: 'Usuario o contraseña incorrectos.' };
