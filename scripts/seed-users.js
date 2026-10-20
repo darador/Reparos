@@ -35,6 +35,7 @@ const USERS = [
   { username: 'kozdronm', email: 'kozdronm@ftthreparos.com', full_name: 'Kozdronm' },
   { username: 'jarae', email: 'jarae@ftthreparos.com', full_name: 'Jarae' },
   { username: 'lopezfer', email: 'lopezfer@ftthreparos.com', full_name: 'Lopezfer' },
+  { username: 'tujam', email: 'tujam@ftthreparos.com', full_name: 'Tujam' },
 ];
 
 async function seed() {

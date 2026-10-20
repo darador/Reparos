@@ -1,6 +1,6 @@
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
 
-export const ALLOWED_USERS = ['adornor', 'kozdronm', 'jarae', 'lopezfer'] as const;
+export const ALLOWED_USERS = ['adornor', 'kozdronm', 'jarae', 'lopezfer', 'tujam'] as const;
 
 export type AllowedUsername = typeof ALLOWED_USERS[number];
 
@@ -9,6 +9,7 @@ export const USER_DISPLAY_NAMES: Record<AllowedUsername, string> = {
   kozdronm: 'Kozdronm',
   jarae: 'Jarae',
   lopezfer: 'Lopezfer',
+  tujam: 'Tujam',
 };
 
 export function normalizeUsername(username: string): string {

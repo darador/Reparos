@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 const PROTECTED_PREFIXES = ['/reparos', '/proyectos', '/pendientes', '/configuracion'];
-const ALLOWED_USERNAMES = ['adornor', 'kozdronm', 'jarae', 'lopezfer'];
+const ALLOWED_USERNAMES = ['adornor', 'kozdronm', 'jarae', 'lopezfer', 'tujam'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
