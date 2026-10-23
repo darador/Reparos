@@ -88,8 +88,14 @@ export default function TableroResumenRootPage() {
       finalized: allRepairsRaw.filter(r => r.current_status?.category === 'closed' || r.current_status?.name === 'FINALIZADO').length
     });
 
+    // Si hay un término de búsqueda en la lupa, busca en el listado total sin restringir por pestaña ni filtros
+    if (search.trim()) {
+      const searchResults = repository.getRepairs({ search: search.trim() });
+      setRepairs(searchResults);
+      return;
+    }
+
     const filteredBase = repository.getRepairs({
-      search,
       statusId,
       responsibleId,
       solicitante,
@@ -141,37 +147,40 @@ export default function TableroResumenRootPage() {
 
   const getActiveFiltersList = () => {
     const active: string[] = [];
-    if (search.trim()) active.push(`Búsqueda: "${search.trim()}"`);
-    if (statusId !== 'all') {
-      const st = repository.getRepairStatuses().find(s => s.id === statusId);
-      if (st) active.push(`Estado: ${st.name}`);
-    }
-    if (responsibleId !== 'all') {
-      if (responsibleId.startsWith('sector:')) {
-        active.push(`Sector: ${responsibleId.replace('sector:', '')}`);
-      } else {
-        const resp = repository.getResponsibleParties().find(r => r.id === responsibleId);
-        if (resp) active.push(`Responsable: ${resp.name}`);
+    if (search.trim()) {
+      active.push(`Búsqueda en listado total: "${search.trim()}"`);
+    } else {
+      if (statusId !== 'all') {
+        const st = repository.getRepairStatuses().find(s => s.id === statusId);
+        if (st) active.push(`Estado: ${st.name}`);
       }
-    }
-    if (solicitante !== 'all') {
-      active.push(`Solicitante: ${solicitante}`);
-    }
-    if (priority !== 'all') active.push(`Prioridad: ${priority}`);
-    if (typeId !== 'all') {
-      const tp = repository.getRepairTypes().find(t => t.id === typeId);
-      if (tp) active.push(`Tipo: ${tp.name}`);
-    }
-    if (distrito !== 'all') active.push(`Distrito: ${distrito}`);
-    if (central !== 'all') active.push(`Central: ${central}`);
-    if (onlyReiterated) active.push(`Solo Reiterados`);
-    if (selectedCumplimientos.length > 0) active.push(`Cumplimiento: ${selectedCumplimientos.map(c => `${c}%`).join(', ')}`);
-    if (activeTab !== 'all') {
-      if (activeTab === 'unassigned') active.push(`Pestaña: Sin Responsable`);
-      if (activeTab === 'critical') active.push(`Pestaña: Urgentes`);
-      if (activeTab === 'reiterated') active.push(`Pestaña: Reiterados`);
-      if (activeTab === 'verification') active.push(`Pestaña: Para Verificar`);
-      if (activeTab === 'finalized') active.push(`Pestaña: Finalizados`);
+      if (responsibleId !== 'all') {
+        if (responsibleId.startsWith('sector:')) {
+          active.push(`Sector: ${responsibleId.replace('sector:', '')}`);
+        } else {
+          const resp = repository.getResponsibleParties().find(r => r.id === responsibleId);
+          if (resp) active.push(`Responsable: ${resp.name}`);
+        }
+      }
+      if (solicitante !== 'all') {
+        active.push(`Solicitante: ${solicitante}`);
+      }
+      if (priority !== 'all') active.push(`Prioridad: ${priority}`);
+      if (typeId !== 'all') {
+        const tp = repository.getRepairTypes().find(t => t.id === typeId);
+        if (tp) active.push(`Tipo: ${tp.name}`);
+      }
+      if (distrito !== 'all') active.push(`Distrito: ${distrito}`);
+      if (central !== 'all') active.push(`Central: ${central}`);
+      if (onlyReiterated) active.push(`Solo Reiterados`);
+      if (selectedCumplimientos.length > 0) active.push(`Cumplimiento: ${selectedCumplimientos.map(c => `${c}%`).join(', ')}`);
+      if (activeTab !== 'all') {
+        if (activeTab === 'unassigned') active.push(`Pestaña: Sin Responsable`);
+        if (activeTab === 'critical') active.push(`Pestaña: Urgentes`);
+        if (activeTab === 'reiterated') active.push(`Pestaña: Reiterados`);
+        if (activeTab === 'verification') active.push(`Pestaña: Para Verificar`);
+        if (activeTab === 'finalized') active.push(`Pestaña: Finalizados`);
+      }
     }
     return active;
   };
@@ -228,7 +237,9 @@ export default function TableroResumenRootPage() {
       <MetricStrip
         metrics={metrics}
         activeFilter={
-          activeTab === 'verification'
+          search.trim()
+            ? undefined
+            : activeTab === 'verification'
             ? 'resolved'
             : activeTab === 'finalized'
             ? 'finalized'
@@ -239,6 +250,7 @@ export default function TableroResumenRootPage() {
             : 'all'
         }
         onFilterChange={(key) => {
+          setSearch('');
           if (key === 'resolved') setActiveTab('verification');
           else if (key === 'finalized') setActiveTab('finalized');
           else if (key === 'reiterated') setActiveTab('reiterated');
@@ -282,9 +294,12 @@ export default function TableroResumenRootPage() {
       {/* Tabs de Filtro */}
       <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 text-xs font-medium bg-white p-1.5 rounded border">
         <button
-          onClick={() => setActiveTab('all')}
+          onClick={() => {
+            setSearch('');
+            setActiveTab('all');
+          }}
           className={`px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-            activeTab === 'all'
+            activeTab === 'all' && !search.trim()
               ? 'bg-slate-900 text-white font-semibold shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -294,9 +309,12 @@ export default function TableroResumenRootPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('unassigned')}
+          onClick={() => {
+            setSearch('');
+            setActiveTab('unassigned');
+          }}
           className={`px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-            activeTab === 'unassigned'
+            activeTab === 'unassigned' && !search.trim()
               ? 'bg-slate-900 text-white font-semibold shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -306,9 +324,12 @@ export default function TableroResumenRootPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('critical')}
+          onClick={() => {
+            setSearch('');
+            setActiveTab('critical');
+          }}
           className={`px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-            activeTab === 'critical'
+            activeTab === 'critical' && !search.trim()
               ? 'bg-slate-900 text-white font-semibold shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -318,9 +339,12 @@ export default function TableroResumenRootPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('reiterated')}
+          onClick={() => {
+            setSearch('');
+            setActiveTab('reiterated');
+          }}
           className={`px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-            activeTab === 'reiterated'
+            activeTab === 'reiterated' && !search.trim()
               ? 'bg-slate-900 text-white font-semibold shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -330,9 +354,12 @@ export default function TableroResumenRootPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('verification')}
+          onClick={() => {
+            setSearch('');
+            setActiveTab('verification');
+          }}
           className={`px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-            activeTab === 'verification'
+            activeTab === 'verification' && !search.trim()
               ? 'bg-slate-900 text-white font-semibold shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -342,9 +369,12 @@ export default function TableroResumenRootPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('finalized')}
+          onClick={() => {
+            setSearch('');
+            setActiveTab('finalized');
+          }}
           className={`px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-            activeTab === 'finalized'
+            activeTab === 'finalized' && !search.trim()
               ? 'bg-slate-900 text-white font-semibold shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -353,6 +383,25 @@ export default function TableroResumenRootPage() {
           <span>Finalizados ({counts.finalized})</span>
         </button>
       </div>
+
+      {/* Banner de búsqueda en listado total */}
+      {search.trim() && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-900 px-3 py-2 rounded flex items-center justify-between text-xs animate-in fade-in duration-100">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-blue-950">🔍 Búsqueda en el listado total:</span>
+            <span className="font-mono bg-blue-100 px-1.5 py-0.5 rounded text-blue-900 font-semibold">"{search.trim()}"</span>
+            <span className="bg-blue-600 text-white font-mono font-bold px-2 py-0.5 rounded-full text-[11px]">
+              {repairs.length} {repairs.length === 1 ? 'reparo encontrado' : 'reparos encontrados'}
+            </span>
+          </div>
+          <button
+            onClick={() => setSearch('')}
+            className="text-blue-700 hover:text-blue-950 font-semibold underline text-xs cursor-pointer"
+          >
+            Quitar búsqueda y ver pestañas
+          </button>
+        </div>
+      )}
 
       {/* Tabla Resumen idéntica con hideActions={true} */}
       <RepairTable

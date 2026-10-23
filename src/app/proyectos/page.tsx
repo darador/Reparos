@@ -41,7 +41,11 @@ export default function ProjectsPage() {
 
   const loadProjects = () => {
     setMetrics(repository.getDashboardMetrics());
-    setProjects(repository.getProjects({ search, status, distrito, central, cumplimiento: selectedCumplimientos }));
+    if (search.trim()) {
+      setProjects(repository.getProjects({ search: search.trim() }));
+      return;
+    }
+    setProjects(repository.getProjects({ status, distrito, central, cumplimiento: selectedCumplimientos }));
   };
 
   useEffect(() => {
@@ -240,6 +244,25 @@ export default function ProjectsPage() {
           </select>
         </div>
       </div>
+
+      {/* Banner de búsqueda en listado total */}
+      {search.trim() && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-900 px-3 py-2 rounded flex items-center justify-between text-xs animate-in fade-in duration-100">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-blue-950">🔍 Búsqueda en el listado total:</span>
+            <span className="font-mono bg-blue-100 px-1.5 py-0.5 rounded text-blue-900 font-semibold">"{search.trim()}"</span>
+            <span className="bg-blue-600 text-white font-mono font-bold px-2 py-0.5 rounded-full text-[11px]">
+              {projects.length} {projects.length === 1 ? 'proyecto encontrado' : 'proyectos encontrados'}
+            </span>
+          </div>
+          <button
+            onClick={() => setSearch('')}
+            className="text-blue-700 hover:text-blue-950 font-semibold underline text-xs cursor-pointer"
+          >
+            Quitar búsqueda y ver listado filtrado
+          </button>
+        </div>
+      )}
 
       {/* Table or Loading State */}
       {isLoading ? (

@@ -684,14 +684,16 @@ class DataRepository {
     }
 
     if (filters?.search) {
-      const q = filters.search.toLowerCase();
+      const q = filters.search.toLowerCase().trim();
       list = list.filter(r => 
         (r.description || '').toLowerCase().includes(q) ||
         (r.project?.sigest || '').toLowerCase().includes(q) ||
         (r.project?.poligono || '').toLowerCase().includes(q) ||
         (r.project?.distrito && r.project.distrito.toLowerCase().includes(q)) ||
         (r.project?.central && r.project.central.toLowerCase().includes(q)) ||
-        (r.solicitante && r.solicitante.toLowerCase().includes(q))
+        (r.solicitante && r.solicitante.toLowerCase().includes(q)) ||
+        (r.current_responsible?.name && r.current_responsible.name.toLowerCase().includes(q)) ||
+        (r.current_status?.name && r.current_status.name.toLowerCase().includes(q))
       );
     }
 

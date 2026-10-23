@@ -69,8 +69,14 @@ export default function PendingViewPage() {
       finalized: allRepairsRaw.filter(r => r.current_status?.category === 'closed' || r.current_status?.name === 'FINALIZADO').length
     });
 
+    // Si hay un término de búsqueda en la lupa, busca en el listado total sin restringir por pestaña ni filtros
+    if (search.trim()) {
+      const allMatching = repository.getRepairs({ search: search.trim() });
+      setRepairs(allMatching);
+      return;
+    }
+
     const filteredBase = repository.getRepairs({
-      search,
       statusId,
       responsibleId,
       solicitante,
@@ -179,9 +185,12 @@ export default function PendingViewPage() {
       {/* Tabs */}
       <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 text-xs font-medium bg-white p-1.5 rounded border">
         <button
-          onClick={() => setActiveTab('all')}
+          onClick={() => {
+            setSearch('');
+            setActiveTab('all');
+          }}
           className={`px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-            activeTab === 'all'
+            activeTab === 'all' && !search.trim()
               ? 'bg-slate-900 text-white font-semibold shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -191,9 +200,12 @@ export default function PendingViewPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('unassigned')}
+          onClick={() => {
+            setSearch('');
+            setActiveTab('unassigned');
+          }}
           className={`px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-            activeTab === 'unassigned'
+            activeTab === 'unassigned' && !search.trim()
               ? 'bg-slate-900 text-white font-semibold shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -203,9 +215,12 @@ export default function PendingViewPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('critical')}
+          onClick={() => {
+            setSearch('');
+            setActiveTab('critical');
+          }}
           className={`px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-            activeTab === 'critical'
+            activeTab === 'critical' && !search.trim()
               ? 'bg-slate-900 text-white font-semibold shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -215,9 +230,12 @@ export default function PendingViewPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('reiterated')}
+          onClick={() => {
+            setSearch('');
+            setActiveTab('reiterated');
+          }}
           className={`px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-            activeTab === 'reiterated'
+            activeTab === 'reiterated' && !search.trim()
               ? 'bg-slate-900 text-white font-semibold shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -227,9 +245,12 @@ export default function PendingViewPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('verification')}
+          onClick={() => {
+            setSearch('');
+            setActiveTab('verification');
+          }}
           className={`px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-            activeTab === 'verification'
+            activeTab === 'verification' && !search.trim()
               ? 'bg-slate-900 text-white font-semibold shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -239,9 +260,12 @@ export default function PendingViewPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('finalized')}
+          onClick={() => {
+            setSearch('');
+            setActiveTab('finalized');
+          }}
           className={`px-3 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-            activeTab === 'finalized'
+            activeTab === 'finalized' && !search.trim()
               ? 'bg-slate-900 text-white font-semibold shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -250,6 +274,25 @@ export default function PendingViewPage() {
           <span>Finalizados ({counts.finalized})</span>
         </button>
       </div>
+
+      {/* Banner de búsqueda en listado total */}
+      {search.trim() && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-900 px-3 py-2 rounded flex items-center justify-between text-xs animate-in fade-in duration-100">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-blue-950">🔍 Búsqueda en el listado total:</span>
+            <span className="font-mono bg-blue-100 px-1.5 py-0.5 rounded text-blue-900 font-semibold">"{search.trim()}"</span>
+            <span className="bg-blue-600 text-white font-mono font-bold px-2 py-0.5 rounded-full text-[11px]">
+              {repairs.length} {repairs.length === 1 ? 'reparo encontrado' : 'reparos encontrados'}
+            </span>
+          </div>
+          <button
+            onClick={() => setSearch('')}
+            className="text-blue-700 hover:text-blue-950 font-semibold underline text-xs cursor-pointer"
+          >
+            Quitar búsqueda y ver pestañas
+          </button>
+        </div>
+      )}
 
       {/* Repairs Table or Loading State */}
       {isLoading ? (
