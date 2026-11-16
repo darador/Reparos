@@ -62,10 +62,27 @@ function normalizeCategoryName(sheetName: string): MopCategory | null {
 }
 
 function findColumnHeader(headers: string[], candidates: string[]): string | undefined {
-  return headers.find(h => {
-    const norm = h.trim().toLowerCase().replace(/[\s_\-]+/g, ' ');
-    return candidates.some(c => norm === c.toLowerCase() || norm.includes(c.toLowerCase()));
-  });
+  // 1. Prioridad: Coincidencia EXACTA respetando el orden de candidatos
+  for (const candidate of candidates) {
+    const candNorm = candidate.trim().toLowerCase().replace(/[\s_\-]+/g, ' ');
+    const found = headers.find(h => {
+      const norm = h.trim().toLowerCase().replace(/[\s_\-]+/g, ' ');
+      return norm === candNorm;
+    });
+    if (found) return found;
+  }
+
+  // 2. Si no hay coincidencia exacta, buscar donde el encabezado contenga el candidato completo
+  for (const candidate of candidates) {
+    const candNorm = candidate.trim().toLowerCase().replace(/[\s_\-]+/g, ' ');
+    const found = headers.find(h => {
+      const norm = h.trim().toLowerCase().replace(/[\s_\-]+/g, ' ');
+      return norm.includes(candNorm);
+    });
+    if (found) return found;
+  }
+
+  return undefined;
 }
 
 function cleanString(val: any): string {
@@ -274,46 +291,50 @@ class MopService {
 
   /**
    * Resumen de métricas superiores respetando filtros cuando corresponda
+   * Utiliza count: 'exact' y head: true para evitar el límite de 1000 filas de PostgREST
    */
   async getMopMetrics(params: GetMopCtosParams = {}): Promise<MopMetrics> {
     const supabase = createClient();
     if (supabase) {
       try {
-        let baseQuery = supabase.from('mop_ctos').select('estado, is_ausente');
+        const buildBase = (extraFilter?: (q: any) => any) => {
+          let q = supabase.from('mop_ctos').select('*', { count: 'exact', head: true });
+          if (params.categoria && params.categoria !== 'all') {
+            q = q.eq('categoria_origen', params.categoria);
+          }
+          if (params.responsable && params.responsable !== 'all') {
+            q = q.eq('responsable_cto', params.responsable);
+          }
+          if (params.central && params.central !== 'all') {
+            q = q.eq('central', params.central);
+          }
+          if (params.search && params.search.trim()) {
+            const t = params.search.trim();
+            q = q.or(`sigest.ilike.%${t}%,poligono.ilike.%${t}%,cto.ilike.%${t}%`);
+          }
+          if (extraFilter) {
+            q = extraFilter(q);
+          }
+          return q;
+        };
 
-        if (params.categoria && params.categoria !== 'all') {
-          baseQuery = baseQuery.eq('categoria_origen', params.categoria);
-        }
-        if (params.responsable && params.responsable !== 'all') {
-          baseQuery = baseQuery.eq('responsable_cto', params.responsable);
-        }
-        if (params.central && params.central !== 'all') {
-          baseQuery = baseQuery.eq('central', params.central);
-        }
-        if (params.search && params.search.trim()) {
-          const t = params.search.trim();
-          baseQuery = baseQuery.or(`sigest.ilike.%${t}%,poligono.ilike.%${t}%,cto.ilike.%${t}%`);
-        }
+        const [totalRes, pendRes, compRes, repRes, ausRes] = await Promise.all([
+          buildBase(),
+          buildBase(q => q.eq('estado', 'PENDIENTE')),
+          buildBase(q => q.eq('estado', 'COMPLETADO')),
+          buildBase(q => q.eq('estado', 'CON REPARO')),
+          buildBase(q => q.eq('is_ausente', true))
+        ]);
 
-        const { data, error } = await baseQuery;
-        if (!error && data) {
-          const total = data.length;
-          let pendientes = 0;
-          let completadas = 0;
-          let conReparo = 0;
-          let ausentes = 0;
-
-          data.forEach(r => {
-            if (r.estado === 'PENDIENTE') pendientes++;
-            if (r.estado === 'COMPLETADO') completadas++;
-            if (r.estado === 'CON REPARO') conReparo++;
-            if (r.is_ausente) ausentes++;
-          });
-
-          return { total, pendientes, completadas, conReparo, ausentes };
-        }
+        return {
+          total: totalRes.count ?? 0,
+          pendientes: pendRes.count ?? 0,
+          completadas: compRes.count ?? 0,
+          conReparo: repRes.count ?? 0,
+          ausentes: ausRes.count ?? 0
+        };
       } catch (e) {
-        // Fallback
+        console.warn("Supabase count query exception:", e);
       }
     }
 
@@ -341,19 +362,34 @@ class MopService {
     const supabase = createClient();
     if (supabase) {
       try {
-        const { data, error } = await supabase.from('mop_ctos').select('responsable_cto, central');
-        if (!error && data) {
-          const respSet = new Set<string>();
-          const centSet = new Set<string>();
-          data.forEach(d => {
-            if (d.responsable_cto) respSet.add(d.responsable_cto.trim());
-            if (d.central) centSet.add(d.central.trim());
-          });
-          return {
-            responsables: Array.from(respSet).sort((a, b) => a.localeCompare(b, 'es')),
-            centrales: Array.from(centSet).sort((a, b) => a.localeCompare(b, 'es'))
-          };
+        const respSet = new Set<string>();
+        const centSet = new Set<string>();
+        let from = 0;
+        const step = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from('mop_ctos')
+            .select('responsable_cto, central')
+            .range(from, from + step - 1);
+
+          if (!error && data && data.length > 0) {
+            data.forEach(d => {
+              if (d.responsable_cto) respSet.add(d.responsable_cto.trim());
+              if (d.central) centSet.add(d.central.trim());
+            });
+            if (data.length < step) hasMore = false;
+            else from += step;
+          } else {
+            hasMore = false;
+          }
         }
+
+        return {
+          responsables: Array.from(respSet).sort((a, b) => a.localeCompare(b, 'es')),
+          centrales: Array.from(centSet).sort((a, b) => a.localeCompare(b, 'es'))
+        };
       } catch (e) {
         // Fallback
       }
@@ -514,15 +550,15 @@ class MopService {
       const firstRow = rawRows[0];
       const headers = Object.keys(firstRow);
 
-      // Detectar columnas necesarias con tolerancia a mayúsculas, tildes y espacios
-      const colSigest = findColumnHeader(headers, ['sigest cto', 'sigest', 'sisvadi', 'proyecto']);
-      const colPoligono = findColumnHeader(headers, ['poligono cto', 'polígono cto', 'poligono', 'polígono']);
+      // Detectar columnas necesarias con prioridad exacta según especificación
+      const colSigest = findColumnHeader(headers, ['sigest cto', 'sigest_cto', 'sigestcto', 'sigest']);
+      const colPoligono = findColumnHeader(headers, ['poligono cto', 'polígono cto', 'poligono_cto', 'poligono', 'polígono']);
       const colCto = findColumnHeader(headers, ['cto']);
       const colCentral = findColumnHeader(headers, ['central']);
       const colPelo = findColumnHeader(headers, ['pelo']);
-      const colInstToa = findColumnHeader(headers, ['instalación cto (toa)', 'instalacion cto (toa)', 'instalacion toa', 'instalacion cto']);
-      const colCertToa = findColumnHeader(headers, ['certificación cto (toa)', 'certificacion cto (toa)', 'certificacion toa', 'certificacion cto']);
-      const colRespCto = findColumnHeader(headers, ['responsable cto', 'responsable', 'ejecutor']);
+      const colInstToa = findColumnHeader(headers, ['instalación cto (toa)', 'instalacion cto (toa)', 'instalacion cto toa', 'instalacion toa', 'instalacion cto']);
+      const colCertToa = findColumnHeader(headers, ['certificación cto (toa)', 'certificacion cto (toa)', 'certificacion cto toa', 'certificacion toa', 'certificacion cto']);
+      const colRespCto = findColumnHeader(headers, ['responsable cto', 'responsable_cto', 'responsable']);
 
       const missingCols: string[] = [];
       if (!colSigest) missingCols.push('Sigest CTO');
@@ -646,19 +682,34 @@ class MopService {
 
     if (supabase) {
       try {
-        const { data, error } = await supabase.from('mop_ctos').select('id, sigest, poligono, cto, estado, observacion, fecha_primera_aparicion');
-        if (!error && data) {
-          data.forEach(d => {
-            const key = buildCompositeKey(d.sigest, d.poligono, d.cto);
-            map.set(key, {
-              id: d.id,
-              estado: d.estado,
-              observacion: d.observacion,
-              fecha_primera_aparicion: d.fecha_primera_aparicion
+        let from = 0;
+        const step = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from('mop_ctos')
+            .select('id, sigest, poligono, cto, estado, observacion, fecha_primera_aparicion')
+            .range(from, from + step - 1);
+
+          if (!error && data && data.length > 0) {
+            data.forEach(d => {
+              const key = buildCompositeKey(d.sigest, d.poligono, d.cto);
+              map.set(key, {
+                id: d.id,
+                estado: d.estado,
+                observacion: d.observacion,
+                fecha_primera_aparicion: d.fecha_primera_aparicion
+              });
             });
-          });
-          return map;
+            if (data.length < step) hasMore = false;
+            else from += step;
+          } else {
+            hasMore = false;
+          }
         }
+
+        return map;
       } catch (e) {
         // Fallback
       }

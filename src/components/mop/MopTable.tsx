@@ -113,8 +113,8 @@ export function MopTable({
         <table className="data-table">
           <thead>
             <tr>
-              {/* 1. Sigest / Polígono */}
-              {renderSortHeader('sigest', '1. Sigest / Polígono', 'min-w-[140px]')}
+              {/* 1. Sigest CTO / Polígono */}
+              {renderSortHeader('sigest', '1. Sigest CTO / Polígono', 'min-w-[150px]')}
               {/* 2. Central */}
               {renderSortHeader('central', '2. Central', 'min-w-[100px]')}
               {/* 3. CTO */}
