@@ -10,7 +10,7 @@ import { MetricFilterKey, MetricStrip } from "@/components/shared/MetricStrip";
 import { LogEventModal } from "@/components/timeline/LogEventModal";
 import { repository } from "@/lib/store/repository";
 import { DashboardMetrics, Repair } from "@/lib/types/database";
-import { Building2, FileText, FolderGit2, Plus, Wrench } from "lucide-react";
+import { FileText, FolderGit2, Plus, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function RepairsPage() {
@@ -290,44 +290,6 @@ export default function RepairsPage() {
           >
             Quitar búsqueda y ver listado filtrado
           </button>
-        </div>
-      )}
-
-      {/* Banner de Polígonos con reparos pendientes */}
-      {metricFilter === 'poligonos_pending' && !search.trim() && (
-        <div className="bg-indigo-50 border border-indigo-200 text-indigo-950 p-3 rounded text-xs space-y-2 animate-in fade-in duration-100 shadow-2xs">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-sm text-indigo-950 flex items-center gap-1.5">
-                <Building2 className="h-4 w-4 text-indigo-600" />
-                <span>{metrics.poligonosConReparosPendientesCount ?? 0} Polígonos con reparos pendientes</span>
-              </span>
-              <span className="bg-indigo-100 text-indigo-800 font-mono font-bold px-2 py-0.5 rounded-full text-[11px] border border-indigo-200">
-                {repairs.length} {repairs.length === 1 ? 'reparo pendiente' : 'reparos pendientes en total'}
-              </span>
-            </div>
-            <span className="text-[11px] text-indigo-700">
-              Listado ordenado por polígono. Haz clic en cualquier polígono para filtrar:
-            </span>
-          </div>
-
-          {(metrics.poligonosConReparos || []).filter(p => p.pendingRepairs > 0).length > 0 && (
-            <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-1.5 bg-white/80 rounded border border-indigo-100">
-              {(metrics.poligonosConReparos || []).filter(p => p.pendingRepairs > 0).map(pol => (
-                <button
-                  key={pol.poligono}
-                  onClick={() => setSearch(pol.poligono)}
-                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-white hover:bg-indigo-100 text-indigo-900 border border-indigo-200 hover:border-indigo-400 transition-colors cursor-pointer shadow-2xs"
-                  title={`${pol.poligono} | ${pol.pendingRepairs} pendiente(s) | Central: ${pol.central || '-'} | Distrito: ${pol.distrito || '-'}`}
-                >
-                  <span className="font-bold">{pol.poligono}</span>
-                  <span className="bg-indigo-600 text-white font-sans text-[10px] font-bold px-1 rounded-full">
-                    {pol.pendingRepairs}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       )}
 

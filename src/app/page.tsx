@@ -8,7 +8,7 @@ import { MetricFilterKey, MetricStrip } from "@/components/shared/MetricStrip";
 import { getStoredAuthUser } from "@/lib/auth";
 import { repository } from "@/lib/store/repository";
 import { DashboardMetrics, Repair } from "@/lib/types/database";
-import { AlertCircle, AlertTriangle, Building2, CheckCircle2, FileText, LayoutDashboard, LogIn, MapPin, UserX, Wrench } from "lucide-react";
+import { AlertCircle, AlertTriangle, Building2, CheckCircle2, FileText, LayoutDashboard, LogIn, UserX, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -218,8 +218,6 @@ export default function TableroResumenRootPage() {
       />
     );
   }
-
-  const poligonosConPendientesList = (metrics.poligonosConReparos || []).filter(p => p.pendingRepairs > 0);
 
   return (
     <div className="space-y-4">
@@ -447,44 +445,6 @@ export default function TableroResumenRootPage() {
           >
             Quitar búsqueda y ver pestañas
           </button>
-        </div>
-      )}
-
-      {/* Banner de Polígonos con reparos pendientes */}
-      {activeTab === 'poligonos_pending' && !search.trim() && (
-        <div className="bg-indigo-50 border border-indigo-200 text-indigo-950 p-3 rounded text-xs space-y-2 animate-in fade-in duration-100 shadow-2xs">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-sm text-indigo-950 flex items-center gap-1.5">
-                <Building2 className="h-4 w-4 text-indigo-600" />
-                <span>{counts.poligonosPending} Polígonos con reparos pendientes</span>
-              </span>
-              <span className="bg-indigo-100 text-indigo-800 font-mono font-bold px-2 py-0.5 rounded-full text-[11px] border border-indigo-200">
-                {repairs.length} {repairs.length === 1 ? 'reparo pendiente' : 'reparos pendientes en total'}
-              </span>
-            </div>
-            <span className="text-[11px] text-indigo-700">
-              Listado ordenado por polígono. Haz clic en cualquier polígono para filtrar:
-            </span>
-          </div>
-
-          {poligonosConPendientesList.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-1.5 bg-white/80 rounded border border-indigo-100">
-              {poligonosConPendientesList.map(pol => (
-                <button
-                  key={pol.poligono}
-                  onClick={() => setSearch(pol.poligono)}
-                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-white hover:bg-indigo-100 text-indigo-900 border border-indigo-200 hover:border-indigo-400 transition-colors cursor-pointer shadow-2xs"
-                  title={`${pol.poligono} | ${pol.pendingRepairs} pendiente(s) | Central: ${pol.central || '-'} | Distrito: ${pol.distrito || '-'}`}
-                >
-                  <span className="font-bold">{pol.poligono}</span>
-                  <span className="bg-indigo-600 text-white font-sans text-[10px] font-bold px-1 rounded-full">
-                    {pol.pendingRepairs}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
