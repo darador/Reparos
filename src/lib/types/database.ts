@@ -159,3 +159,65 @@ export interface DashboardMetrics {
   poligonosConReparosCount?: number;
   poligonosConReparosPendientesCount?: number;
 }
+
+// ========================================================
+// MÓDULO PENDIENTE MOP + CARGA MOP
+// ========================================================
+
+export type MopCategory =
+  | 'Certifcar'
+  | 'Instalar y Certificar'
+  | 'Adelantar'
+  | 'Dem Trab Ter'
+  | 'Demorado';
+
+export type MopStatus = 'PENDIENTE' | 'COMPLETADO' | 'CON REPARO';
+
+export interface MopCto {
+  id: string;
+  sigest: string;
+  poligono: string;
+  cto: string;
+  central?: string;
+  pelo?: string;
+  instalacion_toa?: string;
+  certificacion_toa?: string;
+  responsable_cto?: string;
+  categoria_origen: MopCategory;
+  estado: MopStatus;
+  observacion?: string;
+  is_ausente: boolean;
+  fecha_primera_aparicion: string;
+  fecha_ultima_aparicion: string;
+  fecha_ultima_importacion: string;
+  fecha_ultimo_cambio_estado?: string;
+  updated_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MopImportHistory {
+  id: string;
+  filename: string;
+  total_records: number;
+  new_records: number;
+  updated_records: number;
+  absent_records: number;
+  created_by: string;
+  result_status: 'success' | 'partial' | 'error';
+  details?: {
+    byCategory?: Record<string, number>;
+    duplicatesFound?: number;
+    errorCount?: number;
+    notes?: string;
+  };
+  created_at: string;
+}
+
+export interface MopMetrics {
+  total: number;
+  pendientes: number;
+  completadas: number;
+  conReparo: number;
+  ausentes: number;
+}

@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-const PROTECTED_PREFIXES = ['/reparos', '/proyectos', '/pendientes', '/configuracion'];
+const PROTECTED_PREFIXES = ['/reparos', '/proyectos', '/pendientes', '/configuracion', '/carga-mop'];
 const ALLOWED_USERNAMES = ['adornor', 'kozdronm', 'jarae', 'lopezfer', 'tujam'];
 
 export async function middleware(request: NextRequest) {

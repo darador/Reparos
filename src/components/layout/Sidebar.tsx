@@ -3,7 +3,7 @@
 import { getStoredAuthUser } from '@/lib/auth';
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
-import { AlertCircle, ChevronLeft, ChevronRight, FolderGit2, LayoutDashboard, LogIn, Settings, Wrench } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, FolderGit2, LayoutDashboard, LogIn, Network, Settings, UploadCloud, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -12,11 +12,14 @@ const PROTECTED_NAV_ITEMS = [
   { href: '/reparos', label: 'Reparos', icon: Wrench },
   { href: '/proyectos', label: 'Proyectos FTTH', icon: FolderGit2 },
   { href: '/pendientes', label: 'Tablero Resumen', icon: AlertCircle },
+  { href: '/pendiente-mop', label: 'Pendiente MOP', icon: Network },
+  { href: '/carga-mop', label: 'Carga MOP', icon: UploadCloud },
   { href: '/configuracion/catalogos', label: 'Configuración', icon: Settings },
 ];
 
 const PUBLIC_NAV_ITEMS = [
   { href: '/', label: 'Tablero Resumen', icon: LayoutDashboard },
+  { href: '/pendiente-mop', label: 'Pendiente MOP', icon: Network },
   { href: '/login', label: 'Iniciar Sesión', icon: LogIn },
 ];
 
