@@ -3,7 +3,7 @@
 import React from 'react';
 import { DashboardMetrics } from "@/lib/types/database";
 
-export type MetricFilterKey = 'all' | 'pending' | 'resolved' | 'reiterated' | 'finalized';
+export type MetricFilterKey = 'all' | 'pending' | 'resolved' | 'reiterated' | 'finalized' | 'poligonos_pending';
 
 interface MetricStripProps {
   metrics: DashboardMetrics;
@@ -32,7 +32,7 @@ export function MetricStrip({
 
   return (
     <div className="bg-white border border-slate-200 rounded px-4 py-2.5 shadow-2xs flex flex-wrap items-center gap-y-2 gap-x-3 text-xs text-slate-700">
-      {/* Proyectos, Reparos Totales y Polígonos con reparos pendientes */}
+      {/* Proyectos y Reparos Totales */}
       <div
         onClick={() => handleClick('all')}
         className={`flex items-center gap-2 px-2.5 py-1 rounded transition-all select-none ${
@@ -53,16 +53,30 @@ export function MetricStrip({
           <span className="font-semibold text-slate-900 text-sm">{metrics.totalRepairs}</span>
           <span className="text-slate-500 uppercase tracking-wider text-[11px]">Reparos Totales</span>
         </div>
+      </div>
 
-        <span className="text-slate-300 mx-0.5">|</span>
+      <div className="h-4 w-px bg-slate-200 hidden sm:block" />
 
-        <div
-          className="flex items-center gap-1.5"
-          title="Cantidad de polígonos que tienen al menos un reparo pendiente"
-        >
-          <span className="font-semibold text-slate-900 text-sm font-mono">{poligonosPendientesCount}</span>
-          <span className="text-slate-500 uppercase tracking-wider text-[11px]">Polígonos c/ pendientes</span>
-        </div>
+      {/* Polígonos con reparos pendientes */}
+      <div
+        onClick={() => handleClick('poligonos_pending')}
+        className={`flex items-center gap-2 px-2.5 py-1 rounded transition-all select-none ${
+          isInteractive ? 'cursor-pointer hover:bg-indigo-50/90 active:scale-98' : ''
+        } ${
+          activeFilter === 'poligonos_pending' ? 'bg-indigo-100/90 ring-2 ring-indigo-500/70 shadow-2xs' : ''
+        }`}
+        title="Haz clic para filtrar y listar los polígonos con reparos pendientes"
+      >
+        <span className={`font-semibold text-sm px-1.5 py-0.5 rounded font-mono transition-colors ${
+          activeFilter === 'poligonos_pending'
+            ? 'bg-indigo-600 text-white shadow-2xs'
+            : 'bg-indigo-50 text-indigo-800 border border-indigo-200'
+        }`}>
+          {poligonosPendientesCount}
+        </span>
+        <span className={`font-medium ${activeFilter === 'poligonos_pending' ? 'text-indigo-900 font-bold' : 'text-slate-700'}`}>
+          Polígonos c/ pendientes
+        </span>
       </div>
 
       <div className="h-4 w-px bg-slate-200 hidden sm:block" />
