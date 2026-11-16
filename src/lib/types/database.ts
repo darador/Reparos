@@ -157,4 +157,5 @@ export interface DashboardMetrics {
   finalizedRepairs: number;
   poligonosConReparos?: PoligonoMetric[];
   poligonosConReparosCount?: number;
+  poligonosConReparosPendientesCount?: number;
 }

@@ -1393,6 +1393,7 @@ class DataRepository {
       .sort((a, b) => a.poligono.localeCompare(b.poligono, 'es', { numeric: true, sensitivity: 'base' }));
 
     const poligonosConReparosCount = poligonosConReparos.length;
+    const poligonosConReparosPendientesCount = poligonosConReparos.filter(p => p.pendingRepairs > 0).length;
 
     return {
       totalProjects,
@@ -1403,7 +1404,8 @@ class DataRepository {
       resolvedAwaitingVerification,
       finalizedRepairs,
       poligonosConReparos,
-      poligonosConReparosCount
+      poligonosConReparosCount,
+      poligonosConReparosPendientesCount
     };
   }
 
