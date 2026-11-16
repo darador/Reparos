@@ -126,7 +126,10 @@ export default function ProjectsPage() {
       </div>
 
       {/* Primary KPI Metric Strip */}
-      <MetricStrip metrics={metrics} />
+      <MetricStrip
+        metrics={metrics}
+        onSelectPoligono={(pol) => setSearch(pol)}
+      />
 
       {/* Filter and Search Bar */}
       <div className="bg-white p-3 border border-slate-200 rounded shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">

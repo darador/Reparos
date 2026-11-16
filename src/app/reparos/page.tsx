@@ -220,6 +220,7 @@ export default function RepairsPage() {
           setSearch('');
           setMetricFilter(key);
         }}
+        onSelectPoligono={(pol) => setSearch(pol)}
       />
 
       {/* Advanced Filters */}

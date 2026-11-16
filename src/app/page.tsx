@@ -256,6 +256,7 @@ export default function TableroResumenRootPage() {
           else if (key === 'reiterated') setActiveTab('reiterated');
           else setActiveTab('all');
         }}
+        onSelectPoligono={(pol) => setSearch(pol)}
       />
 
       {/* Filtros avanzados */}

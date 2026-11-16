@@ -135,6 +135,18 @@ export interface RepairEvent {
   created_by_profile?: Profile;
 }
 
+export interface PoligonoMetric {
+  poligono: string;
+  sigest?: string;
+  central?: string;
+  distrito?: string;
+  totalRepairs: number;
+  pendingRepairs: number;
+  finalizedRepairs: number;
+  reiteratedRepairs: number;
+  projectId?: string;
+}
+
 export interface DashboardMetrics {
   totalProjects: number;
   activeProjects: number;
@@ -143,4 +155,6 @@ export interface DashboardMetrics {
   reiteratedRepairs: number;
   resolvedAwaitingVerification: number;
   finalizedRepairs: number;
+  poligonosConReparos?: PoligonoMetric[];
+  poligonosConReparosCount?: number;
 }

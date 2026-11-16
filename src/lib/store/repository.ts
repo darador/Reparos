@@ -1,7 +1,7 @@
 import { getStoredAuthUser, getUserDisplayName } from "../auth";
 import { DISTRITOS_LIST, INITIAL_PROJECTS, INITIAL_REPAIR_EVENTS, INITIAL_REPAIR_STATUSES, INITIAL_REPAIR_TYPES, INITIAL_REPAIRS, INITIAL_RESPONSIBLE_PARTIES, SOLICITANTES_LIST } from "../constants/initial-data";
 import { createClient } from "../supabase/client";
-import { DashboardMetrics, Project, Repair, RepairEvent, RepairStatus, RepairType, ResponsibleParty } from "../types/database";
+import { DashboardMetrics, PoligonoMetric, Project, Repair, RepairEvent, RepairStatus, RepairType, ResponsibleParty } from "../types/database";
 
 // Safe cross-browser UUID generator fallback
 function generateUUID(): string {
@@ -1320,6 +1320,80 @@ class DataRepository {
       return this.getRepairReiterationCount(r.id) > 0;
     }).length;
 
+    // Calcular cuántos polígonos con reparos hay y cuáles son
+    const polMap = new Map<string, {
+      poligono: string;
+      sigests: Set<string>;
+      centrales: Set<string>;
+      distritos: Set<string>;
+      projectIds: Set<string>;
+      totalRepairs: number;
+      pendingRepairs: number;
+      finalizedRepairs: number;
+      reiteratedRepairs: number;
+    }>();
+
+    this.repairs.forEach(r => {
+      if (!r) return;
+      const proj = r.project_id ? (this.projects || []).find(p => p && p.id === r.project_id) : undefined;
+      const rawPol = proj?.poligono || r.project?.poligono;
+      if (!rawPol) return;
+      const polName = rawPol.trim();
+      if (!polName) return;
+
+      if (!polMap.has(polName)) {
+        polMap.set(polName, {
+          poligono: polName,
+          sigests: new Set(),
+          centrales: new Set(),
+          distritos: new Set(),
+          projectIds: new Set(),
+          totalRepairs: 0,
+          pendingRepairs: 0,
+          finalizedRepairs: 0,
+          reiteratedRepairs: 0,
+        });
+      }
+
+      const item = polMap.get(polName)!;
+      item.totalRepairs += 1;
+
+      const st = (this.repairStatuses || []).find(s => s && s.id === r.current_status_id);
+      const isPending = st?.category === 'pending' || st?.name === 'PENDIENTE';
+      const isFinalized = st?.category === 'closed' || st?.name === 'FINALIZADO';
+      if (isPending) item.pendingRepairs += 1;
+      if (isFinalized) item.finalizedRepairs += 1;
+      if ((r.reiteration_count || 0) > 0 || this.getRepairReiterationCount(r.id) > 0) {
+        item.reiteratedRepairs += 1;
+      }
+
+      const sigest = proj?.sigest || r.project?.sigest;
+      const central = proj?.central || r.project?.central;
+      const distrito = proj?.distrito || r.project?.distrito;
+      const pId = proj?.id || r.project_id;
+
+      if (sigest) item.sigests.add(sigest);
+      if (central) item.centrales.add(central);
+      if (distrito) item.distritos.add(distrito);
+      if (pId) item.projectIds.add(pId);
+    });
+
+    const poligonosConReparos: PoligonoMetric[] = Array.from(polMap.values())
+      .map(item => ({
+        poligono: item.poligono,
+        sigest: Array.from(item.sigests).join(', ') || undefined,
+        central: Array.from(item.centrales).join(', ') || undefined,
+        distrito: Array.from(item.distritos).join(', ') || undefined,
+        totalRepairs: item.totalRepairs,
+        pendingRepairs: item.pendingRepairs,
+        finalizedRepairs: item.finalizedRepairs,
+        reiteratedRepairs: item.reiteratedRepairs,
+        projectId: item.projectIds.size === 1 ? Array.from(item.projectIds)[0] : undefined
+      }))
+      .sort((a, b) => a.poligono.localeCompare(b.poligono, 'es', { numeric: true, sensitivity: 'base' }));
+
+    const poligonosConReparosCount = poligonosConReparos.length;
+
     return {
       totalProjects,
       activeProjects,
@@ -1327,7 +1401,9 @@ class DataRepository {
       pendingRepairs,
       reiteratedRepairs,
       resolvedAwaitingVerification,
-      finalizedRepairs
+      finalizedRepairs,
+      poligonosConReparos,
+      poligonosConReparosCount
     };
   }
 
