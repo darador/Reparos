@@ -7,9 +7,10 @@ import { MopMetricFilterKey, MopMetricStrip } from '@/lib/../components/mop/MopM
 import { LoadingState } from '@/lib/../components/shared/LoadingState';
 import { mopService } from '@/lib/mop/service';
 import { MopCto, MopMetrics } from '@/lib/types/database';
-import { Network, UploadCloud } from 'lucide-react';
+import { Network, UploadCloud, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { getStoredAuthUser } from '@/lib/auth';
+import { MopReportModal } from '@/components/mop/MopReportModal';
 
 export default function PendienteMopPage() {
   const [ctos, setCtos] = useState<MopCto[]>([]);
@@ -45,9 +46,65 @@ export default function PendienteMopPage() {
   const [sortColumn, setSortColumn] = useState<string>('sigest');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
+  // Reporte
+  const [isReportOpen, setIsReportOpen] = useState<boolean>(false);
+  const [reportCtos, setReportCtos] = useState<MopCto[]>([]);
+  const [isLoadingReport, setIsLoadingReport] = useState<boolean>(false);
+
   useEffect(() => {
     setIsAuthenticated(!!getStoredAuthUser());
   }, []);
+
+  const handleOpenReport = async () => {
+    setIsLoadingReport(true);
+    setIsReportOpen(true);
+
+    let effectiveEstado = estado;
+    let effectiveAusente: boolean | undefined = isAusenteFilter ? true : undefined;
+
+    if (activeMetricFilter === 'pendientes') {
+      effectiveEstado = 'PENDIENTE';
+    } else if (activeMetricFilter === 'completadas') {
+      effectiveEstado = 'COMPLETADO';
+    } else if (activeMetricFilter === 'con_reparo') {
+      effectiveEstado = 'CON REPARO';
+    } else if (activeMetricFilter === 'ausentes') {
+      effectiveAusente = true;
+    }
+
+    const res = await mopService.getMopCtos({
+      categoria: category,
+      responsable,
+      central,
+      estado: effectiveEstado,
+      isAusente: effectiveAusente,
+      search,
+      page: 1,
+      pageSize: 10000,
+      sortColumn,
+      sortDirection
+    });
+
+    setReportCtos(res.data);
+    setIsLoadingReport(false);
+  };
+
+  const getActiveFiltersList = () => {
+    const list: string[] = [];
+    if (search.trim()) list.push(`Búsqueda: "${search.trim()}"`);
+    if (category !== 'all') list.push(`Pestaña: ${category}`);
+    if (responsable !== 'all') list.push(`Responsable: ${responsable}`);
+    if (central !== 'all') list.push(`Central: ${central}`);
+    if (estado !== 'all') list.push(`Estado: ${estado}`);
+    if (isAusenteFilter) list.push('Solo Ausentes');
+    if (activeMetricFilter !== 'all') {
+      if (activeMetricFilter === 'pendientes') list.push('Métrica: Pendientes');
+      if (activeMetricFilter === 'completadas') list.push('Métrica: Completadas');
+      if (activeMetricFilter === 'con_reparo') list.push('Métrica: Con Reparo');
+      if (activeMetricFilter === 'ausentes') list.push('Métrica: Ausentes');
+    }
+    return list;
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -133,8 +190,18 @@ export default function PendienteMopPage() {
           </p>
         </div>
 
-        {isAuthenticated && (
-          <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleOpenReport}
+            disabled={isLoadingReport}
+            className="inline-flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded font-semibold border border-slate-300 shadow-2xs transition-colors cursor-pointer"
+            title="Generar vista previa y reporte en texto o tabla para copiar y pegar en mail / Outlook"
+          >
+            <FileText className="h-3.5 w-3.5 text-slate-600" />
+            <span>{isLoadingReport ? 'Generando...' : 'Generar reporte'}</span>
+          </button>
+
+          {isAuthenticated ? (
             <Link
               href="/carga-mop"
               className="inline-flex items-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded shadow-xs transition-colors"
@@ -142,8 +209,15 @@ export default function PendienteMopPage() {
               <UploadCloud className="h-3.5 w-3.5" />
               <span>Importar Excel MOP</span>
             </Link>
-          </div>
-        )}
+          ) : (
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded shadow-xs transition-colors"
+            >
+              <span>Iniciar Sesión</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* KPI Metric Strip */}
@@ -213,6 +287,14 @@ export default function PendienteMopPage() {
           isLoading={isLoading}
         />
       )}
+
+      {/* Modal de Reporte */}
+      <MopReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        ctos={reportCtos.length > 0 ? reportCtos : ctos}
+        activeFilters={getActiveFiltersList()}
+      />
     </div>
   );
 }
