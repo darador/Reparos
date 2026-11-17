@@ -29,8 +29,6 @@ interface MopFiltersProps {
   onCentralChange: (val: string) => void;
   estado: string;
   onEstadoChange: (val: string) => void;
-  isAusenteFilter: boolean;
-  onIsAusenteFilterToggle: (val: boolean) => void;
   responsablesList: string[];
   centralesList: string[];
   onResetFilters: () => void;
@@ -47,8 +45,6 @@ export function MopFilters({
   onCentralChange,
   estado,
   onEstadoChange,
-  isAusenteFilter,
-  onIsAusenteFilterToggle,
   responsablesList,
   centralesList,
   onResetFilters
@@ -58,12 +54,11 @@ export function MopFilters({
     category !== 'all' ||
     responsable !== 'all' ||
     central !== 'all' ||
-    estado !== 'all' ||
-    isAusenteFilter;
+    estado !== 'all';
 
   return (
     <div className="bg-white p-3 border border-slate-200 rounded shadow-2xs space-y-2.5 text-xs">
-      {/* Botones de Pestaña de origen (en reemplazo del combo) */}
+      {/* Botones de Pestaña de origen */}
       <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-50 border border-slate-200 rounded">
         <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-2 flex items-center gap-1">
           <Layers className="h-3.5 w-3.5 text-slate-400" />
@@ -170,31 +165,19 @@ export function MopFilters({
         </div>
       </div>
 
-      {/* Fila secundaria: filtro de ausentes y reset */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
-        <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={isAusenteFilter}
-            onChange={(e) => onIsAusenteFilterToggle(e.target.checked)}
-            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
-          />
-          <span className={isAusenteFilter ? 'font-bold text-slate-900' : ''}>
-            Ver únicamente registros ausentes en la última actualización
-          </span>
-        </label>
-
-        {hasActiveFilters && (
+      {/* Fila secundaria: botón de reset */}
+      {hasActiveFilters && (
+        <div className="flex justify-end pt-1 border-t border-slate-100">
           <button
             onClick={onResetFilters}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded transition-colors cursor-pointer"
             title="Restablecer todos los filtros"
           >
             <RotateCcw className="h-3 w-3" />
             <span>Limpiar filtros</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

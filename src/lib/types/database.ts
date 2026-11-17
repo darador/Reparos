@@ -187,6 +187,8 @@ export interface MopCto {
   estado: MopStatus;
   observacion?: string;
   is_ausente: boolean;
+  is_cerrado_por_actualizacion?: boolean;
+  fecha_cierre_actualizacion?: string | null;
   fecha_primera_aparicion: string;
   fecha_ultima_aparicion: string;
   fecha_ultima_importacion: string;
@@ -220,4 +222,5 @@ export interface MopMetrics {
   completadas: number;
   conReparo: number;
   ausentes: number;
+  cerradas: number;
 }

@@ -31,6 +31,7 @@ export interface MopImportPreview {
 }
 
 export interface GetMopCtosParams {
+  viewMode?: 'vigentes' | 'cerradas';
   categoria?: string;
   responsable?: string;
   central?: string;
@@ -144,9 +145,11 @@ class MopService {
 
   /**
    * Obtiene el listado de CTOs con paginación, filtros combinados y ordenamiento.
+   * Soporta viewMode: 'vigentes' (exclusivamente activas en último Excel) o 'cerradas' (historial cerradas por actualización).
    */
   async getMopCtos(params: GetMopCtosParams = {}): Promise<{ data: MopCto[]; total: number; metrics: MopMetrics; filterOptions: { responsables: string[]; centrales: string[] } }> {
     const {
+      viewMode = 'vigentes',
       categoria = 'all',
       responsable = 'all',
       central = 'all',
@@ -161,10 +164,20 @@ class MopService {
 
     const supabase = createClient();
 
+    // Determinar condición de vigencia / cierre
+    // Por defecto: 'vigentes' muestra solo activas (is_ausente = false).
+    // 'cerradas' muestra el historial de cerradas por actualización (is_ausente = true).
+    let targetAusente = viewMode === 'cerradas';
+    if (typeof isAusente === 'boolean') {
+      targetAusente = isAusente;
+    }
+
     // Si Supabase está disponible, consultar directamente
     if (supabase) {
       try {
         let query = supabase.from('mop_ctos').select('*', { count: 'exact' });
+
+        query = query.eq('is_ausente', targetAusente);
 
         if (categoria && categoria !== 'all') {
           query = query.eq('categoria_origen', categoria);
@@ -177,9 +190,6 @@ class MopService {
         }
         if (estado && estado !== 'all') {
           query = query.eq('estado', estado);
-        }
-        if (typeof isAusente === 'boolean') {
-          query = query.eq('is_ausente', isAusente);
         }
 
         const trimmedSearch = search.trim();
@@ -199,6 +209,10 @@ class MopService {
           query = query.order('responsable_cto', { ascending, nullsFirst: false });
         } else if (sortColumn === 'estado') {
           query = query.order('estado', { ascending });
+        } else if (sortColumn === 'fecha_cierre') {
+          query = query.order('updated_at', { ascending });
+        } else if (sortColumn === 'fecha_ultima_aparicion') {
+          query = query.order('fecha_ultima_aparicion', { ascending });
         } else {
           query = query.order('created_at', { ascending: false });
         }
@@ -208,11 +222,18 @@ class MopService {
         const { data, count, error } = await query.range(from, to);
 
         if (!error && data) {
+          // Mapear compatibilidad de campos de cierre
+          const mappedData: MopCto[] = data.map((d: any) => ({
+            ...d,
+            is_cerrado_por_actualizacion: d.is_cerrado_por_actualizacion ?? d.is_ausente ?? false,
+            fecha_cierre_actualizacion: d.fecha_cierre_actualizacion ?? (d.is_ausente ? d.updated_at : null)
+          }));
+
           // Obtener métricas y opciones de filtro para el contexto
           const metrics = await this.getMopMetrics(params);
           const filterOptions = await this.getFilterOptions();
           return {
-            data: data as MopCto[],
+            data: mappedData,
             total: count || 0,
             metrics,
             filterOptions
@@ -228,6 +249,8 @@ class MopService {
     // Fallback local en memoria
     let filtered = [...this.inMemoryCtos];
 
+    filtered = filtered.filter(c => (c.is_cerrado_por_actualizacion ?? c.is_ausente) === targetAusente);
+
     if (categoria && categoria !== 'all') {
       filtered = filtered.filter(c => c.categoria_origen === categoria);
     }
@@ -239,9 +262,6 @@ class MopService {
     }
     if (estado && estado !== 'all') {
       filtered = filtered.filter(c => c.estado === estado);
-    }
-    if (typeof isAusente === 'boolean') {
-      filtered = filtered.filter(c => c.is_ausente === isAusente);
     }
 
     const trimmedSearch = search.trim().toLowerCase();
@@ -271,6 +291,12 @@ class MopService {
       } else if (sortColumn === 'estado') {
         valA = a.estado || '';
         valB = b.estado || '';
+      } else if (sortColumn === 'fecha_cierre') {
+        valA = a.fecha_cierre_actualizacion || a.updated_at || '';
+        valB = b.fecha_cierre_actualizacion || b.updated_at || '';
+      } else if (sortColumn === 'fecha_ultima_aparicion') {
+        valA = a.fecha_ultima_aparicion || '';
+        valB = b.fecha_ultima_aparicion || '';
       }
       return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
     });
@@ -278,7 +304,7 @@ class MopService {
     const total = filtered.length;
     const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-    const metrics = this.computeMetricsFromList(filtered);
+    const metrics = this.computeMetricsFromList(this.inMemoryCtos);
     const filterOptions = this.computeFilterOptionsFromList(this.inMemoryCtos);
 
     return {
@@ -290,15 +316,20 @@ class MopService {
   }
 
   /**
-   * Resumen de métricas superiores respetando filtros cuando corresponda
-   * Utiliza count: 'exact' y head: true para evitar el límite de 1000 filas de PostgREST
+   * Resumen de métricas superiores respetando filtros cuando corresponda.
+   * Total, Pendientes, Completadas y Con Reparo corresponden EXCLUSIVAMENTE a CTOs vigentes.
+   * Cerradas contabiliza las CTOs cerradas por actualización.
    */
   async getMopMetrics(params: GetMopCtosParams = {}): Promise<MopMetrics> {
     const supabase = createClient();
     if (supabase) {
       try {
-        const buildBase = (extraFilter?: (q: any) => any) => {
+        const buildBase = (extraFilter?: (q: any) => any, includeClosed = false) => {
           let q = supabase.from('mop_ctos').select('*', { count: 'exact', head: true });
+          if (!includeClosed) {
+            // Solo registros vigentes para los indicadores principales
+            q = q.eq('is_ausente', false);
+          }
           if (params.categoria && params.categoria !== 'all') {
             q = q.eq('categoria_origen', params.categoria);
           }
@@ -318,20 +349,23 @@ class MopService {
           return q;
         };
 
-        const [totalRes, pendRes, compRes, repRes, ausRes] = await Promise.all([
-          buildBase(),
-          buildBase(q => q.eq('estado', 'PENDIENTE')),
-          buildBase(q => q.eq('estado', 'COMPLETADO')),
-          buildBase(q => q.eq('estado', 'CON REPARO')),
-          buildBase(q => q.eq('is_ausente', true))
+        const [totalRes, pendRes, compRes, repRes, cerradasRes] = await Promise.all([
+          buildBase(), // Total vigentes
+          buildBase(q => q.eq('estado', 'PENDIENTE')), // Pendientes vigentes
+          buildBase(q => q.eq('estado', 'COMPLETADO')), // Completadas vigentes
+          buildBase(q => q.eq('estado', 'CON REPARO')), // Con Reparo vigentes
+          buildBase(q => q.eq('is_ausente', true), true) // Cerradas por actualización
         ]);
+
+        const cerradasCount = cerradasRes.count ?? 0;
 
         return {
           total: totalRes.count ?? 0,
           pendientes: pendRes.count ?? 0,
           completadas: compRes.count ?? 0,
           conReparo: repRes.count ?? 0,
-          ausentes: ausRes.count ?? 0
+          ausentes: cerradasCount,
+          cerradas: cerradasCount
         };
       } catch (e) {
         console.warn("Supabase count query exception:", e);
@@ -342,20 +376,25 @@ class MopService {
   }
 
   private computeMetricsFromList(list: MopCto[]): MopMetrics {
-    const total = list.length;
+    let total = 0;
     let pendientes = 0;
     let completadas = 0;
     let conReparo = 0;
-    let ausentes = 0;
+    let cerradas = 0;
 
     list.forEach(r => {
-      if (r.estado === 'PENDIENTE') pendientes++;
-      if (r.estado === 'COMPLETADO') completadas++;
-      if (r.estado === 'CON REPARO') conReparo++;
-      if (r.is_ausente) ausentes++;
+      const isClosed = r.is_cerrado_por_actualizacion ?? r.is_ausente;
+      if (isClosed) {
+        cerradas++;
+      } else {
+        total++;
+        if (r.estado === 'PENDIENTE') pendientes++;
+        if (r.estado === 'COMPLETADO') completadas++;
+        if (r.estado === 'CON REPARO') conReparo++;
+      }
     });
 
-    return { total, pendientes, completadas, conReparo, ausentes };
+    return { total, pendientes, completadas, conReparo, ausentes: cerradas, cerradas };
   }
 
   private async getFilterOptions(): Promise<{ responsables: string[]; centrales: string[] }> {
@@ -652,10 +691,11 @@ class MopService {
       }
     });
 
-    // Ausentes: registros en BD que NO están en ninguna de las 5 pestañas del nuevo Excel
+    // Ausentes que pasarán a ser CERRADOS POR ACTUALIZACIÓN:
+    // Registros que estaban vigentes en BD y no figuran en ninguna de las 5 pestañas del nuevo Excel.
     let absentCount = 0;
-    for (const existingKey of Array.from(existingMap.keys())) {
-      if (!fileKeys.has(existingKey)) {
+    for (const [existingKey, existing] of Array.from(existingMap.entries())) {
+      if (!fileKeys.has(existingKey) && !existing.is_ausente) {
         absentCount++;
       }
     }
@@ -676,8 +716,8 @@ class MopService {
     };
   }
 
-  private async getAllExistingKeysMap(): Promise<Map<string, { id: string; estado: MopStatus; observacion?: string; fecha_primera_aparicion: string }>> {
-    const map = new Map<string, { id: string; estado: MopStatus; observacion?: string; fecha_primera_aparicion: string }>();
+  private async getAllExistingKeysMap(): Promise<Map<string, { id: string; estado: MopStatus; observacion?: string; fecha_primera_aparicion: string; is_ausente?: boolean }>> {
+    const map = new Map<string, { id: string; estado: MopStatus; observacion?: string; fecha_primera_aparicion: string; is_ausente?: boolean }>();
     const supabase = createClient();
 
     if (supabase) {
@@ -689,7 +729,7 @@ class MopService {
         while (hasMore) {
           const { data, error } = await supabase
             .from('mop_ctos')
-            .select('id, sigest, poligono, cto, estado, observacion, fecha_primera_aparicion')
+            .select('id, sigest, poligono, cto, estado, observacion, fecha_primera_aparicion, is_ausente')
             .range(from, from + step - 1);
 
           if (!error && data && data.length > 0) {
@@ -699,7 +739,8 @@ class MopService {
                 id: d.id,
                 estado: d.estado,
                 observacion: d.observacion,
-                fecha_primera_aparicion: d.fecha_primera_aparicion
+                fecha_primera_aparicion: d.fecha_primera_aparicion,
+                is_ausente: d.is_ausente
               });
             });
             if (data.length < step) hasMore = false;
@@ -721,7 +762,8 @@ class MopService {
         id: d.id,
         estado: d.estado,
         observacion: d.observacion,
-        fecha_primera_aparicion: d.fecha_primera_aparicion
+        fecha_primera_aparicion: d.fecha_primera_aparicion,
+        is_ausente: d.is_ausente
       });
     });
 
@@ -780,6 +822,8 @@ class MopService {
             estado: 'PENDIENTE',
             observacion: null,
             is_ausente: false,
+            is_cerrado_por_actualizacion: false,
+            fecha_cierre_actualizacion: null,
             fecha_primera_aparicion: now,
             fecha_ultima_aparicion: now,
             fecha_ultima_importacion: now,
@@ -787,7 +831,8 @@ class MopService {
             updated_at: now
           });
         } else {
-          // Caso B: CTO Existente (conservar estado y observación)
+          // Caso B: CTO Existente (conservar estado operativo y observación intactos)
+          // Si reaparece una CTO previamente cerrada por actualización, se reactiva automáticamente
           toUpdate.push({
             id: existing.id,
             sigest: row.sigest,
@@ -799,7 +844,9 @@ class MopService {
             certificacion_toa: row.certificacion_toa || null,
             responsable_cto: row.responsable_cto || null,
             categoria_origen: row.categoria_origen,
-            is_ausente: false, // Si reaparece, reactivar condición de ausente
+            is_ausente: false, // Reactivar
+            is_cerrado_por_actualizacion: false, // Reactivar
+            fecha_cierre_actualizacion: null,
             fecha_ultima_aparicion: now,
             fecha_ultima_importacion: now,
             updated_at: now
@@ -808,47 +855,73 @@ class MopService {
         }
       });
 
-      // Caso C: CTOs Ausentes
+      // Caso C: CTOs que desaparecen del Excel -> pasan a CERRADO POR ACTUALIZACIÓN
+      // Conservan toda su información previa, estado operativo, observación y fecha de última aparición en Excel
       const absentIds: string[] = [];
       for (const [key, existing] of Array.from(existingMap.entries())) {
-        if (!fileKeys.has(key)) {
+        if (!fileKeys.has(key) && !existing.is_ausente) {
           absentIds.push(existing.id);
         }
       }
 
       // Ejecutar en Supabase por lotes
       if (supabase) {
-        // 1. Insertar nuevos en lotes de 200
         const BATCH_SIZE = 200;
+
+        // 1. Insertar nuevos en lotes de 200
         for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
           const batch = toInsert.slice(i, i + BATCH_SIZE);
-          const { error: insertErr } = await supabase.from('mop_ctos').insert(batch);
+          let { error: insertErr } = await supabase.from('mop_ctos').insert(batch);
           if (insertErr) {
-            console.error("Error inserting mop_ctos batch:", insertErr.message);
-            throw new Error(`Error al insertar nuevos registros: ${insertErr.message}`);
+            console.warn("Retrying insert without new closure columns in case of schema discrepancy:", insertErr.message);
+            const fallbackBatch = batch.map(({ is_cerrado_por_actualizacion, fecha_cierre_actualizacion, ...rest }) => rest);
+            const { error: retryErr } = await supabase.from('mop_ctos').insert(fallbackBatch);
+            if (retryErr) {
+              console.error("Error inserting mop_ctos batch:", retryErr.message);
+              throw new Error(`Error al insertar nuevos registros: ${retryErr.message}`);
+            }
           }
         }
 
         // 2. Actualizar existentes en lotes mediante upsert
         for (let i = 0; i < toUpdate.length; i += BATCH_SIZE) {
           const batch = toUpdate.slice(i, i + BATCH_SIZE);
-          const { error: updateErr } = await supabase.from('mop_ctos').upsert(batch, { onConflict: 'id' });
+          let { error: updateErr } = await supabase.from('mop_ctos').upsert(batch, { onConflict: 'id' });
           if (updateErr) {
-            console.error("Error updating mop_ctos batch:", updateErr.message);
-            throw new Error(`Error al actualizar registros existentes: ${updateErr.message}`);
+            console.warn("Retrying upsert without new closure columns:", updateErr.message);
+            const fallbackBatch = batch.map(({ is_cerrado_por_actualizacion, fecha_cierre_actualizacion, ...rest }) => rest);
+            const { error: retryErr } = await supabase.from('mop_ctos').upsert(fallbackBatch, { onConflict: 'id' });
+            if (retryErr) {
+              console.error("Error updating mop_ctos batch:", retryErr.message);
+              throw new Error(`Error al actualizar registros existentes: ${retryErr.message}`);
+            }
           }
         }
 
-        // 3. Marcar ausentes en lotes
+        // 3. Marcar ausentes como CERRADO POR ACTUALIZACIÓN en lotes
+        // Conserva estado operativo, observación y fecha_ultima_aparicion
         for (let i = 0; i < absentIds.length; i += BATCH_SIZE) {
           const batchIds = absentIds.slice(i, i + BATCH_SIZE);
-          const { error: absentErr } = await supabase
+          let { error: absentErr } = await supabase
             .from('mop_ctos')
-            .update({ is_ausente: true, updated_at: now })
+            .update({
+              is_ausente: true,
+              is_cerrado_por_actualizacion: true,
+              fecha_cierre_actualizacion: now,
+              updated_at: now
+            })
             .in('id', batchIds);
+
           if (absentErr) {
-            console.error("Error marking absent mop_ctos:", absentErr.message);
-            throw new Error(`Error al marcar registros ausentes: ${absentErr.message}`);
+            console.warn("Retrying absent update with base schema:", absentErr.message);
+            const { error: retryErr } = await supabase
+              .from('mop_ctos')
+              .update({ is_ausente: true, updated_at: now })
+              .in('id', batchIds);
+            if (retryErr) {
+              console.error("Error marking closed mop_ctos:", retryErr.message);
+              throw new Error(`Error al marcar registros cerrados por actualización: ${retryErr.message}`);
+            }
           }
         }
 
@@ -898,11 +971,13 @@ class MopService {
         }
       });
 
-      // Ausentes en memoria
+      // Cerradas por actualización en memoria
       absentIds.forEach(id => {
         const item = this.inMemoryCtos.find(c => c.id === id);
         if (item) {
           item.is_ausente = true;
+          item.is_cerrado_por_actualizacion = true;
+          item.fecha_cierre_actualizacion = now;
           item.updated_at = now;
         }
       });

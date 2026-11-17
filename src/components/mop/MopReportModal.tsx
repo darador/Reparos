@@ -10,13 +10,32 @@ interface MopReportModalProps {
   onClose: () => void;
   ctos: MopCto[];
   activeFilters: string[];
+  viewMode?: 'vigentes' | 'cerradas';
+}
+
+function formatDateTime(dateStr?: string | null): string {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch {
+    return '-';
+  }
 }
 
 export function MopReportModal({
   isOpen,
   onClose,
   ctos,
-  activeFilters
+  activeFilters,
+  viewMode = 'vigentes'
 }: MopReportModalProps) {
   const [format, setFormat] = useState<'table' | 'text'>('table');
   const [copied, setCopied] = useState(false);
@@ -28,7 +47,12 @@ export function MopReportModal({
     }
 
     const todayStr = formatDate(new Date().toISOString());
-    let output = `REPORTE PENDIENTE MOP – ${todayStr}\n`;
+    const reportTitle =
+      viewMode === 'cerradas'
+        ? `REPORTE HISTORIAL CTOs CERRADAS POR ACTUALIZACIÓN MOP – ${todayStr}`
+        : `REPORTE PENDIENTE MOP – ${todayStr}`;
+
+    let output = `${reportTitle}\n`;
     output += `Total de CTOs: ${ctos.length}\n\n`;
 
     type GroupMap = Map<string, {
@@ -64,11 +88,19 @@ export function MopReportModal({
 
       group.items.forEach((item) => {
         const obs = item.observacion ? ` | Obs: ${item.observacion}` : '';
-        const aus = item.is_ausente ? ' [AUSENTE]' : '';
-        output += `• CTO: ${item.cto}${aus}\n`;
-        output += `  Sigest CTO: ${item.sigest} | Polígono: ${item.poligono}\n`;
-        output += `  Pelo: ${item.pelo || '-'} | Inst: ${item.instalacion_toa || '-'} | Cert: ${item.certificacion_toa || '-'}\n`;
-        output += `  Estado: ${item.estado} | Pestaña: ${item.categoria_origen}${obs}\n\n`;
+        if (viewMode === 'cerradas') {
+          const fc = formatDateTime(item.fecha_cierre_actualizacion || item.updated_at);
+          const fa = formatDateTime(item.fecha_ultima_aparicion);
+          output += `• CTO: ${item.cto} [CERRADA POR ACTUALIZACIÓN]\n`;
+          output += `  Sigest CTO: ${item.sigest} | Polígono: ${item.poligono}\n`;
+          output += `  Último Estado: ${item.estado} | Pestaña: ${item.categoria_origen}\n`;
+          output += `  Fecha Cierre: ${fc} | Última Aparición Excel: ${fa}${obs}\n\n`;
+        } else {
+          output += `• CTO: ${item.cto}\n`;
+          output += `  Sigest CTO: ${item.sigest} | Polígono: ${item.poligono}\n`;
+          output += `  Pelo: ${item.pelo || '-'} | Inst: ${item.instalacion_toa || '-'} | Cert: ${item.certificacion_toa || '-'}\n`;
+          output += `  Estado: ${item.estado} | Pestaña: ${item.categoria_origen}${obs}\n\n`;
+        }
       });
 
       if (index < groupEntries.length - 1) {
@@ -77,12 +109,69 @@ export function MopReportModal({
     });
 
     return output.trim();
-  }, [ctos]);
+  }, [ctos, viewMode]);
 
   // Generar reporte en Tabla HTML para pegar directo en Outlook / Mail
   const reportTableHtml = useMemo(() => {
     if (ctos.length === 0) return '';
     const todayStr = formatDate(new Date().toISOString());
+    const reportTitle =
+      viewMode === 'cerradas'
+        ? `REPORTE HISTORIAL CTOs CERRADAS POR ACTUALIZACIÓN MOP – ${todayStr}`
+        : `REPORTE PENDIENTE MOP – ${todayStr}`;
+
+    if (viewMode === 'cerradas') {
+      const rows = ctos.map((c, i) => {
+        const bg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+        const statusColor =
+          c.estado === 'PENDIENTE'
+            ? '#b45309'
+            : c.estado === 'COMPLETADO'
+            ? '#15803d'
+            : '#be123c';
+
+        return `
+          <tr style="background-color: ${bg};">
+            <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-weight: bold; font-family: Arial, sans-serif; font-size: 11px;">${c.sigest}</td>
+            <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">${c.poligono}</td>
+            <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">${c.central || '-'}</td>
+            <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px; font-weight: bold; color: #0f172a;">${c.cto}</td>
+            <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px; font-weight: 600; color: #1e293b;">${c.responsable_cto || '-'}</td>
+            <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px; font-weight: bold; color: ${statusColor};">${c.estado}</td>
+            <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">${formatDateTime(c.fecha_cierre_actualizacion || c.updated_at)}</td>
+            <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">${formatDateTime(c.fecha_ultima_aparicion)}</td>
+            <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px; color: #475569;">${c.observacion || '-'}</td>
+            <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 10px; color: #64748b;">${c.categoria_origen}</td>
+          </tr>
+        `;
+      }).join('');
+
+      return `
+        <div style="font-family: Arial, sans-serif; color: #0f172a; margin-bottom: 8px;">
+          <p style="font-size: 13px; font-weight: bold; margin: 0 0 4px 0; color: #0f172a;">${reportTitle}</p>
+          <p style="font-size: 11px; color: #64748b; margin: 0 0 10px 0;">Total de CTOs Cerradas: ${ctos.length}</p>
+          <table style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 11px; border: 1px solid #cbd5e1;">
+            <thead>
+              <tr style="background-color: #334155; color: #ffffff;">
+                <th style="padding: 7px 8px; border: 1px solid #475569; text-align: left; font-size: 11px;">Sigest CTO</th>
+                <th style="padding: 7px 8px; border: 1px solid #475569; text-align: left; font-size: 11px;">Polígono</th>
+                <th style="padding: 7px 8px; border: 1px solid #475569; text-align: left; font-size: 11px;">Central</th>
+                <th style="padding: 7px 8px; border: 1px solid #475569; text-align: left; font-size: 11px;">CTO</th>
+                <th style="padding: 7px 8px; border: 1px solid #475569; text-align: left; font-size: 11px;">Responsable CTO</th>
+                <th style="padding: 7px 8px; border: 1px solid #475569; text-align: left; font-size: 11px;">Último Estado</th>
+                <th style="padding: 7px 8px; border: 1px solid #475569; text-align: left; font-size: 11px;">Fecha Cierre</th>
+                <th style="padding: 7px 8px; border: 1px solid #475569; text-align: left; font-size: 11px;">Última Aparición</th>
+                <th style="padding: 7px 8px; border: 1px solid #475569; text-align: left; font-size: 11px;">Observación</th>
+                <th style="padding: 7px 8px; border: 1px solid #475569; text-align: left; font-size: 10px;">Pestaña</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
 
     const rows = ctos.map((c, i) => {
       const bg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
@@ -98,7 +187,7 @@ export function MopReportModal({
           <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-weight: bold; font-family: Arial, sans-serif; font-size: 11px;">${c.sigest}</td>
           <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">${c.poligono}</td>
           <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">${c.central || '-'}</td>
-          <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px; font-weight: bold; color: #0f172a;">${c.cto}${c.is_ausente ? ' (Ausente)' : ''}</td>
+          <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px; font-weight: bold; color: #0f172a;">${c.cto}</td>
           <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center; font-family: Arial, sans-serif; font-size: 11px;">${c.pelo || '-'}</td>
           <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">${c.instalacion_toa || '-'}</td>
           <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">${c.certificacion_toa || '-'}</td>
@@ -112,7 +201,7 @@ export function MopReportModal({
 
     return `
       <div style="font-family: Arial, sans-serif; color: #0f172a; margin-bottom: 8px;">
-        <p style="font-size: 13px; font-weight: bold; margin: 0 0 4px 0; color: #0f172a;">REPORTE PENDIENTE MOP – ${todayStr}</p>
+        <p style="font-size: 13px; font-weight: bold; margin: 0 0 4px 0; color: #0f172a;">${reportTitle}</p>
         <p style="font-size: 11px; color: #64748b; margin: 0 0 10px 0;">Total de CTOs: ${ctos.length}</p>
         <table style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 11px; border: 1px solid #cbd5e1;">
           <thead>
@@ -136,11 +225,39 @@ export function MopReportModal({
         </table>
       </div>
     `;
-  }, [ctos]);
+  }, [ctos, viewMode]);
 
   // Tab-Separated Values para pegar en Excel
   const reportTableTsv = useMemo(() => {
     if (ctos.length === 0) return '';
+    if (viewMode === 'cerradas') {
+      const headers = [
+        'Sigest CTO',
+        'Polígono',
+        'Central',
+        'CTO',
+        'Responsable CTO',
+        'Último Estado',
+        'Fecha Cierre',
+        'Última Aparición',
+        'Observación',
+        'Pestaña Origen'
+      ];
+      const rows = ctos.map(c => [
+        c.sigest,
+        c.poligono,
+        c.central || '-',
+        c.cto,
+        c.responsable_cto || '-',
+        c.estado,
+        formatDateTime(c.fecha_cierre_actualizacion || c.updated_at),
+        formatDateTime(c.fecha_ultima_aparicion),
+        (c.observacion || '-').replace(/\n/g, ' '),
+        c.categoria_origen
+      ].join('\t'));
+      return [headers.join('\t'), ...rows].join('\n');
+    }
+
     const headers = [
       'Sigest CTO',
       'Polígono',
@@ -159,7 +276,7 @@ export function MopReportModal({
       c.sigest,
       c.poligono,
       c.central || '-',
-      c.cto + (c.is_ausente ? ' (Ausente)' : ''),
+      c.cto,
       c.pelo || '-',
       c.instalacion_toa || '-',
       c.certificacion_toa || '-',
@@ -170,7 +287,7 @@ export function MopReportModal({
     ].join('\t'));
 
     return [headers.join('\t'), ...rows].join('\n');
-  }, [ctos]);
+  }, [ctos, viewMode]);
 
   if (!isOpen) return null;
 
@@ -232,7 +349,7 @@ export function MopReportModal({
             <FileText className="h-5 w-5 text-blue-600" />
             <div>
               <h2 className="text-base font-bold text-slate-900">
-                Generar Reporte — Pendiente MOP
+                {viewMode === 'cerradas' ? 'Generar Reporte — Historial de Cerradas MOP' : 'Generar Reporte — Pendiente MOP'}
               </h2>
               <p className="text-xs text-slate-500">
                 Vista previa y copiado con formato para Outlook, correo electrónico o Excel.
@@ -248,62 +365,58 @@ export function MopReportModal({
         </div>
 
         {/* Barra de Filtros Activos y Formato */}
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-2.5 rounded border border-slate-200 text-xs shrink-0">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="font-bold text-slate-700">Filtros aplicados:</span>
-            {activeFilters.length > 0 ? (
-              activeFilters.map((f, i) => (
-                <span
-                  key={i}
-                  className="bg-white border border-slate-300 text-slate-700 px-2 py-0.5 rounded text-[11px] font-medium"
-                >
-                  {f}
-                </span>
-              ))
-            ) : (
-              <span className="text-slate-500 italic">Todos los registros (sin filtros)</span>
-            )}
-            <span className="text-slate-300 mx-1">|</span>
-            <span className="font-bold text-blue-900 font-mono">
-              {ctos.length} {ctos.length === 1 ? 'CTO encontrada' : 'CTOs encontradas'}
-            </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-2.5 rounded border border-slate-200 text-xs shrink-0">
+          <div className="space-y-0.5">
+            <span className="font-semibold text-slate-700">Filtros aplicados en el reporte:</span>
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600">
+              {activeFilters.length > 0 ? (
+                activeFilters.map((f, i) => (
+                  <span key={i} className="bg-white border border-slate-300 px-2 py-0.5 rounded shadow-2xs font-medium">
+                    {f}
+                  </span>
+                ))
+              ) : (
+                <span className="italic text-slate-400">Todos los registros (sin filtros)</span>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-1 bg-white p-0.5 rounded border border-slate-200">
-            <button
-              onClick={() => setFormat('table')}
-              className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 transition-colors ${
-                format === 'table'
-                  ? 'bg-blue-600 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <TableIcon className="h-3.5 w-3.5" />
-              <span>Tabla Outlook / Excel</span>
-            </button>
-            <button
-              onClick={() => setFormat('text')}
-              className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 transition-colors ${
-                format === 'text'
-                  ? 'bg-blue-600 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <FileText className="h-3.5 w-3.5" />
-              <span>Texto Plano</span>
-            </button>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-500 text-[11px] font-semibold">Formato:</span>
+            <div className="inline-flex rounded border border-slate-300 p-0.5 bg-white">
+              <button
+                type="button"
+                onClick={() => setFormat('table')}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded transition-colors ${
+                  format === 'table' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <TableIcon className="h-3.5 w-3.5" />
+                <span>Tabla HTML (Outlook)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormat('text')}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded transition-colors ${
+                  format === 'text' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>Texto Plano</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Vista previa del contenido */}
-        <div className="flex-1 overflow-y-auto border border-slate-200 rounded p-3 bg-white text-xs font-sans max-h-[50vh]">
+        {/* Vista previa del Reporte */}
+        <div className="flex-1 overflow-y-auto border border-slate-200 rounded p-3 bg-slate-50/50">
           {format === 'table' ? (
             <div
-              className="prose prose-xs max-w-none"
+              className="bg-white p-3 rounded border border-slate-200 shadow-2xs overflow-x-auto"
               dangerouslySetInnerHTML={{ __html: reportTableHtml }}
             />
           ) : (
-            <pre className="font-mono text-xs text-slate-800 whitespace-pre-wrap leading-relaxed select-all">
+            <pre className="bg-white p-3 rounded border border-slate-200 shadow-2xs font-mono text-[11px] text-slate-800 whitespace-pre-wrap leading-relaxed select-all">
               {reportText}
             </pre>
           )}
@@ -311,11 +424,9 @@ export function MopReportModal({
 
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-slate-200 pt-3 shrink-0">
-          <span className="text-[11px] text-slate-500">
-            {format === 'table'
-              ? 'Al copiar en formato tabla, se conserva la estructura con bordes para pegar directamente en Outlook o Excel.'
-              : 'Al copiar en formato texto, se copia el listado agrupado por responsable.'}
-          </span>
+          <div className="text-xs text-slate-500">
+            Total en reporte: <strong className="text-slate-800 font-mono">{ctos.length}</strong> CTOs
+          </div>
 
           <div className="flex items-center gap-2">
             <button
@@ -325,25 +436,20 @@ export function MopReportModal({
             >
               Cerrar
             </button>
-
             <button
               type="button"
               onClick={handleCopy}
-              className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded shadow-sm transition-all ${
-                copied
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded shadow-xs transition-colors cursor-pointer"
             >
               {copied ? (
                 <>
-                  <Check className="h-4 w-4" />
+                  <Check className="h-4 w-4 text-emerald-300" />
                   <span>¡Copiado al portapapeles!</span>
                 </>
               ) : (
                 <>
                   <Copy className="h-4 w-4" />
-                  <span>Copiar Reporte</span>
+                  <span>{format === 'table' ? 'Copiar Tabla para Correo / Outlook' : 'Copiar Texto Plano'}</span>
                 </>
               )}
             </button>

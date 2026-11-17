@@ -81,7 +81,7 @@ export default function CargaMopPage() {
     if (res.success) {
       setIsPreviewModalOpen(false);
       setImportSuccessMsg(
-        `Importación completada con éxito. Se procesaron ${previewData.totalFound} CTOs (${previewData.newCount} nuevas, ${previewData.updateCount} actualizadas, ${previewData.absentCount} marcadas como ausentes).`
+        `Importación completada con éxito. Se procesaron ${previewData.totalFound} CTOs (${previewData.newCount} nuevas, ${previewData.updateCount} actualizadas, ${previewData.absentCount} cerradas por actualización).`
       );
       setSelectedFile(null);
       setPreviewData(null);

@@ -123,11 +123,11 @@ export function MopImportPreviewModal({
                 </div>
 
                 <div className="p-2 bg-slate-100 border border-slate-300 rounded">
-                  <span className="block text-[11px] text-slate-600 font-medium">Pasarán a Ausentes</span>
+                  <span className="block text-[11px] text-slate-700 font-semibold">Cierres por Actualización</span>
                   <span className="text-base font-extrabold font-mono text-slate-800">
                     {preview.absentCount}
                   </span>
-                  <span className="block text-[10px] text-slate-500 mt-0.5">No se eliminan ni modifican</span>
+                  <span className="block text-[10px] text-slate-500 mt-0.5">Trabajos cerrados. Conservan estado e historial</span>
                 </div>
               </div>
             </div>

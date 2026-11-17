@@ -7,12 +7,13 @@ import { MopMetricFilterKey, MopMetricStrip } from '@/lib/../components/mop/MopM
 import { LoadingState } from '@/lib/../components/shared/LoadingState';
 import { mopService } from '@/lib/mop/service';
 import { MopCto, MopMetrics } from '@/lib/types/database';
-import { Network, UploadCloud, FileText } from 'lucide-react';
+import { Network, UploadCloud, FileText, Archive, Radio } from 'lucide-react';
 import Link from 'next/link';
 import { getStoredAuthUser } from '@/lib/auth';
 import { MopReportModal } from '@/components/mop/MopReportModal';
 
 export default function PendienteMopPage() {
+  const [viewMode, setViewMode] = useState<'vigentes' | 'cerradas'>('vigentes');
   const [ctos, setCtos] = useState<MopCto[]>([]);
   const [totalRecords, setTotalRecords] = useState<number>(0);
   const [metrics, setMetrics] = useState<MopMetrics>({
@@ -20,7 +21,8 @@ export default function PendienteMopPage() {
     pendientes: 0,
     completadas: 0,
     conReparo: 0,
-    ausentes: 0
+    ausentes: 0,
+    cerradas: 0
   });
   const [filterOptions, setFilterOptions] = useState<{ responsables: string[]; centrales: string[] }>({
     responsables: [],
@@ -35,7 +37,6 @@ export default function PendienteMopPage() {
   const [responsable, setResponsable] = useState<string>('all');
   const [central, setCentral] = useState<string>('all');
   const [estado, setEstado] = useState<string>('all');
-  const [isAusenteFilter, setIsAusenteFilter] = useState<boolean>(false);
 
   // Métrica activa (filtro interactivo)
   const [activeMetricFilter, setActiveMetricFilter] = useState<MopMetricFilterKey>('all');
@@ -60,24 +61,20 @@ export default function PendienteMopPage() {
     setIsReportOpen(true);
 
     let effectiveEstado = estado;
-    let effectiveAusente: boolean | undefined = isAusenteFilter ? true : undefined;
-
     if (activeMetricFilter === 'pendientes') {
       effectiveEstado = 'PENDIENTE';
     } else if (activeMetricFilter === 'completadas') {
       effectiveEstado = 'COMPLETADO';
     } else if (activeMetricFilter === 'con_reparo') {
       effectiveEstado = 'CON REPARO';
-    } else if (activeMetricFilter === 'ausentes') {
-      effectiveAusente = true;
     }
 
     const res = await mopService.getMopCtos({
+      viewMode,
       categoria: category,
       responsable,
       central,
       estado: effectiveEstado,
-      isAusente: effectiveAusente,
       search,
       page: 1,
       pageSize: 10000,
@@ -91,17 +88,17 @@ export default function PendienteMopPage() {
 
   const getActiveFiltersList = () => {
     const list: string[] = [];
+    if (viewMode === 'cerradas') list.push('Vista: Historial Cerradas por Actualización');
+    else list.push('Vista: CTOs Vigentes');
     if (search.trim()) list.push(`Búsqueda: "${search.trim()}"`);
     if (category !== 'all') list.push(`Pestaña: ${category}`);
     if (responsable !== 'all') list.push(`Responsable: ${responsable}`);
     if (central !== 'all') list.push(`Central: ${central}`);
     if (estado !== 'all') list.push(`Estado: ${estado}`);
-    if (isAusenteFilter) list.push('Solo Ausentes');
     if (activeMetricFilter !== 'all') {
       if (activeMetricFilter === 'pendientes') list.push('Métrica: Pendientes');
       if (activeMetricFilter === 'completadas') list.push('Métrica: Completadas');
       if (activeMetricFilter === 'con_reparo') list.push('Métrica: Con Reparo');
-      if (activeMetricFilter === 'ausentes') list.push('Métrica: Ausentes');
     }
     return list;
   };
@@ -109,26 +106,21 @@ export default function PendienteMopPage() {
   const loadData = async () => {
     setIsLoading(true);
 
-    // Mapear métrica activa a estado o ausente
     let effectiveEstado = estado;
-    let effectiveAusente: boolean | undefined = isAusenteFilter ? true : undefined;
-
     if (activeMetricFilter === 'pendientes') {
       effectiveEstado = 'PENDIENTE';
     } else if (activeMetricFilter === 'completadas') {
       effectiveEstado = 'COMPLETADO';
     } else if (activeMetricFilter === 'con_reparo') {
       effectiveEstado = 'CON REPARO';
-    } else if (activeMetricFilter === 'ausentes') {
-      effectiveAusente = true;
     }
 
     const res = await mopService.getMopCtos({
+      viewMode,
       categoria: category,
       responsable,
       central,
       estado: effectiveEstado,
-      isAusente: effectiveAusente,
       search,
       page: currentPage,
       pageSize,
@@ -145,7 +137,7 @@ export default function PendienteMopPage() {
 
   useEffect(() => {
     loadData();
-  }, [category, responsable, central, estado, isAusenteFilter, activeMetricFilter, search, currentPage, pageSize, sortColumn, sortDirection]);
+  }, [viewMode, category, responsable, central, estado, activeMetricFilter, search, currentPage, pageSize, sortColumn, sortDirection]);
 
   const handleResetFilters = () => {
     setSearch('');
@@ -153,7 +145,6 @@ export default function PendienteMopPage() {
     setResponsable('all');
     setCentral('all');
     setEstado('all');
-    setIsAusenteFilter(false);
     setActiveMetricFilter('all');
     setCurrentPage(1);
   };
@@ -220,11 +211,72 @@ export default function PendienteMopPage() {
         </div>
       </div>
 
+      {/* Selector de Pestañas de Vista: CTOs Vigentes vs Historial Cerradas por Actualización */}
+      <div className="flex items-center gap-2 border-b border-slate-200">
+        <button
+          type="button"
+          onClick={() => {
+            setViewMode('vigentes');
+            setActiveMetricFilter('all');
+            setCurrentPage(1);
+          }}
+          className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+            viewMode === 'vigentes'
+              ? 'border-blue-600 text-blue-700 bg-blue-50/50'
+              : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+          }`}
+        >
+          <Radio className="h-4 w-4 text-blue-600" />
+          <span>CTOs Vigentes</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-blue-100 text-blue-800 font-bold">
+            {metrics.total}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setViewMode('cerradas');
+            setActiveMetricFilter('all');
+            setCurrentPage(1);
+          }}
+          className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+            viewMode === 'cerradas'
+              ? 'border-slate-800 text-slate-900 bg-slate-100'
+              : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+          }`}
+          title="Consultar historial de CTOs que dejaron de figurar en el Excel y fueron cerradas operativamente"
+        >
+          <Archive className="h-4 w-4 text-slate-500" />
+          <span>Historial Cerradas por Actualización</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-200 text-slate-800 font-bold">
+            {metrics.cerradas}
+          </span>
+        </button>
+      </div>
+
+      {/* Banner Informativo si se consulta el Historial de Cerradas */}
+      {viewMode === 'cerradas' && (
+        <div className="bg-slate-50 border border-slate-300 rounded p-3 text-xs text-slate-700 flex items-start gap-2.5">
+          <Archive className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
+          <div className="space-y-0.5">
+            <p className="font-bold text-slate-900">
+              Historial de CTOs Cerradas por Actualización ({totalRecords} registros)
+            </p>
+            <p className="text-slate-600 text-[11px]">
+              Estos registros corresponden a CTOs que figuraban en importaciones anteriores y ya no están presentes en el último Excel importado (trabajos ejecutados y cerrados operativamente). Se conservan su último estado operativo, observaciones y trazabilidad de fechas. Si alguna vuelve a aparecer en un archivo futuro, se reactivará automáticamente conservando su estado y observación.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* KPI Metric Strip */}
       <MopMetricStrip
         metrics={metrics}
         activeFilter={activeMetricFilter}
         onFilterChange={handleMetricFilterChange}
+        viewMode={viewMode}
+        onSwitchViewMode={setViewMode}
       />
 
       {/* Filtros avanzados */}
@@ -255,12 +307,6 @@ export default function PendienteMopPage() {
           setActiveMetricFilter('all');
           setCurrentPage(1);
         }}
-        isAusenteFilter={isAusenteFilter}
-        onIsAusenteFilterToggle={(val) => {
-          setIsAusenteFilter(val);
-          setActiveMetricFilter('all');
-          setCurrentPage(1);
-        }}
         responsablesList={filterOptions.responsables}
         centralesList={filterOptions.centrales}
         onResetFilters={handleResetFilters}
@@ -269,7 +315,7 @@ export default function PendienteMopPage() {
       {/* Tabla con estados de carga */}
       {isLoading && ctos.length === 0 ? (
         <LoadingState
-          title="Cargando CTOs de MOP..."
+          title={viewMode === 'cerradas' ? "Cargando historial de cerradas..." : "Cargando CTOs vigentes..."}
           message="Consultando registros y estados desde la base de datos."
         />
       ) : (
@@ -285,6 +331,7 @@ export default function PendienteMopPage() {
           onSortChange={handleSortChange}
           onRefresh={loadData}
           isLoading={isLoading}
+          viewMode={viewMode}
         />
       )}
 
@@ -294,6 +341,7 @@ export default function PendienteMopPage() {
         onClose={() => setIsReportOpen(false)}
         ctos={reportCtos.length > 0 ? reportCtos : ctos}
         activeFilters={getActiveFiltersList()}
+        viewMode={viewMode}
       />
     </div>
   );
