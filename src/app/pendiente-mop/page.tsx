@@ -7,16 +7,36 @@ import { MopMetricFilterKey, MopMetricStrip } from '@/lib/../components/mop/MopM
 import { LoadingState } from '@/lib/../components/shared/LoadingState';
 import { mopService } from '@/lib/mop/service';
 import { MopCto, MopMetrics } from '@/lib/types/database';
-import { Network, UploadCloud, FileText, Archive, Radio, LogIn } from 'lucide-react';
+import { Network, UploadCloud, FileText, Archive, Radio, LogIn, CalendarClock } from 'lucide-react';
 import Link from 'next/link';
 import { getStoredAuthUser } from '@/lib/auth';
 import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { MopReportModal } from '@/components/mop/MopReportModal';
 
+function formatDateTime(dateStr?: string | null): string {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '-';
+    return (
+      d.toLocaleDateString('es-AR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) + ' hs'
+    );
+  } catch {
+    return '-';
+  }
+}
+
 export default function PendienteMopPage() {
   const [viewMode, setViewMode] = useState<'vigentes' | 'cerradas'>('vigentes');
   const [ctos, setCtos] = useState<MopCto[]>([]);
   const [totalRecords, setTotalRecords] = useState<number>(0);
+  const [lastImportDate, setLastImportDate] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<MopMetrics>({
     total: 0,
     pendientes: 0,
@@ -149,6 +169,9 @@ export default function PendienteMopPage() {
     setTotalRecords(res.total);
     setMetrics(res.metrics);
     setFilterOptions(res.filterOptions);
+    if (res.lastImportDate) {
+      setLastImportDate(res.lastImportDate);
+    }
     setIsLoading(false);
   };
 
@@ -186,14 +209,26 @@ export default function PendienteMopPage() {
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 border border-slate-200 rounded shadow-2xs">
         <div>
-          <h1 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Network className="h-4 w-4 text-blue-600" />
-            <span>Pendiente MOP — Gestión y Seguimiento de CTOs</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <Network className="h-4 w-4 text-blue-600" />
+              <span>Pendiente MOP — Gestión y Seguimiento de CTOs</span>
+            </h1>
             <span className="text-[11px] bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded font-mono font-bold">
               {metrics.pendientes} pendientes
             </span>
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+            {lastImportDate && (
+              <span
+                className="inline-flex items-center gap-1.5 text-xs bg-slate-50 text-slate-700 border border-slate-300 px-2.5 py-0.5 rounded font-medium shadow-2xs"
+                title="Fecha y hora de la última importación de datos desde el archivo Excel MOP"
+              >
+                <CalendarClock className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                <span className="text-slate-500 uppercase tracking-wider text-[10px] font-bold">Última actualización:</span>
+                <strong className="font-mono text-slate-900">{formatDateTime(lastImportDate)}</strong>
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
             Consulta y trazabilidad operativa de cajas terminales ópticas importadas desde MOP por responsable y central.
           </p>
         </div>

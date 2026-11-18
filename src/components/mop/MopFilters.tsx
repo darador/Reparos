@@ -59,41 +59,50 @@ export function MopFilters({
   return (
     <div className="bg-white p-3 border border-slate-200 rounded shadow-2xs space-y-2.5 text-xs">
       {/* Botones de Pestaña de origen */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-50 border border-slate-200 rounded">
-        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-2 flex items-center gap-1">
-          <Layers className="h-3.5 w-3.5 text-slate-400" />
+      <div className="flex flex-wrap items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded-md">
+        <div className="flex items-center gap-1.5 px-2 text-[11px] font-bold text-slate-600 uppercase tracking-wider shrink-0">
+          <Layers className="h-4 w-4 text-blue-600" />
           <span>Pestañas:</span>
-        </span>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => onCategoryChange('all')}
-          className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
-            category === 'all'
-              ? 'bg-slate-900 text-white shadow-2xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
-          }`}
-        >
-          Todas
-        </button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onCategoryChange('all')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold border transition-all cursor-pointer shadow-2xs ${
+              category === 'all'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-xs ring-2 ring-slate-800/25'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 hover:border-slate-400 hover:text-slate-900 active:scale-98'
+            }`}
+            title="Mostrar CTOs de todas las pestañas"
+          >
+            <span>Todas</span>
+          </button>
 
-        {MOP_CATEGORIES.map(cat => {
-          const isSelected = category === cat.id;
-          return (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => onCategoryChange(cat.id)}
-              className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
-                isSelected
-                  ? 'bg-blue-600 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-blue-700 hover:bg-slate-200/70'
-              }`}
-            >
-              {cat.label}
-            </button>
-          );
-        })}
+          {MOP_CATEGORIES.map(cat => {
+            const isSelected = category === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => onCategoryChange(cat.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold border transition-all cursor-pointer shadow-2xs ${
+                  isSelected
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs font-bold ring-2 ring-blue-500/30'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-blue-50/70 hover:border-blue-400 hover:text-blue-700 active:scale-98'
+                }`}
+                title={`Filtrar exclusivamente registros de la pestaña ${cat.label}`}
+              >
+                <span
+                  className={`h-2 w-2 rounded-full transition-colors ${
+                    isSelected ? 'bg-white' : 'bg-slate-400'
+                  }`}
+                />
+                <span>{cat.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Barra de búsqueda y Selectores de Responsable, Central y Estado */}

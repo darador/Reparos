@@ -147,7 +147,13 @@ class MopService {
    * Obtiene el listado de CTOs con paginación, filtros combinados y ordenamiento.
    * Soporta viewMode: 'vigentes' (exclusivamente activas en último Excel) o 'cerradas' (historial cerradas por actualización).
    */
-  async getMopCtos(params: GetMopCtosParams = {}): Promise<{ data: MopCto[]; total: number; metrics: MopMetrics; filterOptions: { responsables: string[]; centrales: string[] } }> {
+  async getMopCtos(params: GetMopCtosParams = {}): Promise<{
+    data: MopCto[];
+    total: number;
+    metrics: MopMetrics;
+    filterOptions: { responsables: string[]; centrales: string[] };
+    lastImportDate?: string | null;
+  }> {
     const {
       viewMode = 'vigentes',
       categoria = 'all',
@@ -229,14 +235,18 @@ class MopService {
             fecha_cierre_actualizacion: d.fecha_cierre_actualizacion ?? (d.is_ausente ? d.updated_at : null)
           }));
 
-          // Obtener métricas y opciones de filtro para el contexto
-          const metrics = await this.getMopMetrics(params);
-          const filterOptions = await this.getFilterOptions();
+          // Obtener métricas, opciones de filtro y fecha de última importación para el contexto
+          const [metrics, filterOptions, lastImportDate] = await Promise.all([
+            this.getMopMetrics(params),
+            this.getFilterOptions(),
+            this.getLatestImportDate()
+          ]);
           return {
             data: mappedData,
             total: count || 0,
             metrics,
-            filterOptions
+            filterOptions,
+            lastImportDate
           };
         } else if (error) {
           console.warn("Supabase mop_ctos query notice, falling back to local store:", error.message);
@@ -307,11 +317,14 @@ class MopService {
     const metrics = this.computeMetricsFromList(this.inMemoryCtos);
     const filterOptions = this.computeFilterOptionsFromList(this.inMemoryCtos);
 
+    const lastImportDate = await this.getLatestImportDate();
+
     return {
       data: paginated,
       total,
       metrics,
-      filterOptions
+      filterOptions,
+      lastImportDate
     };
   }
 
@@ -1039,6 +1052,49 @@ class MopService {
       }
     }
     return this.inMemoryHistory;
+  }
+  /**
+   * Obtiene la fecha y hora de la última importación de datos exitosa
+   */
+  async getLatestImportDate(): Promise<string | null> {
+    const supabase = createClient();
+    if (supabase) {
+      try {
+        // 1. Intentar desde el historial de importaciones
+        const { data: histData, error: histErr } = await supabase
+          .from('mop_import_history')
+          .select('created_at')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!histErr && histData?.created_at) {
+          return histData.created_at;
+        }
+
+        // 2. Si no hay registros en history, consultar fecha_ultima_importacion en mop_ctos
+        const { data: ctoData, error: ctoErr } = await supabase
+          .from('mop_ctos')
+          .select('fecha_ultima_importacion')
+          .order('fecha_ultima_importacion', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!ctoErr && ctoData?.fecha_ultima_importacion) {
+          return ctoData.fecha_ultima_importacion;
+        }
+      } catch (e) {
+        // Fallback
+      }
+    }
+
+    if (this.inMemoryHistory.length > 0) {
+      return this.inMemoryHistory[0].created_at;
+    }
+    if (this.inMemoryCtos.length > 0) {
+      return this.inMemoryCtos[0].fecha_ultima_importacion || this.inMemoryCtos[0].updated_at;
+    }
+    return null;
   }
 }
 
