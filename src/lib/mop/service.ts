@@ -453,6 +453,11 @@ class MopService {
    * Actualiza el estado de una CTO
    */
   async updateMopStatus(id: string, newStatus: MopStatus): Promise<{ success: boolean; error?: string }> {
+    const authUser = getStoredAuthUser();
+    if (!authUser) {
+      return { success: false, error: 'Acceso denegado: se requieren permisos para modificar el estado.' };
+    }
+
     const user = this.getActiveUsername();
     const now = new Date().toISOString();
 
@@ -495,6 +500,11 @@ class MopService {
    * Actualiza la observación de una CTO
    */
   async updateMopObservacion(id: string, observacion: string): Promise<{ success: boolean; error?: string }> {
+    const authUser = getStoredAuthUser();
+    if (!authUser) {
+      return { success: false, error: 'Acceso denegado: se requieren permisos para modificar observaciones.' };
+    }
+
     const user = this.getActiveUsername();
     const now = new Date().toISOString();
 

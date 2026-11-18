@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { MopCto, MopStatus } from '@/lib/types/database';
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Edit3, MessageSquare, Radio, Archive } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Edit3, Eye, Lock, MessageSquare, Radio, Archive } from 'lucide-react';
 import { mopService } from '@/lib/mop/service';
 
 interface MopTableProps {
@@ -18,6 +18,7 @@ interface MopTableProps {
   onRefresh: () => void;
   isLoading?: boolean;
   viewMode?: 'vigentes' | 'cerradas';
+  canEdit?: boolean;
 }
 
 function formatDateTime(dateStr?: string | null): string {
@@ -49,7 +50,8 @@ export function MopTable({
   onSortChange,
   onRefresh,
   isLoading = false,
-  viewMode = 'vigentes'
+  viewMode = 'vigentes',
+  canEdit = false
 }: MopTableProps) {
   // Modal / Edición de Observación
   const [editingObservacionCto, setEditingObservacionCto] = useState<MopCto | null>(null);
@@ -65,7 +67,7 @@ export function MopTable({
   };
 
   const handleSaveObservacion = async () => {
-    if (!editingObservacionCto) return;
+    if (!canEdit || !editingObservacionCto) return;
     setIsSavingObs(true);
     await mopService.updateMopObservacion(editingObservacionCto.id, observacionText);
     setIsSavingObs(false);
@@ -74,6 +76,7 @@ export function MopTable({
   };
 
   const handleChangeStatus = async (cto: MopCto, newStatus: MopStatus) => {
+    if (!canEdit) return;
     if (cto.estado === newStatus) return;
     setUpdatingStatusId(cto.id);
     await mopService.updateMopStatus(cto.id, newStatus);
@@ -179,7 +182,7 @@ export function MopTable({
                 {/* 7. Responsable CTO */}
                 {renderSortHeader('responsable', '7. Responsable CTO', 'min-w-[130px]')}
                 {/* 8. Estado */}
-                {renderSortHeader('estado', '8. Estado', 'min-w-[140px]')}
+                {renderSortHeader('estado', canEdit ? '8. Estado' : '8. Estado (Solo lectura)', 'min-w-[140px]')}
                 {/* 9. Observación */}
                 <th className="min-w-[180px]">9. Observación</th>
               </tr>
@@ -268,24 +271,39 @@ export function MopTable({
                       {formatDateTime(cto.fecha_ultima_aparicion)}
                     </td>
 
-                    {/* 8. Observación (Editable) */}
+                    {/* 8. Observación */}
                     <td>
                       <div className="flex items-center justify-between gap-1 max-w-[240px]">
                         <span
                           className={`text-xs truncate ${
                             cto.observacion ? 'text-slate-800' : 'text-slate-400 italic'
-                          }`}
+                          } ${!canEdit && cto.observacion ? 'cursor-pointer hover:underline' : ''}`}
+                          onClick={() => {
+                            if (!canEdit && cto.observacion) {
+                              handleOpenObservacion(cto);
+                            }
+                          }}
                           title={cto.observacion || 'Sin observación'}
                         >
                           {cto.observacion || 'Sin observación'}
                         </span>
-                        <button
-                          onClick={() => handleOpenObservacion(cto)}
-                          className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-blue-600 transition-colors shrink-0"
-                          title="Editar observación"
-                        >
-                          <Edit3 className="h-3.5 w-3.5" />
-                        </button>
+                        {canEdit ? (
+                          <button
+                            onClick={() => handleOpenObservacion(cto)}
+                            className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-blue-600 transition-colors shrink-0 cursor-pointer"
+                            title="Editar observación"
+                          >
+                            <Edit3 className="h-3.5 w-3.5" />
+                          </button>
+                        ) : cto.observacion ? (
+                          <button
+                            onClick={() => handleOpenObservacion(cto)}
+                            className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600 transition-colors shrink-0 cursor-pointer"
+                            title="Ver observación completa"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -354,41 +372,67 @@ export function MopTable({
                     )}
                   </td>
 
-                  {/* 8. Estado (Editable) */}
+                  {/* 8. Estado (Editable si canEdit, Bloqueado si no) */}
                   <td>
-                    <select
-                      value={cto.estado}
-                      disabled={isUpdating}
-                      onChange={(e) => handleChangeStatus(cto, e.target.value as MopStatus)}
-                      className={`text-xs font-bold py-1 px-2 rounded border cursor-pointer transition-colors shadow-2xs focus:ring-1 focus:ring-blue-500 ${getStatusBadgeClass(
-                        cto.estado
-                      )} ${isUpdating ? 'opacity-50 cursor-wait' : ''}`}
-                      title="Haz clic para modificar el estado de la CTO"
-                    >
-                      <option value="PENDIENTE">PENDIENTE</option>
-                      <option value="COMPLETADO">COMPLETADO</option>
-                      <option value="CON REPARO">CON REPARO</option>
-                    </select>
+                    {canEdit ? (
+                      <select
+                        value={cto.estado}
+                        disabled={isUpdating}
+                        onChange={(e) => handleChangeStatus(cto, e.target.value as MopStatus)}
+                        className={`text-xs font-bold py-1 px-2 rounded border cursor-pointer transition-colors shadow-2xs focus:ring-1 focus:ring-blue-500 ${getStatusBadgeClass(
+                          cto.estado
+                        )} ${isUpdating ? 'opacity-50 cursor-wait' : ''}`}
+                        title="Haz clic para modificar el estado de la CTO"
+                      >
+                        <option value="PENDIENTE">PENDIENTE</option>
+                        <option value="COMPLETADO">COMPLETADO</option>
+                        <option value="CON REPARO">CON REPARO</option>
+                      </select>
+                    ) : (
+                      <span
+                        className={`inline-block text-xs font-bold py-1 px-2.5 rounded border shadow-2xs select-none cursor-default ${getStatusBadgeClass(
+                          cto.estado
+                        )}`}
+                        title="Estado operativo (solo lectura: inicie sesión para modificar)"
+                      >
+                        {cto.estado}
+                      </span>
+                    )}
                   </td>
 
-                  {/* 9. Observación (Editable) */}
+                  {/* 9. Observación */}
                   <td>
                     <div className="flex items-center justify-between gap-1 max-w-[240px]">
                       <span
                         className={`text-xs truncate ${
                           cto.observacion ? 'text-slate-800' : 'text-slate-400 italic'
-                        }`}
-                        title={cto.observacion || 'Sin observación'}
+                        } ${!canEdit && cto.observacion ? 'cursor-pointer hover:underline' : ''}`}
+                        onClick={() => {
+                          if (!canEdit && cto.observacion) {
+                            handleOpenObservacion(cto);
+                          }
+                        }}
+                        title={cto.observacion ? `${cto.observacion} (haz clic para ver completa)` : 'Sin observación'}
                       >
                         {cto.observacion || 'Sin observación'}
                       </span>
-                      <button
-                        onClick={() => handleOpenObservacion(cto)}
-                        className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-blue-600 transition-colors shrink-0"
-                        title="Editar observación"
-                      >
-                        <Edit3 className="h-3.5 w-3.5" />
-                      </button>
+                      {canEdit ? (
+                        <button
+                          onClick={() => handleOpenObservacion(cto)}
+                          className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-blue-600 transition-colors shrink-0 cursor-pointer"
+                          title="Editar observación"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                        </button>
+                      ) : cto.observacion ? (
+                        <button
+                          onClick={() => handleOpenObservacion(cto)}
+                          className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600 transition-colors shrink-0 cursor-pointer"
+                          title="Ver observación completa"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -447,14 +491,17 @@ export function MopTable({
         </div>
       </div>
 
-      {/* Modal de edición de observación */}
+      {/* Modal de visualización o edición de observación */}
       {editingObservacionCto && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded border border-slate-300 shadow-xl max-w-md w-full p-4 space-y-3 animate-in fade-in zoom-in-95 duration-100">
             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
               <div className="flex items-center gap-1.5 font-bold text-sm text-slate-900">
                 <MessageSquare className="h-4 w-4 text-blue-600" />
-                <span>Observación de CTO: {editingObservacionCto.cto}</span>
+                <span>
+                  Observación de CTO: {editingObservacionCto.cto}
+                  {!canEdit && <span className="ml-1 text-xs font-normal text-slate-500">(Solo lectura)</span>}
+                </span>
               </div>
               <span className="text-xs font-mono text-slate-500">
                 {editingObservacionCto.sigest} / {editingObservacionCto.poligono}
@@ -467,10 +514,15 @@ export function MopTable({
               </label>
               <textarea
                 value={observacionText}
-                onChange={(e) => setObservacionText(e.target.value)}
-                placeholder="Escriba aquí los detalles operativos o aclaraciones para esta CTO..."
+                readOnly={!canEdit}
+                onChange={(e) => canEdit && setObservacionText(e.target.value)}
+                placeholder={canEdit ? "Escriba aquí los detalles operativos o aclaraciones para esta CTO..." : "Sin observación registrada."}
                 rows={4}
-                className="w-full p-2 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full p-2 border border-slate-300 rounded text-xs ${
+                  canEdit
+                    ? "focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    : "bg-slate-50 text-slate-800 cursor-default"
+                }`}
               />
             </div>
 
@@ -479,18 +531,20 @@ export function MopTable({
                 type="button"
                 onClick={() => setEditingObservacionCto(null)}
                 disabled={isSavingObs}
-                className="px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 rounded border border-slate-300 transition-colors"
+                className="px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 rounded border border-slate-300 transition-colors cursor-pointer"
               >
-                Cancelar
+                {canEdit ? 'Cancelar' : 'Cerrar'}
               </button>
-              <button
-                type="button"
-                onClick={handleSaveObservacion}
-                disabled={isSavingObs}
-                className="px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors shadow-xs"
-              >
-                {isSavingObs ? 'Guardando...' : 'Guardar Observación'}
-              </button>
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={handleSaveObservacion}
+                  disabled={isSavingObs}
+                  className="px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors shadow-xs cursor-pointer"
+                >
+                  {isSavingObs ? 'Guardando...' : 'Guardar Observación'}
+                </button>
+              )}
             </div>
           </div>
         </div>

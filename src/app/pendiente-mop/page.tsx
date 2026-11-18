@@ -7,9 +7,10 @@ import { MopMetricFilterKey, MopMetricStrip } from '@/lib/../components/mop/MopM
 import { LoadingState } from '@/lib/../components/shared/LoadingState';
 import { mopService } from '@/lib/mop/service';
 import { MopCto, MopMetrics } from '@/lib/types/database';
-import { Network, UploadCloud, FileText, Archive, Radio } from 'lucide-react';
+import { Network, UploadCloud, FileText, Archive, Radio, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import { getStoredAuthUser } from '@/lib/auth';
+import { createClient as createBrowserClient } from '@/lib/supabase/client';
 import { MopReportModal } from '@/components/mop/MopReportModal';
 
 export default function PendienteMopPage() {
@@ -53,7 +54,23 @@ export default function PendienteMopPage() {
   const [isLoadingReport, setIsLoadingReport] = useState<boolean>(false);
 
   useEffect(() => {
-    setIsAuthenticated(!!getStoredAuthUser());
+    const user = getStoredAuthUser();
+    setIsAuthenticated(!!user);
+
+    const supabase = createBrowserClient();
+    if (supabase) {
+      supabase.auth.getUser().then(({ data: { user: sbUser } }) => {
+        setIsAuthenticated(!!sbUser || !!getStoredAuthUser());
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setIsAuthenticated(!!session?.user || !!getStoredAuthUser());
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
   }, []);
 
   const handleOpenReport = async () => {
@@ -205,7 +222,8 @@ export default function PendienteMopPage() {
               href="/login"
               className="inline-flex items-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded shadow-xs transition-colors"
             >
-              <span>Iniciar Sesión</span>
+              <LogIn className="h-3.5 w-3.5" />
+              <span>Iniciar Sesión para Editar</span>
             </Link>
           )}
         </div>
@@ -332,6 +350,7 @@ export default function PendienteMopPage() {
           onRefresh={loadData}
           isLoading={isLoading}
           viewMode={viewMode}
+          canEdit={isAuthenticated}
         />
       )}
 
