@@ -510,14 +510,9 @@ class MopService {
   }
 
   /**
-   * Actualiza la observación de una CTO
+   * Actualiza la observación de una CTO (habilitado para todos los usuarios)
    */
   async updateMopObservacion(id: string, observacion: string): Promise<{ success: boolean; error?: string }> {
-    const authUser = getStoredAuthUser();
-    if (!authUser) {
-      return { success: false, error: 'Acceso denegado: se requieren permisos para modificar observaciones.' };
-    }
-
     const user = this.getActiveUsername();
     const now = new Date().toISOString();
 
